@@ -11,27 +11,28 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
-import type { Role } from "@/lib/types";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
+import { users } from "@/lib/mock-data";
 
 export default function LoginPage() {
-  const [role, setRole] = React.useState<Role | "">("");
   const [cpf, setCpf] = React.useState("");
   const router = useRouter();
+  const { toast } = useToast();
 
   const handleLogin = () => {
-    if (role) {
-      // Here you would typically validate the CPF against the selected role
-      router.push(`/${role}/dashboard`);
+    const user = users.find((u) => u.cpf === cpf);
+
+    if (user) {
+      router.push(`/${user.role}/dashboard`);
+    } else {
+      toast({
+        variant: "destructive",
+        title: "Falha no Login",
+        description: "CPF não encontrado. Verifique os dados e tente novamente.",
+      });
     }
   };
 
@@ -40,7 +41,7 @@ export default function LoginPage() {
     setCpf(onlyNumbers);
   };
 
-  const isLoginDisabled = !role || (role !== 'admin' && cpf.length !== 11);
+  const isLoginDisabled = cpf.length !== 11;
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -51,37 +52,22 @@ export default function LoginPage() {
           </div>
           <CardTitle className="font-headline text-3xl">Acompanhante Tarefa360</CardTitle>
           <CardDescription>
-            Faça login para continuar para o seu painel
+            Faça login com seu CPF para continuar
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-             <div className="space-y-2">
-              <Label htmlFor="role">Selecione sua Função</Label>
-              <Select onValueChange={(value: Role) => setRole(value)} value={role}>
-                <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Escolha uma função..." />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="admin">Administrador</SelectItem>
-                  <SelectItem value="appraiser">Avaliador</SelectItem>
-                  <SelectItem value="appraisee">Avaliado</SelectItem>
-                </SelectContent>
-              </Select>
+            <div className="space-y-2">
+              <Label htmlFor="cpf">CPF</Label>
+              <Input 
+                id="cpf" 
+                placeholder="Digite seu CPF (apenas números)" 
+                value={cpf}
+                onChange={handleCpfChange}
+                maxLength={11}
+                onKeyDown={(e) => e.key === 'Enter' && !isLoginDisabled && handleLogin()}
+              />
             </div>
-
-            {role && role !== 'admin' && (
-              <div className="space-y-2">
-                <Label htmlFor="cpf">CPF</Label>
-                <Input 
-                  id="cpf" 
-                  placeholder="Digite seu CPF (apenas números)" 
-                  value={cpf}
-                  onChange={handleCpfChange}
-                  maxLength={11}
-                />
-              </div>
-            )}
             
             <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
               Login
