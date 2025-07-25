@@ -21,16 +21,26 @@ import {
 import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import type { Role } from "@/lib/types";
+import { Input } from "@/components/ui/input";
 
 export default function LoginPage() {
   const [role, setRole] = React.useState<Role | "">("");
+  const [cpf, setCpf] = React.useState("");
   const router = useRouter();
 
   const handleLogin = () => {
     if (role) {
+      // Here you would typically validate the CPF against the selected role
       router.push(`/${role}/dashboard`);
     }
   };
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
+    setCpf(onlyNumbers);
+  };
+
+  const isLoginDisabled = !role || (role !== 'admin' && cpf.length !== 11);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -46,7 +56,7 @@ export default function LoginPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
-            <div className="space-y-2">
+             <div className="space-y-2">
               <Label htmlFor="role">Selecione sua Função</Label>
               <Select onValueChange={(value: Role) => setRole(value)} value={role}>
                 <SelectTrigger id="role" className="w-full">
@@ -59,7 +69,21 @@ export default function LoginPage() {
                 </SelectContent>
               </Select>
             </div>
-            <Button onClick={handleLogin} disabled={!role} className="w-full">
+
+            {role && role !== 'admin' && (
+              <div className="space-y-2">
+                <Label htmlFor="cpf">CPF</Label>
+                <Input 
+                  id="cpf" 
+                  placeholder="Digite seu CPF (apenas números)" 
+                  value={cpf}
+                  onChange={handleCpfChange}
+                  maxLength={11}
+                />
+              </div>
+            )}
+            
+            <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
               Login
             </Button>
           </div>
@@ -68,5 +92,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

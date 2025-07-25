@@ -53,7 +53,20 @@ import {
 import { Input } from "@/components/ui/input";
 
 const UserFormModal = ({ user }: { user: User | null }) => {
+  const [cpf, setCpf] = React.useState(user?.cpf || '');
+  
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
+    setCpf(onlyNumbers);
+  };
+
   if (!user) return null;
+  
+  // Need to set the initial state for cpf when user changes
+  React.useEffect(() => {
+    setCpf(user?.cpf || '');
+  }, [user]);
+
 
   return (
     <DialogContent>
@@ -69,6 +82,12 @@ const UserFormModal = ({ user }: { user: User | null }) => {
             Nome
           </Label>
           <Input id="name" defaultValue={user.name} className="col-span-3" />
+        </div>
+         <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="cpf" className="text-right">
+            CPF (Login)
+          </Label>
+          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-3" placeholder="Apenas números" />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="email" className="text-right">
@@ -139,8 +158,8 @@ export default function AdminDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
+                        <TableHead>Nome Social</TableHead>
+                        <TableHead>CPF</TableHead>
                         <TableHead>Função</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -148,8 +167,8 @@ export default function AdminDashboard() {
                     <TableBody>
                       {users.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
+                          <TableCell>{user.socialName}</TableCell>
+                          <TableCell>{user.cpf}</TableCell>
                           <TableCell><Badge variant="secondary" className="capitalize">{user.role}</Badge></TableCell>
                           <TableCell className="text-right">
                             <DialogTrigger asChild>

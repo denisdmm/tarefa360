@@ -9,6 +9,7 @@ export interface User {
   role: Role;
   title: string;
   avatarUrl: string;
+  cpf: string;
   appraiserId?: string;
   appraiseeIds?: string[];
 }
@@ -35,5 +36,3 @@ export interface Association {
     appraiseeId: string;
     appraiserId: string;
 }
-
-    
