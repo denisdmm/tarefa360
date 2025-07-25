@@ -7,7 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { evaluationPeriods as mockPeriods, users } from "@/lib/mock-data";
 import { Badge } from "@/components/ui/badge";
-import { Printer } from "lucide-react";
+import { Eye } from "lucide-react";
 import { format } from "date-fns";
 import { useRouter } from "next/navigation";
 
@@ -20,14 +20,14 @@ export default function ReportsPage() {
     const router = useRouter();
     const currentUser = users.find(u => u.id === FAKE_LOGGED_IN_USER_ID);
 
-    const handlePrint = (periodId: string) => {
+    const handleView = (periodId: string) => {
         if (!currentUser) return;
         
         let reportUrl = '';
 
         if (currentUser.role === 'appraisee') {
-            // Appraisee prints their own report
-            reportUrl = `/appraiser/appraisee/${currentUser.id}`; // The print view is on this page
+            // Appraisee views their own report
+            reportUrl = `/appraiser/appraisee/${currentUser.id}`;
         } else if (currentUser.role === 'appraiser') {
             // For this example, let's just use the first appraisee of the appraiser
             const appraiseeId = currentUser.appraiseeIds?.[0];
@@ -37,15 +37,9 @@ export default function ReportsPage() {
         }
         
         // In a real app, we might pass the periodId to the report page
-        // so it can filter the activities for that specific period before printing.
-        // For now, it just opens the report page which has its own print logic.
+        // so it can filter the activities for that specific period.
         if(reportUrl) {
-            const printWindow = window.open(reportUrl, '_blank');
-            printWindow?.addEventListener('load', () => {
-                setTimeout(() => { // Give it a moment to render
-                    printWindow.print();
-                }, 500);
-            });
+            router.push(reportUrl);
         }
     };
 
@@ -82,9 +76,9 @@ export default function ReportsPage() {
                                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                                         </TableCell>
                                         <TableCell className="text-right">
-                                            <Button onClick={() => handlePrint(period.id)}>
-                                                <Printer className="mr-2 h-4 w-4" />
-                                                Gerar PDF
+                                            <Button onClick={() => handleView(period.id)}>
+                                                <Eye className="mr-2 h-4 w-4" />
+                                                Visualizar
                                             </Button>
                                         </TableCell>
                                     </TableRow>
