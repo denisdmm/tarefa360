@@ -54,10 +54,7 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, MessageS
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 
 const ActivityForm = ({
@@ -73,25 +70,30 @@ const ActivityForm = ({
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [startDate, setStartDate] = React.useState<Date | undefined>(new Date());
-  const [endDate, setEndDate] = React.useState<Date | undefined>(new Date());
+  const [startDateStr, setStartDateStr] = React.useState('');
+  const [endDateStr, setEndDateStr] = React.useState('');
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
 
   // States for the new progress entry form
   const [currentProgress, setCurrentProgress] = React.useState(0);
   const [currentComment, setCurrentComment] = React.useState("");
 
+  const { toast } = useToast();
   const { evaluationPeriods } = useDataContext();
+  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
   const currentMonth = getMonth(new Date()) + 1; // 1-12
   const currentYear = getYear(new Date());
 
   const canAddProgressForCurrentMonth = React.useMemo(() => {
-    if (!startDate || !endDate) return false;
+    const startDate = parse(startDateStr, 'dd/MM/yyyy', new Date());
+    const endDate = parse(endDateStr, 'dd/MM/yyyy', new Date());
+    if (!isValid(startDate) || !isValid(endDate)) return false;
+
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     return today >= startDate && today <= endDate;
-  }, [startDate, endDate]);
+  }, [startDateStr, endDateStr]);
 
   const hasProgressForCurrentMonth = React.useMemo(() => {
     return progressHistory.some(p => p.year === currentYear && p.month === currentMonth);
@@ -101,15 +103,15 @@ const ActivityForm = ({
     if (activity) {
         setTitle(activity.title || "");
         setDescription(activity.description || "");
-        setStartDate(activity.startDate || new Date());
-        setEndDate(activity.endDate || new Date());
+        setStartDateStr(activity.startDate ? format(activity.startDate, 'dd/MM/yyyy') : '');
+        setEndDateStr(activity.endDate ? format(activity.endDate, 'dd/MM/yyyy') : '');
         setProgressHistory(activity.progressHistory || []);
     } else {
         // Reset for new activity
         setTitle("");
         setDescription("");
-        setStartDate(new Date());
-        setEndDate(new Date());
+        setStartDateStr(format(new Date(), 'dd/MM/yyyy'));
+        setEndDateStr('');
         setProgressHistory([]);
     }
     // Reset progress form fields whenever the activity changes
@@ -138,9 +140,31 @@ const ActivityForm = ({
     setCurrentComment("");
   };
 
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: string) => void) => {
+    let value = e.target.value.replace(/\D/g, ''); // Remove all non-digits
+    if (value.length > 8) value = value.slice(0, 8);
+    
+    if (value.length > 4) {
+      value = `${value.slice(0, 2)}/${value.slice(2, 4)}/${value.slice(4)}`;
+    } else if (value.length > 2) {
+      value = `${value.slice(0, 2)}/${value.slice(2)}`;
+    }
+    setter(value);
+  };
 
   const handleSubmit = () => {
-    if (!startDate || !endDate) return;
+    const startDate = parse(startDateStr, 'dd/MM/yyyy', new Date());
+    const endDate = parse(endDateStr, 'dd/MM/yyyy', new Date());
+    
+    if (!isValid(startDate) || !isValid(endDate)) {
+        toast({
+            variant: "destructive",
+            title: "Data Inválida",
+            description: "Por favor, insira datas de início e fim válidas no formato DD/MM/AAAA.",
+        });
+        return;
+    }
+
     const newActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
       title,
@@ -185,29 +209,25 @@ const ActivityForm = ({
               <Label htmlFor="description" className="text-right">Descrição</Label>
               <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
+             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !startDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {startDate ? format(startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={startDate} onSelect={setStartDate} initialFocus locale={ptBR}/></PopoverContent>
-                </Popover>
+                <Input 
+                    id="start-date"
+                    value={startDateStr}
+                    onChange={(e) => handleDateChange(e, setStartDateStr)}
+                    placeholder="DD/MM/AAAA"
+                    className="col-span-3"
+                />
             </div>
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
-                <Popover>
-                    <PopoverTrigger asChild>
-                    <Button variant={"outline"} className={cn("col-span-3 justify-start text-left font-normal", !endDate && "text-muted-foreground")}>
-                        <CalendarIcon className="mr-2 h-4 w-4" />
-                        {endDate ? format(endDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
-                    </Button>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0"><Calendar mode="single" selected={endDate} onSelect={setEndDate} initialFocus locale={ptBR}/></PopoverContent>
-                </Popover>
+                 <Input 
+                    id="end-date"
+                    value={endDateStr}
+                    onChange={(e) => handleDateChange(e, setEndDateStr)}
+                    placeholder="DD/MM/AAAA"
+                    className="col-span-3"
+                />
             </div>
         </div>
 
@@ -449,3 +469,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
