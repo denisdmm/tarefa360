@@ -30,6 +30,7 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
+  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -54,13 +55,10 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, Activity
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, parse, isValid, startOfDay, isFuture } from 'date-fns';
+import { format, getMonth, getYear, parse, isValid, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
-import { cn } from "@/lib/utils";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-
 
 const ActivityForm = ({
   activity,
@@ -80,50 +78,46 @@ const ActivityForm = ({
   const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
   const [isEndDatePickerOpen, setEndDatePickerOpen] = React.useState(false);
 
-
   const { toast } = useToast();
 
   React.useEffect(() => {
     if (activity) {
-        setTitle(activity.title || "");
-        setDescription(activity.description || "");
-        setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
-        setEndDate(activity.endDate ? startOfDay(activity.endDate) : undefined);
+      setTitle(activity.title || "");
+      setDescription(activity.description || "");
+      setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
+      setEndDate(activity.endDate ? startOfDay(activity.endDate) : undefined);
     } else {
-        // Reset for new activity
-        setTitle("");
-        setDescription("");
-        setStartDate(startOfDay(new Date()));
-        setEndDate(undefined);
+      setTitle("");
+      setDescription("");
+      setStartDate(startOfDay(new Date()));
+      setEndDate(undefined);
     }
   }, [activity]);
 
-  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>, setter: (value: Date | undefined) => void) => {
-    const value = e.target.value;
-    const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
-    if (isValid(parsedDate)) {
-        setter(parsedDate);
+  const handleDateChange = (date: Date | undefined, setter: (value: Date | undefined) => void) => {
+    if (date) {
+      setter(startOfDay(date));
     } else {
-        setter(undefined);
+      setter(undefined);
     }
   };
 
   const handleSubmit = () => {
     if (!startDate || !endDate) {
-        toast({
-            variant: "destructive",
-            title: "Data Inválida",
-            description: "Por favor, insira datas de início e fim válidas.",
-        });
-        return;
+      toast({
+        variant: "destructive",
+        title: "Data Inválida",
+        description: "Por favor, insira datas de início e fim válidas.",
+      });
+      return;
     }
-     if (endDate < startDate) {
-        toast({
-            variant: "destructive",
-            title: "Data Inválida",
-            description: "A data de fim não pode ser anterior à data de início.",
-        });
-        return;
+    if (endDate < startDate) {
+      toast({
+        variant: "destructive",
+        title: "Data Inválida",
+        description: "A data de fim não pode ser anterior à data de início.",
+      });
+      return;
     }
 
     const newActivity: Activity = {
@@ -138,7 +132,7 @@ const ActivityForm = ({
     onSave(newActivity);
     onClose();
   };
-  
+
   return (
     <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
@@ -150,75 +144,62 @@ const ActivityForm = ({
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
-        {/* Activity Details Form */}
         <div className="space-y-4">
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="title" className="text-right">Título</Label>
-              <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
-            </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="description" className="text-right">Descrição</Label>
-              <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-                <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                         <div className="col-span-3 relative">
-                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                             <Input 
-                                id="start-date"
-                                value={startDate ? format(startDate, 'dd/MM/yyyy') : ''}
-                                onChange={(e) => handleDateChange(e, setStartDate)}
-                                placeholder="DD/MM/AAAA"
-                                className="pl-10"
-                            />
-                         </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={startDate}
-                            onSelect={(date) => {
-                                setStartDate(date);
-                                setStartDatePickerOpen(false);
-                            }}
-                            initialFocus
-                            locale={ptBR}
-                        />
-                    </PopoverContent>
-                </Popover>
-            </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
-                <Popover open={isEndDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
-                    <PopoverTrigger asChild>
-                         <div className="col-span-3 relative">
-                             <CalendarIcon className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                             <Input 
-                                id="end-date"
-                                value={endDate ? format(endDate, 'dd/MM/yyyy') : ''}
-                                onChange={(e) => handleDateChange(e, setEndDate)}
-                                placeholder="DD/MM/AAAA"
-                                className="pl-10"
-                            />
-                         </div>
-                    </PopoverTrigger>
-                    <PopoverContent className="w-auto p-0" align="start">
-                        <Calendar
-                            mode="single"
-                            selected={endDate}
-                            onSelect={(date) => {
-                                setEndDate(date);
-                                setEndDatePickerOpen(false);
-                            }}
-                            disabled={{ before: startDate }}
-                            initialFocus
-                            locale={ptBR}
-                        />
-                    </PopoverContent>
-                </Popover>
-            </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="title" className="text-right">Título</Label>
+            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="description" className="text-right">Descrição</Label>
+            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="start-date" className="text-right">Data de Início</Label>
+            <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="col-span-3 justify-start font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {startDate ? format(startDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={startDate}
+                  onSelect={(date) => {
+                    handleDateChange(date, setStartDate);
+                    setStartDatePickerOpen(false);
+                  }}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
+          <div className="grid grid-cols-4 items-center gap-4">
+            <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
+            <Popover open={isEndDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
+              <PopoverTrigger asChild>
+                <Button variant="outline" className="col-span-3 justify-start font-normal">
+                  <CalendarIcon className="mr-2 h-4 w-4" />
+                  {endDate ? format(endDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
+                </Button>
+              </PopoverTrigger>
+              <PopoverContent className="w-auto p-0" align="start">
+                <Calendar
+                  mode="single"
+                  selected={endDate}
+                  onSelect={(date) => {
+                    handleDateChange(date, setEndDate);
+                    setEndDatePickerOpen(false);
+                  }}
+                  disabled={{ before: startDate || new Date() }}
+                  initialFocus
+                  locale={ptBR}
+                />
+              </PopoverContent>
+            </Popover>
+          </div>
         </div>
       </div>
       <DialogFooter>
@@ -228,7 +209,6 @@ const ActivityForm = ({
     </DialogContent>
   );
 };
-
 
 const ProgressForm = ({
   activity,
@@ -261,14 +241,14 @@ const ProgressForm = ({
     setProgressHistory(activity.progressHistory || []);
     const existingEntry = activity.progressHistory?.find(p => p.year === currentYear && p.month === currentMonth);
     if (existingEntry) {
-        setCurrentProgress(existingEntry.percentage);
-        setCurrentComment(existingEntry.comment);
+      setCurrentProgress(existingEntry.percentage);
+      setCurrentComment(existingEntry.comment);
     } else {
-        setCurrentProgress(0);
-        setCurrentComment("");
+      setCurrentProgress(0);
+      setCurrentComment("");
     }
   }, [activity, currentYear, currentMonth]);
-  
+
   const handleSaveProgress = () => {
     if (!canAddProgressForCurrentMonth) {
       toast({
@@ -294,7 +274,7 @@ const ProgressForm = ({
     } else {
       updatedHistory.push(newEntry);
     }
-    
+
     const updatedActivity = { ...activity, progressHistory: updatedHistory };
     onSave(updatedActivity);
     onClose();
@@ -302,48 +282,120 @@ const ProgressForm = ({
 
   return (
     <DialogContent>
-        <DialogHeader>
-            <DialogTitle>Registrar Progresso de Atividade</DialogTitle>
-            <DialogDescription>
-                Atualize o andamento de "{activity.title}" para o mês de {format(new Date(), 'MMMM', {locale: ptBR})}.
-            </DialogDescription>
-        </DialogHeader>
-        <div className="py-4 space-y-4">
-             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="current-progress" className="text-right">Conclusão (%)</Label>
-                <Input 
-                    id="current-progress" 
-                    type="number" 
-                    value={currentProgress} 
-                    onChange={(e) => setCurrentProgress(Number(e.target.value))} 
-                    min="0" 
-                    max="100"
-                    disabled={!canAddProgressForCurrentMonth}
-                    className="col-span-3"
-                />
-             </div>
-             <div className="grid grid-cols-4 items-center gap-4">
-                 <Label htmlFor="current-comment" className="text-right">Comentário</Label>
-                 <Textarea 
-                    id="current-comment" 
-                    value={currentComment} 
-                    onChange={e => setCurrentComment(e.target.value)} 
-                    className="col-span-3" 
-                    placeholder="Descreva o que foi feito este mês..."
-                    disabled={!canAddProgressForCurrentMonth}
-                 />
-             </div>
-             {!canAddProgressForCurrentMonth && (
-                 <p className="text-center text-sm text-destructive">Não é possível registrar progresso para esta atividade no mês atual.</p>
-             )}
+      <DialogHeader>
+        <DialogTitle>Registrar Progresso de Atividade</DialogTitle>
+        <DialogDescription>
+          Atualize o andamento de "{activity.title}" para o mês de {format(new Date(), 'MMMM', { locale: ptBR })}.
+        </DialogDescription>
+      </DialogHeader>
+      <div className="py-4 space-y-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="current-progress" className="text-right">Conclusão (%)</Label>
+          <Input
+            id="current-progress"
+            type="number"
+            value={currentProgress}
+            onChange={(e) => setCurrentProgress(Number(e.target.value))}
+            min="0"
+            max="100"
+            disabled={!canAddProgressForCurrentMonth}
+            className="col-span-3"
+          />
         </div>
-        <DialogFooter>
-            <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-            <Button onClick={handleSaveProgress} disabled={!canAddProgressForCurrentMonth}>
-                {hasProgressForCurrentMonth ? 'Atualizar Progresso' : 'Salvar Progresso'}
-            </Button>
-        </DialogFooter>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="current-comment" className="text-right">Comentário</Label>
+          <Textarea
+            id="current-comment"
+            value={currentComment}
+            onChange={e => setCurrentComment(e.target.value)}
+            className="col-span-3"
+            placeholder="Descreva o que foi feito este mês..."
+            disabled={!canAddProgressForCurrentMonth}
+          />
+        </div>
+        {!canAddProgressForCurrentMonth && (
+          <p className="text-center text-sm text-destructive">Não é possível registrar progresso para esta atividade no mês atual.</p>
+        )}
+      </div>
+      <DialogFooter>
+        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+        <Button onClick={handleSaveProgress} disabled={!canAddProgressForCurrentMonth}>
+          {hasProgressForCurrentMonth ? 'Atualizar Progresso' : 'Salvar Progresso'}
+        </Button>
+      </DialogFooter>
     </DialogContent>
+  );
+};
+
+
+const ActivityCard = ({
+  activity,
+  onEdit,
+  onSave,
+  onDelete,
+  latestProgress,
+}: {
+  activity: Activity;
+  onEdit: (activity: Activity) => void;
+  onSave: (activity: Activity) => void;
+  onDelete: (activityId: string) => void;
+  latestProgress: number;
+}) => {
+  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
+
+  return (
+    <>
+      <Card className="flex flex-col">
+        <CardHeader>
+          <CardTitle>{activity.title}</CardTitle>
+          <CardDescription>
+            {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex-grow">
+          <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
+          <Progress value={latestProgress} aria-label={`${latestProgress}% completo`} />
+          <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
+        </CardContent>
+        <CardFooter className="flex justify-end gap-2">
+          <Button variant="secondary" size="sm" onClick={() => setProgressFormOpen(true)}>
+            <ActivityIcon className="mr-2 h-4 w-4" /> Registrar Progresso
+          </Button>
+          <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
+            <Edit className="mr-2 h-4 w-4" /> Editar
+          </Button>
+          <AlertDialog>
+            <AlertDialogTrigger asChild>
+              <Button variant="destructive" size="sm">
+                <Trash2 className="mr-2 h-4 w-4" />
+              </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => onDelete(activity.id)}>
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+          </AlertDialog>
+        </CardFooter>
+      </Card>
+
+      <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
+        <ProgressForm
+          activity={activity}
+          onSave={onSave}
+          onClose={() => setProgressFormOpen(false)}
+        />
+      </Dialog>
+    </>
   );
 };
 
@@ -355,7 +407,6 @@ export default function AppraiseeDashboard() {
   const userActivities = activities.filter(a => a.userId === currentUserId);
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
-  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
 
   const getLatestProgress = (activity: Activity) => {
@@ -379,20 +430,14 @@ export default function AppraiseeDashboard() {
     }
     handleCloseForms();
   };
-  
+
   const handleOpenActivityForm = (activity: Activity | null) => {
     setSelectedActivity(activity);
     setActivityFormOpen(true);
   }
 
-  const handleOpenProgressForm = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setProgressFormOpen(true);
-  }
-
   const handleCloseForms = () => {
     setActivityFormOpen(false);
-    setProgressFormOpen(false);
     setSelectedActivity(null);
   }
 
@@ -400,156 +445,111 @@ export default function AppraiseeDashboard() {
     setActivities(prevActivities => prevActivities.filter(a => a.id !== activityId));
     toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
-  
+
   const inProgressActivities = userActivities.filter(a => getLatestProgress(a) < 100);
   const completedActivities = userActivities.filter(a => getLatestProgress(a) === 100);
 
   return (
     <>
       <div className="flex flex-col h-full">
-         <header className="bg-card border-b p-4">
-           <div className="flex justify-between items-center">
-             <div>
-               <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>
-               <p className="text-muted-foreground">Gerencie suas tarefas e progressos em andamento.</p>
-             </div>
-             <Button onClick={() => handleOpenActivityForm(null)}>
-               <PlusCircle className="mr-2 h-4 w-4" />
-               Registrar Atividade
-             </Button>
-           </div>
+        <header className="bg-card border-b p-4">
+          <div className="flex justify-between items-center">
+            <div>
+              <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>
+              <p className="text-muted-foreground">Gerencie suas tarefas e progressos em andamento.</p>
+            </div>
+            <Button onClick={() => handleOpenActivityForm(null)}>
+              <PlusCircle className="mr-2 h-4 w-4" />
+              Registrar Atividade
+            </Button>
+          </div>
         </header>
 
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           <Tabs defaultValue="in-progress">
-              <TabsList className="mb-4">
-                  <TabsTrigger value="in-progress"><ListTodo className="mr-2"/>Em Andamento</TabsTrigger>
-                  <TabsTrigger value="completed"><CheckCircle className="mr-2"/>Concluídas</TabsTrigger>
-              </TabsList>
-              <TabsContent value="in-progress">
-                  <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                    {inProgressActivities.map((activity) => {
-                      const latestProgress = getLatestProgress(activity);
-                      return (
-                      <Card key={activity.id} className="flex flex-col">
-                        <CardHeader>
-                          <CardTitle>{activity.title}</CardTitle>
-                          <CardDescription>
-                             {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
-                          </CardDescription>
-                        </CardHeader>
-                        <CardContent className="flex-grow">
-                          <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
-                          <Progress value={latestProgress} aria-label={`${latestProgress}% completo`} />
-                          <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
-                        </CardContent>
-                        <CardFooter className="flex justify-end gap-2">
-                            <Button variant="secondary" size="sm" onClick={() => handleOpenProgressForm(activity)}>
-                                <ActivityIcon className="mr-2 h-4 w-4" /> Registrar Progresso
-                            </Button>
-                            <Button variant="outline" size="sm" onClick={() => handleOpenActivityForm(activity)}>
-                                <Edit className="mr-2 h-4 w-4" /> Editar
-                            </Button>
-                           <AlertDialog>
-                              <AlertDialogTrigger asChild>
-                                <Button variant="destructive" size="sm">
-                                  <Trash2 className="mr-2 h-4 w-4" />
-                                </Button>
-                              </AlertDialogTrigger>
-                              <AlertDialogContent>
-                                <AlertDialogHeader>
-                                  <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                  <AlertDialogDescription>
-                                    Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
-                                  </AlertDialogDescription>
-                                </AlertDialogHeader>
-                                <AlertDialogFooter>
-                                  <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                  <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
-                                    Excluir
-                                  </AlertDialogAction>
-                                </AlertDialogFooter>
-                              </AlertDialogContent>
-                           </AlertDialog>
-                        </CardFooter>
-                      </Card>
-                    )})}
-                    {inProgressActivities.length === 0 && (
-                        <div className="col-span-full text-center py-12">
-                            <CheckCircle className="mx-auto h-12 w-12 text-green-500"/>
-                            <h2 className="mt-4 text-xl font-semibold">Tudo em dia!</h2>
-                            <p className="text-muted-foreground">Você não possui atividades pendentes.</p>
-                        </div>
-                    )}
+            <TabsList className="mb-4">
+              <TabsTrigger value="in-progress"><ListTodo className="mr-2" />Em Andamento</TabsTrigger>
+              <TabsTrigger value="completed"><CheckCircle className="mr-2" />Concluídas</TabsTrigger>
+            </TabsList>
+            <TabsContent value="in-progress">
+              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {inProgressActivities.map((activity) => (
+                  <ActivityCard
+                    key={activity.id}
+                    activity={activity}
+                    onEdit={handleOpenActivityForm}
+                    onSave={handleSaveActivity}
+                    onDelete={handleDeleteActivity}
+                    latestProgress={getLatestProgress(activity)}
+                  />
+                ))}
+                {inProgressActivities.length === 0 && (
+                  <div className="col-span-full text-center py-12">
+                    <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                    <h2 className="mt-4 text-xl font-semibold">Tudo em dia!</h2>
+                    <p className="text-muted-foreground">Você não possui atividades pendentes.</p>
                   </div>
-              </TabsContent>
-              <TabsContent value="completed">
-                <Card>
-                    <CardHeader>
-                        <CardTitle>Histórico de Atividades</CardTitle>
-                        <CardDescription>Atividades que você já finalizou.</CardDescription>
-                    </CardHeader>
-                    <CardContent>
-                        <Table>
-                            <TableHeader>
-                                <TableRow>
-                                    <TableHead>Título</TableHead>
-                                    <TableHead>Período</TableHead>
-                                    <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
-                                </TableRow>
-                            </TableHeader>
-                            <TableBody>
-                                {completedActivities.length > 0 ? (
-                                    completedActivities.map(activity => (
-                                        <TableRow key={activity.id}>
-                                            <TableCell className="font-medium">{activity.title}</TableCell>
-                                            <TableCell>
-                                              {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
-                                            </TableCell>
-                                            <TableCell>
-                                                <Badge>Concluído</Badge>
-                                            </TableCell>
-                                            <TableCell className="text-right">
-                                                <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </TableCell>
-                                        </TableRow>
-                                    ))
-                                ) : (
-                                    <TableRow>
-                                        <TableCell colSpan={4} className="h-24 text-center">Nenhuma atividade concluída ainda.</TableCell>
-                                    </TableRow>
-                                )}
-                            </TableBody>
-                        </Table>
-                    </CardContent>
-                </Card>
-              </TabsContent>
+                )}
+              </div>
+            </TabsContent>
+            <TabsContent value="completed">
+              <Card>
+                <CardHeader>
+                  <CardTitle>Histórico de Atividades</CardTitle>
+                  <CardDescription>Atividades que você já finalizou.</CardDescription>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Título</TableHead>
+                        <TableHead>Período</TableHead>
+                        <TableHead>Status</TableHead>
+                        <TableHead className="text-right">Ações</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {completedActivities.length > 0 ? (
+                        completedActivities.map(activity => (
+                          <TableRow key={activity.id}>
+                            <TableCell className="font-medium">{activity.title}</TableCell>
+                            <TableCell>
+                              {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                            </TableCell>
+                            <TableCell>
+                              <Badge>Concluído</Badge>
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity)}>
+                                <Edit className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={4} className="h-24 text-center">Nenhuma atividade concluída ainda.</TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
+            </TabsContent>
           </Tabs>
         </main>
-        
+
         <Dialog open={isActivityFormOpen} onOpenChange={setActivityFormOpen}>
-            {selectedActivity !== undefined && (
-                <ActivityForm 
-                    activity={selectedActivity} 
-                    onSave={handleSaveActivity} 
-                    onClose={handleCloseForms}
-                    currentUserId={currentUserId}
-                />
-            )}
+          {isActivityFormOpen && ( // Render only when open to re-mount and fetch correct state
+            <ActivityForm
+              activity={selectedActivity}
+              onSave={handleSaveActivity}
+              onClose={handleCloseForms}
+              currentUserId={currentUserId}
+            />
+          )}
         </Dialog>
 
-        <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
-            {selectedActivity && (
-                <ProgressForm 
-                    activity={selectedActivity}
-                    onSave={handleSaveActivity}
-                    onClose={handleCloseForms}
-                />
-            )}
-        </Dialog>
       </div>
     </>
   );
