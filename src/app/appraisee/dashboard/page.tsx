@@ -28,9 +28,6 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -63,6 +60,9 @@ import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 
+const monthMap: { [key: string]: number } = { "Janeiro": 0, "Fevereiro": 1, "Março": 2, "Abril": 3, "Maio": 4, "Junho": 5, "Julho": 6, "Agosto": 7, "Setembro": 8, "Outubro": 9, "Novembro": 10, "Dezembro": 11 };
+const monthNames = Object.keys(monthMap);
+
 const ActivityForm = ({
   activity,
   onSave,
@@ -76,7 +76,10 @@ const ActivityForm = ({
   const [description, setDescription] = React.useState("");
   const [month, setMonth] = React.useState("");
   const [percentage, setPercentage] = React.useState(0);
+  const [isFutureMonth, setIsFutureMonth] = React.useState(false);
   
+  const { evaluationPeriods } = useDataContext();
+
   React.useEffect(() => {
     setTitle(activity?.title || "");
     setDescription(activity?.description || "");
@@ -84,6 +87,36 @@ const ActivityForm = ({
     setPercentage(activity?.completionPercentage || 0);
   }, [activity]);
 
+  React.useEffect(() => {
+    if (!month) {
+        setIsFutureMonth(false);
+        return;
+    }
+
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+    const selectedMonthIndex = monthMap[month];
+
+    const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+    if (!activePeriod) {
+        setIsFutureMonth(false);
+        return;
+    }
+    
+    // Determine the year for the selected month based on the evaluation period
+    const startYear = activePeriod.startDate.getFullYear();
+    const endYear = activePeriod.endDate.getFullYear();
+    const monthYear = selectedMonthIndex >= monthMap['Novembro'] ? startYear : endYear;
+
+    const isFuture = monthYear > currentYear || (monthYear === currentYear && selectedMonthIndex > currentMonth);
+    setIsFutureMonth(isFuture);
+    
+    // If it's a new activity for a future month, force percentage to 0
+    if (!activity && isFuture) {
+      setPercentage(0);
+    }
+  }, [month, activity, evaluationPeriods]);
 
   const handleSubmit = () => {
     const newActivity: Activity = {
@@ -124,7 +157,7 @@ const ActivityForm = ({
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
-              {[ "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro" ].map(m => (
+              {monthNames.map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
@@ -132,7 +165,15 @@ const ActivityForm = ({
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="percentage" className="text-right">Conclusão</Label>
-          <Input id="percentage" type="number" value={percentage} onChange={(e) => setPercentage(Number(e.target.value))} className="col-span-3" />
+          <Input 
+            id="percentage" 
+            type="number" 
+            value={percentage} 
+            onChange={(e) => setPercentage(Number(e.target.value))} 
+            className="col-span-3" 
+            disabled={isFutureMonth}
+            title={isFutureMonth ? "Não é possível editar a conclusão de uma atividade futura." : ""}
+          />
         </div>
       </div>
       <DialogFooter>
@@ -155,10 +196,10 @@ export default function AppraiseeDashboard() {
   const handleSaveActivity = (activity: Activity) => {
     const isEditing = activities.some(a => a.id === activity.id);
     if (isEditing) {
-      setActivities(activities.map(a => a.id === activity.id ? activity : a));
+      setActivities(prevActivities => prevActivities.map(a => a.id === activity.id ? activity : a));
       toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
-      setActivities([activity, ...activities]);
+      setActivities(prevActivities => [activity, ...prevActivities]);
       toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
   };
@@ -174,7 +215,7 @@ export default function AppraiseeDashboard() {
   }
 
   const handleDeleteActivity = (activityId: string) => {
-    setActivities(activities.filter(a => a.id !== activityId));
+    setActivities(prevActivities => prevActivities.filter(a => a.id !== activityId));
     toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
   
@@ -311,3 +352,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
