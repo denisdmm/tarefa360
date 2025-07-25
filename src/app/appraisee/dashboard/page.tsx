@@ -57,11 +57,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { activities as mockActivities } from "@/lib/mock-data";
 import type { Activity } from "@/lib/types";
 import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
+import { useDataContext } from "@/context/DataContext";
 
 const ActivityForm = ({
   activity,
@@ -95,6 +95,7 @@ const ActivityForm = ({
       userId: activity?.userId || 'user-appraisee-1',
     };
     onSave(newActivity);
+    onClose();
   };
 
   return (
@@ -135,7 +136,7 @@ const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
         <Button onClick={handleSubmit}>Salvar Atividade</Button>
       </DialogFooter>
     </>
@@ -145,7 +146,9 @@ const ActivityForm = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const [activities, setActivities] = React.useState<Activity[]>(mockActivities.filter(a => a.userId === 'user-appraisee-1'));
+  const { activities, setActivities } = useDataContext();
+  const userActivities = activities.filter(a => a.userId === 'user-appraisee-1');
+
   const [isFormOpen, setFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
 
@@ -158,8 +161,6 @@ export default function AppraiseeDashboard() {
       setActivities([activity, ...activities]);
       toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
-    setFormOpen(false);
-    setSelectedActivity(null);
   };
   
   const handleOpenForm = (activity: Activity | null) => {
@@ -167,13 +168,18 @@ export default function AppraiseeDashboard() {
     setFormOpen(true);
   }
 
+  const handleCloseForm = () => {
+    setFormOpen(false);
+    setSelectedActivity(null);
+  }
+
   const handleDeleteActivity = (activityId: string) => {
     setActivities(activities.filter(a => a.id !== activityId));
     toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
   
-  const inProgressActivities = activities.filter(a => a.completionPercentage < 100);
-  const completedActivities = activities.filter(a => a.completionPercentage === 100);
+  const inProgressActivities = userActivities.filter(a => a.completionPercentage < 100);
+  const completedActivities = userActivities.filter(a => a.completionPercentage === 100);
 
   return (
     <>
@@ -297,10 +303,7 @@ export default function AppraiseeDashboard() {
                 <ActivityForm 
                     activity={selectedActivity} 
                     onSave={handleSaveActivity} 
-                    onClose={() => {
-                        setFormOpen(false);
-                        setSelectedActivity(null);
-                    }}
+                    onClose={handleCloseForm}
                 />
             </DialogContent>
         </Dialog>
@@ -308,5 +311,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    

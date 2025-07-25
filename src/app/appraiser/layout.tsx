@@ -19,11 +19,12 @@ import { LogOut, LayoutDashboard, Briefcase, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
-import { users } from "@/lib/mock-data";
+import { useDataContext } from "@/context/DataContext";
 
 export default function AppraiserLayout({ children }: { children: React.ReactNode }) {
   const pathname = usePathname();
   const isActive = (path: string) => pathname.startsWith(path);
+  const { users } = useDataContext();
   const appraiser = users.find(u => u.role === 'appraiser');
 
   return (

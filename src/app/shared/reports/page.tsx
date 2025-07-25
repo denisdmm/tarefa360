@@ -5,7 +5,7 @@ import * as React from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { evaluationPeriods as mockPeriods, users } from "@/lib/mock-data";
+import { useDataContext } from "@/context/DataContext";
 import { Badge } from "@/components/ui/badge";
 import { Eye } from "lucide-react";
 import { format } from "date-fns";
@@ -18,6 +18,7 @@ const FAKE_LOGGED_IN_USER_ID = 'user-appraisee-1';
 
 export default function ReportsPage() {
     const router = useRouter();
+    const { users, evaluationPeriods } = useDataContext();
     const currentUser = users.find(u => u.id === FAKE_LOGGED_IN_USER_ID);
 
     const handleView = (periodId: string) => {
@@ -62,7 +63,7 @@ export default function ReportsPage() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {mockPeriods.map((period) => (
+                                {evaluationPeriods.map((period) => (
                                     <TableRow key={period.id}>
                                         <TableCell className="font-medium">{period.name}</TableCell>
                                         <TableCell>{format(period.startDate, 'dd/MM/yyyy')}</TableCell>

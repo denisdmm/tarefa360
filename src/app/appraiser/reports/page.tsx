@@ -24,10 +24,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
-import {
-  evaluationPeriods as mockPeriods,
-  users as mockUsers,
-} from "@/lib/mock-data";
+import { useDataContext } from "@/context/DataContext";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, FileText } from "lucide-react";
@@ -41,17 +38,18 @@ const FAKE_LOGGED_IN_APPRAISER_ID = 'user-appraiser-1';
 
 export default function AppraiserReports() {
   const router = useRouter();
+  const { users, evaluationPeriods } = useDataContext();
   const [appraiser, setAppraiser] = React.useState<User | null>(null);
   const [appraisees, setAppraisees] = React.useState<User[]>([]);
 
   React.useEffect(() => {
-    const foundAppraiser = mockUsers.find(u => u.id === FAKE_LOGGED_IN_APPRAISER_ID);
+    const foundAppraiser = users.find(u => u.id === FAKE_LOGGED_IN_APPRAISER_ID);
     if (foundAppraiser) {
         setAppraiser(foundAppraiser);
-        const foundAppraisees = mockUsers.filter(u => foundAppraiser.appraiseeIds?.includes(u.id));
+        const foundAppraisees = users.filter(u => foundAppraiser.appraiseeIds?.includes(u.id));
         setAppraisees(foundAppraisees);
     }
-  }, []);
+  }, [users]);
   
   const handleViewOwnReport = (periodId: string) => {
     // Appraiser views their own report, so they are the appraisee in this context
@@ -159,7 +157,7 @@ export default function AppraiserReports() {
                     </TableRow>
                   </TableHeader>
                   <TableBody>
-                    {mockPeriods.map((period) => (
+                    {evaluationPeriods.map((period) => (
                       <TableRow key={period.id}>
                         <TableCell className="font-medium">
                           {period.name}

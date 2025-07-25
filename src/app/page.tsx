@@ -15,12 +15,13 @@ import { Label } from "@/components/ui/label";
 import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { users } from "@/lib/mock-data";
+import { useDataContext } from "@/context/DataContext";
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
+  const { users } = useDataContext();
 
   const handleLogin = () => {
     const user = users.find((u) => u.cpf === cpf);

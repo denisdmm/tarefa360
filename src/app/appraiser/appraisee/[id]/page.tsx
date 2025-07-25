@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { activities, users, evaluationPeriods } from "@/lib/mock-data";
+import { useDataContext } from '@/context/DataContext';
 import type { Activity, User } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
@@ -36,6 +36,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
 export default function AppraiseeDetailView({ params }: { params: { id: string } }) {
+  const { users, activities, evaluationPeriods } = useDataContext();
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [userActivities, setUserActivities] = React.useState<Activity[]>([]);
   const [filteredActivities, setFilteredActivities] = React.useState<Activity[]>([]);
@@ -47,7 +48,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     setAppraisee(foundUser);
     const activitiesForUser = activities.filter(a => a.userId === params.id);
     setUserActivities(activitiesForUser);
-  }, [params.id]);
+  }, [params.id, users, activities]);
 
   React.useEffect(() => {
     if (monthFilter === 'all') {
@@ -242,8 +243,8 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   <tbody>
                   {groupedActivities[month].map(activity => (
                      <tr key={activity.id}>
-                       <td className="w-[15%] p-2 border-r border-b border-black text-center">{activity.completionPercentage}%</td>
-                       <td className="p-2 border-b border-black text-center">{activity.title}</td>
+                       <td className="w-[15%] p-2 border border-black text-center">{activity.completionPercentage}%</td>
+                       <td className="p-2 border border-black text-center">{activity.title}</td>
                      </tr>
                   ))}
                   </tbody>

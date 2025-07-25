@@ -19,10 +19,11 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { users } from "@/lib/mock-data";
+import { useDataContext } from "@/context/DataContext";
 import { FileText } from "lucide-react";
 
 export default function AppraiserDashboard() {
+  const { users } = useDataContext();
   const appraiserId = 'user-appraiser-1'; // Avaliador logado mockado
   const appraisees = users.filter(user => user.role === 'appraisee' && user.appraiserId === appraiserId);
 
@@ -88,5 +89,3 @@ export default function AppraiserDashboard() {
     </div>
   );
 }
-
-    

@@ -31,11 +31,6 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
-import {
-  users as mockUsers,
-  evaluationPeriods as mockPeriods,
-  associations as mockAssociations,
-} from "@/lib/mock-data";
 import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -53,8 +48,10 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { useDataContext } from "@/context/DataContext";
 
-const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
+
+const UserFormModal = ({ user, onSave }: { user: User | null; onSave: (user: User) => void; }) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [socialName, setSocialName] = React.useState('');
@@ -64,6 +61,7 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
   const [role, setRole] = React.useState<Role>('appraisee');
 
   const { toast } = useToast();
+  const { users } = useDataContext();
   
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
@@ -184,9 +182,7 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
         <DialogClose asChild>
           <Button variant="outline">Cancelar</Button>
         </DialogClose>
-        <DialogClose asChild>
-          <Button onClick={handleSave}>Salvar Alterações</Button>
-        </DialogClose>
+        <Button onClick={handleSave}>Salvar Alterações</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -195,12 +191,10 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
 const PeriodFormModal = ({
   period,
   onSave,
-  periods,
   onClose,
 }: {
   period: EvaluationPeriod | null;
   onSave: (period: EvaluationPeriod) => void;
-  periods: EvaluationPeriod[];
   onClose: () => void;
 }) => {
   const [name, setName] = React.useState('');
@@ -208,6 +202,7 @@ const PeriodFormModal = ({
   const [endDate, setEndDate] = React.useState('');
   const [status, setStatus] = React.useState<'Ativo' | 'Inativo'>('Inativo');
   const { toast } = useToast();
+  const { evaluationPeriods } = useDataContext();
 
   React.useEffect(() => {
     if (period) {
@@ -236,7 +231,7 @@ const PeriodFormModal = ({
     
     // Validation: Only one active period allowed
     if (status === 'Ativo') {
-        const hasOtherActivePeriod = periods.some(p => p.status === 'Ativo' && p.id !== period?.id);
+        const hasOtherActivePeriod = evaluationPeriods.some(p => p.status === 'Ativo' && p.id !== period?.id);
         if (hasOtherActivePeriod) {
             toast({
                 variant: "destructive",
@@ -301,9 +296,15 @@ const PeriodFormModal = ({
 
 
 export default function AdminDashboard() {
-  const [users, setUsers] = React.useState<User[]>(mockUsers);
-  const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(mockPeriods);
-  const [associations, setAssociations] = React.useState<Association[]>(mockAssociations);
+  const { 
+    users, 
+    setUsers, 
+    evaluationPeriods, 
+    setEvaluationPeriods,
+    associations,
+    setAssociations,
+   } = useDataContext();
+
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedPeriod, setSelectedPeriod] = React.useState<EvaluationPeriod | null>(null);
   const [isUserModalOpen, setUserModalOpen] = React.useState(false);
@@ -351,6 +352,7 @@ export default function AdminDashboard() {
         description: `O período "${periodName}" foi criado e definido como ativo.`,
       });
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []); // Runs only once on component mount
 
 
@@ -460,13 +462,12 @@ export default function AdminDashboard() {
   return (
     <>
       <Dialog open={isUserModalOpen} onOpenChange={setUserModalOpen}>
-        <UserFormModal user={selectedUser} onSave={handleSaveUser} users={users} />
+        <UserFormModal user={selectedUser} onSave={handleSaveUser} />
       </Dialog>
       <Dialog open={isPeriodModalOpen} onOpenChange={setPeriodModalOpen}>
         <PeriodFormModal 
             period={selectedPeriod} 
             onSave={handleSavePeriod} 
-            periods={evaluationPeriods} 
             onClose={() => {
                 setPeriodModalOpen(false);
                 setSelectedPeriod(null);
