@@ -78,6 +78,7 @@ const ActivityForm = ({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState('');
+  const [dateError, setDateError] = React.useState<string | null>(null);
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
 
   const [isAddingProgress, setIsAddingProgress] = React.useState(false);
@@ -85,25 +86,43 @@ const ActivityForm = ({
 
   const { toast } = useToast();
   
-  const isSaveDisabled = React.useMemo(() => {
-    if (isReadOnly) return true;
-
-    // Title is mandatory
-    if (!title.trim()) {
-        return true;
+  const validateStartDate = (dateString: string) => {
+    if (activity) { // No validation when editing
+        setDateError(null);
+        return;
     }
 
-    // Start date is mandatory and must be a valid date string
-    if (!startDate) {
-        return true;
+    if (!dateString) {
+        setDateError("A data de início é obrigatória.");
+        return;
     }
-    const parsedDate = new Date(startDate);
-    if (isNaN(parsedDate.getTime())) { // Invalid date
-        return true;
+
+    const parsedDate = new Date(dateString);
+    if (isNaN(parsedDate.getTime())) {
+        setDateError("Formato de data inválido.");
+        return;
     }
     
+    if (activePeriod) {
+        const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
+        if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
+            setDateError("A data deve estar dentro do período de avaliação ativo.");
+        } else {
+            setDateError(null);
+        }
+    } else {
+        setDateError(null); // No active period, no validation
+    }
+  };
+
+  const isSaveDisabled = React.useMemo(() => {
+    if (isReadOnly) return true;
+    if (!title.trim()) return true;
+    if (!startDate) return true;
+    if (dateError) return true;
+    
     return false;
-  }, [title, startDate, isReadOnly]);
+  }, [title, startDate, dateError, isReadOnly]);
 
 
   React.useEffect(() => {
@@ -118,6 +137,7 @@ const ActivityForm = ({
       setDescription("");
       setStartDate('');
       setProgressHistory([]);
+      setDateError(null);
     }
   }, [activity]);
 
@@ -171,7 +191,7 @@ const ActivityForm = ({
             toast({
                 variant: "destructive",
                 title: "Data Inválida",
-                description: "Data inválida para o período de avaliação.",
+                description: "A data deve estar dentro do período de avaliação ativo.",
             });
             return;
         }
@@ -219,16 +239,20 @@ const ActivityForm = ({
                 <Label htmlFor="description" className="text-right">Descrição</Label>
                 <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" readOnly={isReadOnly} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-              <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-              <Input
-                id="start-date"
-                type="date"
-                value={startDate}
-                onChange={e => setStartDate(e.target.value)}
-                className="col-span-3"
-                readOnly={isReadOnly}
-              />
+             <div className="grid grid-cols-4 items-start gap-4">
+                <Label htmlFor="start-date" className="text-right pt-2">Data de Início</Label>
+                <div className="col-span-3">
+                    <Input
+                        id="start-date"
+                        type="date"
+                        value={startDate}
+                        onChange={e => setStartDate(e.target.value)}
+                        onBlur={e => validateStartDate(e.target.value)}
+                        className={cn(dateError && "border-destructive")}
+                        readOnly={isReadOnly}
+                    />
+                    {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
+                </div>
             </div>
         </div>
 
@@ -375,7 +399,7 @@ const ActivityCard = ({
       <CardHeader>
         <CardTitle>{activity.title}</CardTitle>
         <CardDescription>
-          Iniciada em {activity.startDate ? format(activity.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
+          Iniciada em {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -540,7 +564,7 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell>
-                              {activity.startDate ? format(activity.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'N/A'}
+                              {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>
