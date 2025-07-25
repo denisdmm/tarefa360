@@ -54,12 +54,13 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { cn } from "@/lib/utils";
 
 const ActivityForm = ({
   activity,
@@ -76,6 +77,8 @@ const ActivityForm = ({
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState<Date | undefined>();
   const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
+  const [startDateInput, setStartDateInput] = React.useState("");
+  const [isDateInvalid, setIsDateInvalid] = React.useState(false);
 
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
   const [currentProgress, setCurrentProgress] = React.useState(0);
@@ -123,12 +126,18 @@ const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
+      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : undefined;
+      setStartDate(activityStartDate);
+       if (activityStartDate) {
+        setStartDateInput(format(activityStartDate, "dd/MM/yyyy"));
+      }
       setProgressHistory(activity.progressHistory || []);
     } else {
       setTitle("");
       setDescription("");
-      setStartDate(startOfDay(new Date()));
+      const today = startOfDay(new Date());
+      setStartDate(today);
+      setStartDateInput(format(today, 'dd/MM/yyyy'));
       setProgressHistory([]);
       setCurrentProgress(0);
       setCurrentComment("");
@@ -176,12 +185,41 @@ const ActivityForm = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity, selectedMonth, selectedYear]);
 
-
-  const handleDateChange = (date: Date | undefined) => {
+  const handleDateSelect = (date: Date | undefined) => {
     if (date) {
-      setStartDate(startOfDay(date));
+      const day = startOfDay(date);
+      setStartDate(day);
+      setStartDateInput(format(day, "dd/MM/yyyy"));
+      setIsDateInvalid(false);
+      setStartDatePickerOpen(false);
+    }
+  };
+  
+  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    setStartDateInput(value);
+
+    // Basic mask
+    const formattedValue = value
+      .replace(/\D/g, '')
+      .replace(/(\d{2})(\d)/, '$1/$2')
+      .replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3')
+      .replace(/(\d{2})\/(\d{2})\/(\d{4}).*/, '$1/$2/$3');
+
+    setStartDateInput(formattedValue);
+
+    if (formattedValue.length === 10) {
+      const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
+      if (isValid(parsedDate)) {
+        setStartDate(startOfDay(parsedDate));
+        setIsDateInvalid(false);
+      } else {
+        setStartDate(undefined);
+        setIsDateInvalid(true);
+      }
     } else {
-      setStartDate(undefined);
+        setStartDate(undefined);
+        setIsDateInvalid(true);
     }
   };
 
@@ -192,6 +230,7 @@ const ActivityForm = ({
         title: "Data Inválida",
         description: "Por favor, insira uma data de início válida.",
       });
+      setIsDateInvalid(true);
       return;
     }
     
@@ -260,27 +299,35 @@ const ActivityForm = ({
                 <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-                <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
+              <Label htmlFor="start-date" className="text-right">Data de Início</Label>
+              <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
                 <PopoverTrigger asChild>
-                    <Button variant="outline" className="col-span-3 justify-start font-normal">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
-                    </Button>
+                  <div className="col-span-3 relative">
+                     <Input
+                        id="start-date"
+                        value={startDateInput}
+                        onChange={handleDateInputChange}
+                        onFocus={() => setStartDatePickerOpen(true)}
+                        placeholder="DD/MM/AAAA"
+                        className={cn(
+                          "pr-8",
+                          isDateInvalid && "border-destructive focus-visible:ring-destructive"
+                        )}
+                      />
+                      <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+                  </div>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
-                    <Calendar
+                  <Calendar
                     mode="single"
                     selected={startDate}
-                    onSelect={(date) => {
-                        handleDateChange(date);
-                        setStartDatePickerOpen(false);
-                    }}
+                    onSelect={handleDateSelect}
                     initialFocus
                     locale={ptBR}
-                    />
+                    month={startDate}
+                  />
                 </PopoverContent>
-                </Popover>
+              </Popover>
             </div>
         </div>
 
@@ -307,7 +354,7 @@ const ActivityForm = ({
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                         ))}
                          {availableMonths.length === 0 && startDate && (
-                            <SelectItem value="none" disabled>Progresso pode ser lançado a partir do mês atual.</SelectItem>
+                            <SelectItem value="none" disabled>Progresso pode ser lançado a partir do mês de início.</SelectItem>
                         )}
                         {!startDate && (
                             <SelectItem value="none" disabled>Selecione uma data de início.</SelectItem>
@@ -568,5 +615,7 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
 
     
