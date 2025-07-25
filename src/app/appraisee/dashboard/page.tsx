@@ -63,7 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 
 const monthMap: { [key: string]: number } = { "Janeiro": 0, "Fevereiro": 1, "Março": 2, "Abril": 3, "Maio": 4, "Junho": 5, "Julho": 6, "Agosto": 7, "Setembro": 8, "Outubro": 9, "Novembro": 10, "Dezembro": 11 };
-const monthNames = Object.keys(monthMap);
+const monthNames = ["Novembro", "Dezembro", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro"];
 
 const ActivityForm = ({
   activity,
@@ -364,5 +364,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
