@@ -56,6 +56,13 @@ import { format } from "date-fns";
 
 const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
   const [cpf, setCpf] = React.useState(user?.cpf || '');
+  const [name, setName] = React.useState(user?.name || '');
+  const [socialName, setSocialName] = React.useState(user?.socialName || '');
+  const [email, setEmail] = React.useState(user?.email || '');
+  const [sector, setSector] = React.useState(user?.sector || '');
+  const [jobTitle, setJobTitle] = React.useState(user?.jobTitle || '');
+  const [role, setRole] = React.useState(user?.role || 'appraisee');
+
   const { toast } = useToast();
   
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,7 +72,13 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
 
   React.useEffect(() => {
     if (user) {
+        setName(user.name || '');
+        setSocialName(user.socialName || '');
+        setEmail(user.email || '');
         setCpf(user.cpf || '');
+        setSector(user.sector || '');
+        setJobTitle(user.jobTitle || '');
+        setRole(user.role || 'appraisee');
     }
   }, [user]);
 
@@ -90,7 +103,16 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
         });
         return;
     }
-    const updatedUser = { ...user, cpf };
+    const updatedUser: User = { 
+        ...user, 
+        cpf,
+        name,
+        socialName,
+        email,
+        sector,
+        jobTitle,
+        role,
+    };
     onSave(updatedUser);
   };
 
@@ -98,7 +120,7 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
   if (!user) return null;
 
   return (
-    <DialogContent>
+    <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
         <DialogTitle>Editar Usuário</DialogTitle>
         <DialogDescription>
@@ -108,9 +130,15 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="name" className="text-right">
-            Nome
+            Nome Completo
           </Label>
-          <Input id="name" defaultValue={user.name} className="col-span-3" />
+          <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="socialName" className="text-right">
+            Nome Social
+          </Label>
+          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-3" />
         </div>
          <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="cpf" className="text-right">
@@ -122,13 +150,25 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
           <Label htmlFor="email" className="text-right">
             Email
           </Label>
-          <Input id="email" defaultValue={user.email} className="col-span-3" />
+          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-3" />
+        </div>
+         <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="sector" className="text-right">
+            Sigla do Setor
+          </Label>
+          <Input id="sector" value={sector} onChange={e => setSector(e.target.value)} className="col-span-3" />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="jobTitle" className="text-right">
+            Função
+          </Label>
+          <Input id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="col-span-3" />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="role" className="text-right">
-            Função
+            Perfil
           </Label>
-          <Select defaultValue={user.role}>
+          <Select value={role} onValueChange={value => setRole(value as User['role'])}>
             <SelectTrigger className="col-span-3">
               <SelectValue />
             </SelectTrigger>
@@ -352,7 +392,9 @@ export default function AdminDashboard() {
                       <TableRow>
                         <TableHead>Nome Social</TableHead>
                         <TableHead>CPF</TableHead>
+                        <TableHead>Setor</TableHead>
                         <TableHead>Função</TableHead>
+                        <TableHead>Perfil</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -361,6 +403,8 @@ export default function AdminDashboard() {
                         <TableRow key={user.id}>
                           <TableCell>{user.socialName}</TableCell>
                           <TableCell>{user.cpf}</TableCell>
+                          <TableCell>{user.sector}</TableCell>
+                          <TableCell>{user.jobTitle}</TableCell>
                           <TableCell><Badge variant="secondary" className="capitalize">{user.role}</Badge></TableCell>
                           <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user)}>
@@ -481,5 +525,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    

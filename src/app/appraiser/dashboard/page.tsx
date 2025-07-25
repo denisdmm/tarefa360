@@ -46,7 +46,8 @@ export default function AppraiserDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Funcionário</TableHead>
-                  <TableHead>Cargo</TableHead>
+                  <TableHead>Função</TableHead>
+                  <TableHead>Setor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -67,7 +68,8 @@ export default function AppraiserDashboard() {
                         </div>
                       </div>
                     </TableCell>
-                    <TableCell>{appraisee.title}</TableCell>
+                    <TableCell>{appraisee.jobTitle}</TableCell>
+                    <TableCell>{appraisee.sector}</TableCell>
                     <TableCell className="text-right">
                       <Button asChild>
                         <Link href={`/appraiser/appraisee/${appraisee.id}`}>

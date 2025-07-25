@@ -7,7 +7,8 @@ export interface User {
   socialName: string;
   email: string;
   role: Role;
-  title: string;
+  jobTitle: string;
+  sector: string;
   avatarUrl: string;
   cpf: string;
   appraiserId?: string;

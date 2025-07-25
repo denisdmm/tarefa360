@@ -152,7 +152,8 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
          <div className="mb-6">
             <h2 className="text-xl font-semibold">Informações do Avaliado</h2>
             <p><strong>Nome:</strong> {appraisee.name}</p>
-            <p><strong>Cargo:</strong> {appraisee.title}</p>
+            <p><strong>Função:</strong> {appraisee.jobTitle}</p>
+            <p><strong>Setor:</strong> {appraisee.sector}</p>
             <p><strong>Email:</strong> {appraisee.email}</p>
          </div>
          <h2 className="text-xl font-semibold mb-2">Atividades ({monthFilter === 'all' ? 'Todos' : monthFilter})</h2>
