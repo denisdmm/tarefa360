@@ -30,7 +30,6 @@ import {
   DialogHeader,
   DialogTitle,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -331,71 +330,55 @@ const ProgressForm = ({
 const ActivityCard = ({
   activity,
   onEdit,
-  onSave,
   onDelete,
   latestProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
-  onSave: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
   latestProgress: number;
 }) => {
-  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
 
   return (
-    <>
-      <Card className="flex flex-col">
-        <CardHeader>
-          <CardTitle>{activity.title}</CardTitle>
-          <CardDescription>
-            {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="flex-grow">
-          <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
-          <Progress value={latestProgress} aria-label={`${latestProgress}% completo`} />
-          <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
-        </CardContent>
-        <CardFooter className="flex justify-end gap-2">
-          <Button variant="secondary" size="sm" onClick={() => setProgressFormOpen(true)}>
-            <ActivityIcon className="mr-2 h-4 w-4" /> Registrar Progresso
-          </Button>
-          <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-            <Edit className="mr-2 h-4 w-4" /> Editar
-          </Button>
-          <AlertDialog>
-            <AlertDialogTrigger asChild>
-              <Button variant="destructive" size="sm">
-                <Trash2 className="mr-2 h-4 w-4" />
-              </Button>
-            </AlertDialogTrigger>
-            <AlertDialogContent>
-              <AlertDialogHeader>
-                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                <AlertDialogDescription>
-                  Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
-                </AlertDialogDescription>
-              </AlertDialogHeader>
-              <AlertDialogFooter>
-                <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => onDelete(activity.id)}>
-                  Excluir
-                </AlertDialogAction>
-              </AlertDialogFooter>
-            </AlertDialogContent>
-          </AlertDialog>
-        </CardFooter>
-      </Card>
-
-      <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
-        <ProgressForm
-          activity={activity}
-          onSave={onSave}
-          onClose={() => setProgressFormOpen(false)}
-        />
-      </Dialog>
-    </>
+    <Card className="flex flex-col">
+      <CardHeader>
+        <CardTitle>{activity.title}</CardTitle>
+        <CardDescription>
+          {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="flex-grow">
+        <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
+        <Progress value={latestProgress} aria-label={`${latestProgress}% completo`} />
+        <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
+      </CardContent>
+      <CardFooter className="flex justify-end gap-2">
+        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
+          <Edit className="mr-2 h-4 w-4" /> Editar / Registrar Progresso
+        </Button>
+        <AlertDialog>
+          <AlertDialogTrigger asChild>
+            <Button variant="destructive" size="sm">
+              <Trash2 className="mr-2 h-4 w-4" />
+            </Button>
+          </AlertDialogTrigger>
+          <AlertDialogContent>
+            <AlertDialogHeader>
+              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+              <AlertDialogDescription>
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
+              </AlertDialogDescription>
+            </AlertDialogHeader>
+            <AlertDialogFooter>
+              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+              <AlertDialogAction onClick={() => onDelete(activity.id)}>
+                Excluir
+              </AlertDialogAction>
+            </AlertDialogFooter>
+          </AlertDialogContent>
+        </AlertDialog>
+      </CardFooter>
+    </Card>
   );
 };
 
@@ -408,6 +391,7 @@ export default function AppraiseeDashboard() {
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
+  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -436,8 +420,14 @@ export default function AppraiseeDashboard() {
     setActivityFormOpen(true);
   }
 
+  const handleOpenProgressForm = (activity: Activity) => {
+      setSelectedActivity(activity);
+      setProgressFormOpen(true);
+  }
+
   const handleCloseForms = () => {
     setActivityFormOpen(false);
+    setProgressFormOpen(false);
     setSelectedActivity(null);
   }
 
@@ -477,8 +467,7 @@ export default function AppraiseeDashboard() {
                   <ActivityCard
                     key={activity.id}
                     activity={activity}
-                    onEdit={handleOpenActivityForm}
-                    onSave={handleSaveActivity}
+                    onEdit={() => handleOpenProgressForm(activity)}
                     onDelete={handleDeleteActivity}
                     latestProgress={getLatestProgress(activity)}
                   />
@@ -549,7 +538,16 @@ export default function AppraiseeDashboard() {
             />
           )}
         </Dialog>
-
+        
+        <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
+            {isProgressFormOpen && selectedActivity && (
+                 <ProgressForm
+                    activity={selectedActivity}
+                    onSave={handleSaveActivity}
+                    onClose={handleCloseForms}
+                />
+            )}
+        </Dialog>
       </div>
     </>
   );
