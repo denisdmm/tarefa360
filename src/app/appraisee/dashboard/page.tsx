@@ -72,14 +72,18 @@ const ActivityForm = ({
   onSave: (activity: Activity) => void;
   onClose: () => void;
 }) => {
-  const [title, setTitle] = React.useState(activity?.title || "");
-  const [description, setDescription] = React.useState(
-    activity?.description || ""
-  );
-  const [month, setMonth] = React.useState(activity?.month || "");
-  const [percentage, setPercentage] = React.useState(
-    activity?.completionPercentage || 0
-  );
+  const [title, setTitle] = React.useState("");
+  const [description, setDescription] = React.useState("");
+  const [month, setMonth] = React.useState("");
+  const [percentage, setPercentage] = React.useState(0);
+  
+  React.useEffect(() => {
+    setTitle(activity?.title || "");
+    setDescription(activity?.description || "");
+    setMonth(activity?.month || "");
+    setPercentage(activity?.completionPercentage || 0);
+  }, [activity]);
+
 
   const handleSubmit = () => {
     const newActivity: Activity = {
@@ -131,7 +135,7 @@ const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline" onClick={onClose}>Cancelar</Button></DialogClose>
+        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
         <Button onClick={handleSubmit}>Salvar Atividade</Button>
       </DialogFooter>
     </>
@@ -157,6 +161,11 @@ export default function AppraiseeDashboard() {
     setFormOpen(false);
     setSelectedActivity(null);
   };
+  
+  const handleOpenForm = (activity: Activity | null) => {
+    setSelectedActivity(activity);
+    setFormOpen(true);
+  }
 
   const handleDeleteActivity = (activityId: string) => {
     setActivities(activities.filter(a => a.id !== activityId));
@@ -167,7 +176,7 @@ export default function AppraiseeDashboard() {
   const completedActivities = activities.filter(a => a.completionPercentage === 100);
 
   return (
-    <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
+    <>
       <div className="flex flex-col h-full">
          <header className="bg-card border-b p-4">
            <div className="flex justify-between items-center">
@@ -175,12 +184,10 @@ export default function AppraiseeDashboard() {
                <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>
                <p className="text-muted-foreground">Gerencie suas tarefas e progressos em andamento.</p>
              </div>
-             <DialogTrigger asChild>
-                <Button onClick={() => setSelectedActivity(null)}>
-                  <PlusCircle className="mr-2 h-4 w-4" />
-                  Registrar Atividade
-                </Button>
-             </DialogTrigger>
+             <Button onClick={() => handleOpenForm(null)}>
+               <PlusCircle className="mr-2 h-4 w-4" />
+               Registrar Atividade
+             </Button>
            </div>
         </header>
 
@@ -204,11 +211,9 @@ export default function AppraiseeDashboard() {
                           <p className="text-sm font-medium text-right mt-1">{activity.completionPercentage}%</p>
                         </CardContent>
                         <CardFooter className="flex justify-end gap-2">
-                           <DialogTrigger asChild>
-                              <Button variant="outline" size="sm" onClick={() => setSelectedActivity(activity)}>
+                            <Button variant="outline" size="sm" onClick={() => handleOpenForm(activity)}>
                                 <Edit className="mr-2 h-4 w-4" /> Editar
-                              </Button>
-                           </DialogTrigger>
+                            </Button>
                            <AlertDialog>
                               <AlertDialogTrigger asChild>
                                 <Button variant="destructive" size="sm">
@@ -268,11 +273,9 @@ export default function AppraiseeDashboard() {
                                                 <Badge>Concluído</Badge>
                                             </TableCell>
                                             <TableCell className="text-right">
-                                                <DialogTrigger asChild>
-                                                    <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(activity)}>
-                                                        <Edit className="h-4 w-4" />
-                                                    </Button>
-                                                </DialogTrigger>
+                                                <Button variant="ghost" size="icon" onClick={() => handleOpenForm(activity)}>
+                                                    <Edit className="h-4 w-4" />
+                                                </Button>
                                             </TableCell>
                                         </TableRow>
                                     ))
@@ -289,17 +292,21 @@ export default function AppraiseeDashboard() {
           </Tabs>
         </main>
         
-        <DialogContent className="sm:max-w-[625px]">
-            <ActivityForm 
-                activity={selectedActivity} 
-                onSave={handleSaveActivity} 
-                onClose={() => {
-                    setFormOpen(false);
-                    setSelectedActivity(null);
-                }}
-            />
-        </DialogContent>
+        <Dialog open={isFormOpen} onOpenChange={setFormOpen}>
+            <DialogContent className="sm:max-w-[625px]">
+                <ActivityForm 
+                    activity={selectedActivity} 
+                    onSave={handleSaveActivity} 
+                    onClose={() => {
+                        setFormOpen(false);
+                        setSelectedActivity(null);
+                    }}
+                />
+            </DialogContent>
+        </Dialog>
       </div>
-    </Dialog>
+    </>
   );
 }
+
+    
