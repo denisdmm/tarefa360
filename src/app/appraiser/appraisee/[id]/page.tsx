@@ -242,8 +242,8 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   <tbody>
                   {groupedActivities[month].map(activity => (
                      <tr key={activity.id}>
-                       <td className="w-[15%] p-2 border-r border-black text-center">{activity.completionPercentage}%</td>
-                       <td className="p-2 border-b border-black">{activity.title}</td>
+                       <td className="w-[15%] p-2 border-r border-b border-black text-center">{activity.completionPercentage}%</td>
+                       <td className="p-2 border-b border-black text-center">{activity.title}</td>
                      </tr>
                   ))}
                   </tbody>
