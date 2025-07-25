@@ -48,6 +48,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useDataContext } from "@/context/DataContext";
 
 
@@ -560,8 +561,8 @@ export default function AdminDashboard() {
                       {evaluationPeriods.map((period) => (
                         <TableRow key={period.id}>
                           <TableCell>{period.name}</TableCell>
-                          <TableCell>{format(period.startDate, 'dd/MM/yyyy')}</TableCell>
-                          <TableCell>{format(period.endDate, 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>{format(period.startDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                          <TableCell>{format(period.endDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
                           <TableCell>
                             <Button 
                               variant={period.status === 'Ativo' ? 'default' : 'outline'}

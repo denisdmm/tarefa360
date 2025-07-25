@@ -263,7 +263,7 @@ export default function AppraiseeDashboard() {
                       <Card key={activity.id} className="flex flex-col">
                         <CardHeader>
                           <CardTitle>{activity.title}</CardTitle>
-                          <CardDescription>{format(activity.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</CardDescription>
+                          <CardDescription>{format(activity.date, "MMMM 'de' yyyy", { locale: ptBR })}</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow">
                           <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
@@ -328,7 +328,7 @@ export default function AppraiseeDashboard() {
                                     completedActivities.map(activity => (
                                         <TableRow key={activity.id}>
                                             <TableCell className="font-medium">{activity.title}</TableCell>
-                                            <TableCell>{format(activity.date, "dd/MM/yyyy")}</TableCell>
+                                            <TableCell>{format(activity.date, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
                                             <TableCell>
                                                 <Badge>Concluído</Badge>
                                             </TableCell>

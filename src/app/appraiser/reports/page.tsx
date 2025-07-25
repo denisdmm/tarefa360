@@ -29,6 +29,7 @@ import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Eye, FileText } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { User } from "@/lib/types";
@@ -163,10 +164,10 @@ export default function AppraiserReports() {
                           {period.name}
                         </TableCell>
                         <TableCell>
-                          {format(period.startDate, "dd/MM/yyyy")}
+                          {format(period.startDate, "MMMM 'de' yyyy", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
-                          {format(period.endDate, "dd/MM/yyyy")}
+                          {format(period.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
                           <Badge

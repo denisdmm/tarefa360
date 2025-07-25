@@ -9,6 +9,7 @@ import { useDataContext } from "@/context/DataContext";
 import { Badge } from "@/components/ui/badge";
 import { Eye } from "lucide-react";
 import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
 // This is a shared component, so we need to know who is viewing it.
@@ -66,8 +67,8 @@ export default function ReportsPage() {
                                 {evaluationPeriods.map((period) => (
                                     <TableRow key={period.id}>
                                         <TableCell className="font-medium">{period.name}</TableCell>
-                                        <TableCell>{format(period.startDate, 'dd/MM/yyyy')}</TableCell>
-                                        <TableCell>{format(period.endDate, 'dd/MM/yyyy')}</TableCell>
+                                        <TableCell>{format(period.startDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                                        <TableCell>{format(period.endDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
                                         <TableCell>
                                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                                         </TableCell>

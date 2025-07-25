@@ -186,7 +186,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   {filteredActivities.map(activity => (
                     <TableRow key={activity.id}>
                       <TableCell className="font-medium">{activity.title}</TableCell>
-                      <TableCell>{format(activity.date, 'dd/MM/yyyy')}</TableCell>
+                      <TableCell>{format(activity.date, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Progress value={activity.completionPercentage} className="w-[80%]" />
@@ -238,7 +238,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
             {sortedMonths.map(month => (
               <div key={month}>
                 <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
-                  {month.toUpperCase()} {activePeriod && format(new Date(0, monthOrder.indexOf(month.toLowerCase())), 'yyyy')}
+                   {month.toUpperCase()} {groupedActivities[month].length > 0 ? format(groupedActivities[month][0].date, 'yyyy') : ''}
                 </div>
                 <table className="w-full" style={{borderCollapse: 'collapse'}}>
                   <tbody>
