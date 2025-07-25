@@ -75,9 +75,10 @@ const ActivityForm = ({
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [startDate, setStartDate] = React.useState<Date | undefined>(startOfDay(new Date()));
+  const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
   const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
   const [isDateInvalid, setIsDateInvalid] = React.useState(false);
+  const [startDateInput, setStartDateInput] = React.useState("");
 
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
   const [currentProgress, setCurrentProgress] = React.useState(0);
@@ -85,7 +86,6 @@ const ActivityForm = ({
 
   const [selectedYear, setSelectedYear] = React.useState<number>(getYear(new Date()));
   const [selectedMonth, setSelectedMonth] = React.useState<number>(getMonth(new Date()) + 1);
-
 
   const { toast } = useToast();
 
@@ -113,21 +113,27 @@ const ActivityForm = ({
       value: `${getYear(date)}-${getMonth(date) + 1}`
     })).reverse();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [startDate, activity]);
+  }, [startDate]);
 
 
   React.useEffect(() => {
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : startOfDay(new Date());
+      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : undefined;
       setStartDate(activityStartDate);
+      if (activityStartDate) {
+        setStartDateInput(format(activityStartDate, "dd/MM/yyyy"));
+      } else {
+        setStartDateInput("");
+      }
       setProgressHistory(activity.progressHistory || []);
     } else {
       setTitle("");
       setDescription("");
       const today = startOfDay(new Date());
       setStartDate(today);
+      setStartDateInput(format(today, "dd/MM/yyyy"));
       setProgressHistory([]);
       setCurrentProgress(0);
       setCurrentComment("");
@@ -182,6 +188,7 @@ const ActivityForm = ({
     if (date) {
       const day = startOfDay(date);
       setStartDate(day);
+      setStartDateInput(format(day, "dd/MM/yyyy"));
       setIsDateInvalid(false);
       setStartDatePickerOpen(false);
     }
@@ -189,6 +196,7 @@ const ActivityForm = ({
   
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    setStartDateInput(value);
 
     const formattedValue = value
       .replace(/\D/g, '')
@@ -205,22 +213,18 @@ const ActivityForm = ({
         setStartDate(undefined);
         setIsDateInvalid(true);
       }
-    } else if (formattedValue.length === 0) {
+    } else if (value.length === 0) {
         setStartDate(undefined);
-        setIsDateInvalid(true);
+        setIsDateInvalid(false);
     } else {
         setStartDate(undefined);
         setIsDateInvalid(true);
     }
   };
 
-  const getStartDateInputValue = () => {
-    if (!startDate) return "";
-    return format(startDate, "dd/MM/yyyy");
-  };
 
   const handleSubmit = () => {
-    if (!startDate) {
+    if (!startDate || isDateInvalid) {
       toast({
         variant: "destructive",
         title: "Data Inválida",
@@ -301,7 +305,7 @@ const ActivityForm = ({
                   <div className="col-span-3 relative">
                      <Input
                         id="start-date"
-                        defaultValue={getStartDateInputValue()}
+                        value={startDateInput}
                         onChange={handleDateInputChange}
                         onFocus={() => setStartDatePickerOpen(true)}
                         placeholder="DD/MM/AAAA"
@@ -367,7 +371,7 @@ const ActivityForm = ({
                     onChange={(e) => setCurrentProgress(Number(e.target.value))}
                     min="0"
                     max="100"
-                    disabled={!startDate}
+                    disabled={!startDate || isDateInvalid}
                     className="col-span-3"
                 />
             </div>
@@ -379,7 +383,7 @@ const ActivityForm = ({
                     onChange={e => setCurrentComment(e.target.value)}
                     className="col-span-3"
                     placeholder="Descreva o que foi feito este mês..."
-                    disabled={!startDate}
+                    disabled={!startDate || isDateInvalid}
                 />
             </div>
         </div>
@@ -611,3 +615,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
