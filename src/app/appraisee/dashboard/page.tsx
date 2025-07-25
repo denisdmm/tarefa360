@@ -75,9 +75,8 @@ const ActivityForm = ({
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [startDate, setStartDate] = React.useState<Date | undefined>();
+  const [startDate, setStartDate] = React.useState<Date | undefined>(startOfDay(new Date()));
   const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
-  const [startDateInput, setStartDateInput] = React.useState("");
   const [isDateInvalid, setIsDateInvalid] = React.useState(false);
 
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
@@ -104,12 +103,7 @@ const ActivityForm = ({
     };
     
     if (interval.start > interval.end) {
-        return [{
-            year: getYear(interval.start),
-            month: getMonth(interval.start) + 1,
-            label: format(interval.start, "MMMM 'de' yyyy", { locale: ptBR }),
-            value: `${getYear(interval.start)}-${getMonth(interval.start) + 1}`
-        }];
+        return [];
     }
 
     return eachMonthOfInterval(interval).map(date => ({
@@ -126,28 +120,26 @@ const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : undefined;
+      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : startOfDay(new Date());
       setStartDate(activityStartDate);
-       if (activityStartDate) {
-        setStartDateInput(format(activityStartDate, "dd/MM/yyyy"));
-      }
       setProgressHistory(activity.progressHistory || []);
     } else {
       setTitle("");
       setDescription("");
       const today = startOfDay(new Date());
       setStartDate(today);
-      setStartDateInput(format(today, 'dd/MM/yyyy'));
       setProgressHistory([]);
       setCurrentProgress(0);
       setCurrentComment("");
     }
-    
+  }, [activity]);
+  
+  React.useEffect(() => {
     // Set default selected month/year to current if available
     const today = new Date();
-    const currentMonthInList = availableMonths.find(m => m.year === getYear(today) && m.month === getMonth(today) + 1);
-
-    if(currentMonthInList) {
+    const currentMonthValue = `${getYear(today)}-${getMonth(today) + 1}`;
+    
+    if(availableMonths.some(m => m.value === currentMonthValue)) {
         setSelectedYear(getYear(today));
         setSelectedMonth(getMonth(today) + 1);
     } else if (availableMonths.length > 0) {
@@ -157,7 +149,8 @@ const ActivityForm = ({
         setSelectedMonth(month);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activity, availableMonths.length]);
+  }, [availableMonths.length, startDate]);
+
 
   // This effect updates the form when the selected month/year changes
   React.useEffect(() => {
@@ -189,7 +182,6 @@ const ActivityForm = ({
     if (date) {
       const day = startOfDay(date);
       setStartDate(day);
-      setStartDateInput(format(day, "dd/MM/yyyy"));
       setIsDateInvalid(false);
       setStartDatePickerOpen(false);
     }
@@ -197,16 +189,12 @@ const ActivityForm = ({
   
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setStartDateInput(value);
 
-    // Basic mask
     const formattedValue = value
       .replace(/\D/g, '')
       .replace(/(\d{2})(\d)/, '$1/$2')
       .replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3')
       .replace(/(\d{2})\/(\d{2})\/(\d{4}).*/, '$1/$2/$3');
-
-    setStartDateInput(formattedValue);
 
     if (formattedValue.length === 10) {
       const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
@@ -217,10 +205,18 @@ const ActivityForm = ({
         setStartDate(undefined);
         setIsDateInvalid(true);
       }
+    } else if (formattedValue.length === 0) {
+        setStartDate(undefined);
+        setIsDateInvalid(true);
     } else {
         setStartDate(undefined);
         setIsDateInvalid(true);
     }
+  };
+
+  const getStartDateInputValue = () => {
+    if (!startDate) return "";
+    return format(startDate, "dd/MM/yyyy");
   };
 
   const handleSubmit = () => {
@@ -305,7 +301,7 @@ const ActivityForm = ({
                   <div className="col-span-3 relative">
                      <Input
                         id="start-date"
-                        value={startDateInput}
+                        defaultValue={getStartDateInputValue()}
                         onChange={handleDateInputChange}
                         onFocus={() => setStartDatePickerOpen(true)}
                         placeholder="DD/MM/AAAA"
