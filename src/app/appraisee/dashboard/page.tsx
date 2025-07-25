@@ -615,7 +615,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
-
-    
