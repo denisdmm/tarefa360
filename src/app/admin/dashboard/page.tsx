@@ -60,13 +60,15 @@ const UserFormModal = ({ user }: { user: User | null }) => {
     setCpf(onlyNumbers);
   };
 
-  if (!user) return null;
-  
   // Need to set the initial state for cpf when user changes
   React.useEffect(() => {
-    setCpf(user?.cpf || '');
+    if (user) {
+        setCpf(user.cpf || '');
+    }
   }, [user]);
 
+  if (!user) return null;
+  
 
   return (
     <DialogContent>
