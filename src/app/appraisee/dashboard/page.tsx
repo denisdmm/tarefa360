@@ -84,6 +84,35 @@ const ActivityForm = ({
   const [newProgress, setNewProgress] = React.useState<{year: number, month: number, percentage: number, comment: string} | null>(null);
 
   const { toast } = useToast();
+  
+  const isSaveDisabled = React.useMemo(() => {
+    if (isReadOnly) return true;
+
+    // Title is mandatory
+    if (!title.trim()) {
+        return true;
+    }
+
+    // Start date is mandatory and must be a valid date string
+    if (!startDate) {
+        return true;
+    }
+    const parsedDate = new Date(startDate);
+    if (isNaN(parsedDate.getTime())) { // Invalid date
+        return true;
+    }
+    
+    // For new activities, date must be within the active period
+    if (!activity && activePeriod) {
+       const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
+       if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
+           return true;
+       }
+    }
+    
+    return false;
+  }, [title, startDate, activity, activePeriod, isReadOnly]);
+
 
   React.useEffect(() => {
     if (activity) {
@@ -132,11 +161,12 @@ const ActivityForm = ({
 
 
   const handleSubmit = () => {
-    if (!startDate) {
+    // Final validation before submitting
+    if (isSaveDisabled) {
         toast({
             variant: "destructive",
-            title: "Data de Início Obrigatória",
-            description: "Por favor, insira uma data de início.",
+            title: "Formulário Inválido",
+            description: "Por favor, preencha todos os campos obrigatórios e corrija os erros.",
         });
         return;
     }
@@ -316,7 +346,7 @@ const ActivityForm = ({
       </div>
       <DialogFooter>
         <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
-        {!isReadOnly && <Button onClick={handleSubmit}>Salvar Atividade</Button>}
+        {!isReadOnly && <Button onClick={handleSubmit} disabled={isSaveDisabled}>Salvar Atividade</Button>}
       </DialogFooter>
     </DialogContent>
   );
@@ -327,10 +357,12 @@ const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
+  onView,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
+  onView: (activity: Activity) => void;
 }) => {
     
   const getLatestProgress = (activity: Activity) => {
@@ -344,6 +376,7 @@ const ActivityCard = ({
   };
   
   const latestProgress = getLatestProgress(activity);
+  const isCompleted = latestProgress === 100;
 
   return (
     <Card className="flex flex-col">
@@ -359,9 +392,17 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-           Editar
-        </Button>
+        {isCompleted ? (
+            <Button variant="outline" size="sm" onClick={() => onView(activity)}>
+                <Eye className="mr-2" />
+                Visualizar
+            </Button>
+        ) : (
+            <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
+                <Edit className="mr-2" />
+                Editar
+            </Button>
+        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="sm">
@@ -473,6 +514,7 @@ export default function AppraiseeDashboard() {
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
                     onDelete={handleDeleteActivity}
+                    onView={() => handleOpenActivityForm(activity, true)}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -569,3 +611,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
