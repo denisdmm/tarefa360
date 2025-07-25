@@ -177,11 +177,11 @@ const ActivityForm = ({
   }, [activity, selectedMonth, selectedYear]);
 
 
-  const handleDateChange = (date: Date | undefined, setter: (value: Date | undefined) => void) => {
+  const handleDateChange = (date: Date | undefined) => {
     if (date) {
-      setter(startOfDay(date));
+      setStartDate(startOfDay(date));
     } else {
-      setter(undefined);
+      setStartDate(undefined);
     }
   };
 
@@ -273,7 +273,7 @@ const ActivityForm = ({
                     mode="single"
                     selected={startDate}
                     onSelect={(date) => {
-                        handleDateChange(date, setStartDate);
+                        handleDateChange(date);
                         setStartDatePickerOpen(false);
                     }}
                     initialFocus
@@ -568,3 +568,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
