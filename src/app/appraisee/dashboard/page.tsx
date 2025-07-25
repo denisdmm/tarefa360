@@ -63,7 +63,7 @@ import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 
 const monthMap: { [key: string]: number } = { "Janeiro": 0, "Fevereiro": 1, "Março": 2, "Abril": 3, "Maio": 4, "Junho": 5, "Julho": 6, "Agosto": 7, "Setembro": 8, "Outubro": 9, "Novembro": 10, "Dezembro": 11 };
-const monthNames = ["Novembro", "Dezembro", "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro"];
+const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
 
 const ActivityForm = ({
   activity,
@@ -186,9 +186,7 @@ const ActivityForm = ({
         <DialogClose asChild>
           <Button variant="outline">Cancelar</Button>
         </DialogClose>
-        <DialogClose asChild>
-          <Button onClick={() => handleSubmit(onClose)}>Salvar Atividade</Button>
-        </DialogClose>
+        <Button onClick={() => handleSubmit(onClose)}>Salvar Atividade</Button>
       </DialogFooter>
     </>
   );
@@ -213,6 +211,7 @@ export default function AppraiseeDashboard() {
       setActivities(prevActivities => [activity, ...prevActivities]);
       toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
+    handleCloseForm();
   };
   
   const handleOpenForm = (activity: Activity | null) => {
