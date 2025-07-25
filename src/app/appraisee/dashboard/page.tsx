@@ -74,7 +74,6 @@ const ActivityForm = ({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
-  const [isDateInvalid, setIsDateInvalid] = React.useState(false);
   const [startDateInput, setStartDateInput] = React.useState("");
 
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
@@ -183,45 +182,23 @@ const ActivityForm = ({
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-
-    const formattedValue = value
-      .replace(/\D/g, '')
-      .replace(/(\d{2})(\d)/, '$1/$2')
-      .replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3')
-      .replace(/(\d{2})\/(\d{2})\/(\d{4}).*/, '$1/$2/$3');
-
-    setStartDateInput(formattedValue);
-
-    if (formattedValue.length === 10) {
-      const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
-      if (isValid(parsedDate)) {
+    setStartDateInput(value); // Keep input as is
+    
+    const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
+    if (isValid(parsedDate)) {
         setStartDate(startOfDay(parsedDate));
-        setIsDateInvalid(false);
-      } else {
-        setStartDate(undefined);
-        setIsDateInvalid(true);
-      }
-    } else if (value.length === 0) {
-        setStartDate(undefined);
-        setIsDateInvalid(false);
     } else {
+        // If parsing fails, you might want to set startDate to undefined 
+        // or keep the last valid date, depending on desired behavior.
+        // For now, we allow invalid text but won't have a valid Date object.
         setStartDate(undefined);
-        setIsDateInvalid(true);
     }
   };
 
 
   const handleSubmit = () => {
-    if (!startDate || isDateInvalid) {
-      toast({
-        variant: "destructive",
-        title: "Data Inválida",
-        description: "Por favor, insira uma data de início válida.",
-      });
-      setIsDateInvalid(true);
-      return;
-    }
-    
+    const finalStartDate = startDate || new Date(); // Fallback to today if date is invalid
+
     // --- Save Progress Entry ---
     let updatedHistory = [...progressHistory];
     const newEntry: ProgressEntry = {
@@ -250,7 +227,7 @@ const ActivityForm = ({
       id: activity?.id || `act-${Date.now()}`,
       title,
       description,
-      startDate,
+      startDate: finalStartDate,
       progressHistory: updatedHistory,
       userId: currentUserId,
     };
@@ -293,11 +270,7 @@ const ActivityForm = ({
                 value={startDateInput}
                 onChange={handleDateInputChange}
                 placeholder="DD/MM/AAAA"
-                maxLength={10}
-                className={cn(
-                  "col-span-3",
-                  isDateInvalid && "border-destructive focus-visible:ring-destructive"
-                )}
+                className="col-span-3"
               />
             </div>
         </div>
@@ -342,7 +315,7 @@ const ActivityForm = ({
                     onChange={(e) => setCurrentProgress(Number(e.target.value))}
                     min="0"
                     max="100"
-                    disabled={!startDate || isDateInvalid}
+                    disabled={!startDate}
                     className="col-span-3"
                 />
             </div>
@@ -354,7 +327,7 @@ const ActivityForm = ({
                     onChange={e => setCurrentComment(e.target.value)}
                     className="col-span-3"
                     placeholder="Descreva o que foi feito este mês..."
-                    disabled={!startDate || isDateInvalid}
+                    disabled={!startDate}
                 />
             </div>
         </div>
