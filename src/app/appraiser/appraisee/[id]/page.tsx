@@ -31,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, ProgressEntry } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, getMonth, getYear, parse } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -122,7 +122,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     const [year, month] = key.split('-').map(Number);
     return {
         value: key,
-        label: format(new Date(year, month - 1), 'MMMM, yyyy', {locale: ptBR})
+        label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
     };
   }).sort((a,b) => b.value.localeCompare(a.value));
 
@@ -176,7 +176,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
              return (
                 <Card key={monthKey}>
                     <CardHeader>
-                    <CardTitle>{format(new Date(year, month -1), 'MMMM, yyyy', {locale: ptBR})}</CardTitle>
+                    <CardTitle>{format(new Date(year, month -1), "MMMM 'de' yyyy", {locale: ptBR})}</CardTitle>
                     <CardDescription>
                         Atividades com progresso registrado neste mês.
                     </CardDescription>
@@ -250,7 +250,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                 return (
                   <div key={monthKey}>
                     <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
-                      {format(new Date(year, month - 1), 'MMMM, yyyy', {locale: ptBR}).toUpperCase()}
+                      {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR}).toUpperCase()}
                     </div>
                     <table className="w-full" style={{borderCollapse: 'collapse'}}>
                       <tbody>
