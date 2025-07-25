@@ -27,7 +27,6 @@ export interface Activity {
   title: string;
   description: string;
   startDate: Date;
-  endDate: Date;
   progressHistory: ProgressEntry[];
   userId: string;
 }

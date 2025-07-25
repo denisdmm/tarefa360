@@ -17,7 +17,6 @@ export const activities: Activity[] = [
     title: 'Desenvolver novo módulo de autenticação', 
     description: 'Implementar autenticação baseada em JWT para a API principal.', 
     startDate: new Date(2024, 0, 1), 
-    endDate: new Date(2024, 0, 31),
     progressHistory: [
         { year: 2024, month: 1, percentage: 100, comment: "Finalizado e entregue." },
     ] 
@@ -28,7 +27,6 @@ export const activities: Activity[] = [
     title: 'Refatorar esquema do banco de dados', 
     description: 'Otimizar tabelas para performance e adicionar novos índices.', 
     startDate: new Date(2024, 1, 1), 
-    endDate: new Date(2024, 3, 30),
     progressHistory: [
         { year: 2024, month: 2, percentage: 30, comment: "Análise inicial concluída." },
         { year: 2024, month: 3, percentage: 75, comment: "Scripts de migração desenvolvidos." },
@@ -40,7 +38,6 @@ export const activities: Activity[] = [
     title: 'Escrever documentação da API', 
     description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', 
     startDate: new Date(2024, 2, 1), 
-    endDate: new Date(2024, 4, 31),
     progressHistory: [
         { year: 2024, month: 3, percentage: 40, comment: "Endpoints de autenticação documentados." },
     ] 
@@ -51,7 +48,6 @@ export const activities: Activity[] = [
     title: 'Projetar nova interface do painel', 
     description: 'Criar wireframes e mockups para o painel v2.', 
     startDate: new Date(2024, 0, 10), 
-    endDate: new Date(2024, 1, 28),
     progressHistory: [
         { year: 2024, month: 1, percentage: 100, comment: "Wireframes aprovados e mockups entregues." },
     ] 
@@ -62,7 +58,6 @@ export const activities: Activity[] = [
     title: 'Conduzir sessões de pesquisa com usuários', 
     description: 'Coletar feedback sobre o produto atual de usuários chave.', 
     startDate: new Date(2024, 1, 5), 
-    endDate: new Date(2024, 2, 5),
     progressHistory: [
       { year: 2024, month: 2, percentage: 90, comment: "Sessões realizadas, aguardando análise final dos dados." },
     ]
@@ -73,7 +68,6 @@ export const activities: Activity[] = [
     title: 'Criar suíte de testes automatizados para pagamentos', 
     description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', 
     startDate: new Date(2024, 2, 1),
-    endDate: new Date(2024, 5, 30), 
     progressHistory: [
        { year: 2024, month: 3, percentage: 60, comment: "Estrutura do projeto de teste montada e primeiros cenários criados." },
     ] 

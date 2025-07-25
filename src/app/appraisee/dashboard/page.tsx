@@ -58,6 +58,7 @@ import { format, getMonth, getYear, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
+import { Separator } from "@/components/ui/separator";
 
 const ActivityForm = ({
   activity,
@@ -73,25 +74,50 @@ const ActivityForm = ({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState<Date | undefined>();
-  const [endDate, setEndDate] = React.useState<Date | undefined>();
   const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
-  const [isEndDatePickerOpen, setEndDatePickerOpen] = React.useState(false);
+
+  const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
+  const [currentProgress, setCurrentProgress] = React.useState(0);
+  const [currentComment, setCurrentComment] = React.useState("");
 
   const { toast } = useToast();
+  const currentMonth = getMonth(new Date()) + 1;
+  const currentYear = getYear(new Date());
+
+  const canAddProgressForCurrentMonth = React.useMemo(() => {
+    if (!startDate) return false;
+    const today = startOfDay(new Date());
+    return today >= startOfDay(startDate);
+  }, [startDate]);
+  
+  const hasProgressForCurrentMonth = React.useMemo(() => {
+    return progressHistory.some(p => p.year === currentYear && p.month === currentMonth);
+  }, [progressHistory, currentYear, currentMonth]);
 
   React.useEffect(() => {
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
       setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
-      setEndDate(activity.endDate ? startOfDay(activity.endDate) : undefined);
+      setProgressHistory(activity.progressHistory || []);
+      const existingEntry = activity.progressHistory?.find(p => p.year === currentYear && p.month === currentMonth);
+      if (existingEntry) {
+        setCurrentProgress(existingEntry.percentage);
+        setCurrentComment(existingEntry.comment);
+      } else {
+         const latestProgress = activity.progressHistory?.sort((a, b) => b.year - a.year || b.month - a.month)[0];
+         setCurrentProgress(latestProgress?.percentage || 0);
+         setCurrentComment("");
+      }
     } else {
       setTitle("");
       setDescription("");
       setStartDate(startOfDay(new Date()));
-      setEndDate(undefined);
+      setProgressHistory([]);
+      setCurrentProgress(0);
+      setCurrentComment("");
     }
-  }, [activity]);
+  }, [activity, currentYear, currentMonth]);
 
   const handleDateChange = (date: Date | undefined, setter: (value: Date | undefined) => void) => {
     if (date) {
@@ -102,33 +128,43 @@ const ActivityForm = ({
   };
 
   const handleSubmit = () => {
-    if (!startDate || !endDate) {
+    if (!startDate) {
       toast({
         variant: "destructive",
         title: "Data Inválida",
-        description: "Por favor, insira datas de início e fim válidas.",
+        description: "Por favor, insira uma data de início válida.",
       });
       return;
     }
-    if (endDate < startDate) {
-      toast({
-        variant: "destructive",
-        title: "Data Inválida",
-        description: "A data de fim não pode ser anterior à data de início.",
-      });
-      return;
-    }
+    
+    // --- Save Progress Entry ---
+    let updatedHistory = [...progressHistory];
+    const newEntry: ProgressEntry = {
+      year: currentYear,
+      month: currentMonth,
+      percentage: currentProgress,
+      comment: currentComment,
+    };
+    const existingEntryIndex = progressHistory.findIndex(p => p.year === currentYear && p.month === currentMonth);
 
-    const newActivity: Activity = {
+    if (currentComment || currentProgress > 0){
+        if (existingEntryIndex > -1) {
+            updatedHistory[existingEntryIndex] = newEntry;
+        } else {
+            updatedHistory.push(newEntry);
+        }
+    }
+    
+    // --- Save Activity ---
+    const updatedActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
       title,
       description,
       startDate,
-      endDate,
-      progressHistory: activity?.progressHistory || [],
+      progressHistory: updatedHistory,
       userId: currentUserId,
     };
-    onSave(newActivity);
+    onSave(updatedActivity);
     onClose();
   };
 
@@ -138,189 +174,87 @@ const ActivityForm = ({
         <DialogTitle>{activity ? "Editar Atividade" : "Criar Nova Atividade"}</DialogTitle>
         <DialogDescription>
           {activity
-            ? "Atualize os detalhes da sua atividade."
+            ? "Atualize os detalhes e o progresso da sua atividade."
             : "Registre uma nova atividade para o período de avaliação atual."}
         </DialogDescription>
       </DialogHeader>
-      <div className="grid gap-4 py-4 max-h-[70vh] overflow-y-auto pr-4">
+      <div className="grid gap-6 py-4 max-h-[70vh] overflow-y-auto pr-4">
+        {/* Activity Details */}
         <div className="space-y-4">
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="title" className="text-right">Título</Label>
-            <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="description" className="text-right">Descrição</Label>
-            <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-            <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="col-span-3 justify-start font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {startDate ? format(startDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={startDate}
-                  onSelect={(date) => {
-                    handleDateChange(date, setStartDate);
-                    setStartDatePickerOpen(false);
-                  }}
-                  initialFocus
-                  locale={ptBR}
+            <h3 className="font-semibold text-lg">Detalhes da Atividade</h3>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="text-right">Título</Label>
+                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="description" className="text-right">Descrição</Label>
+                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="start-date" className="text-right">Data de Início</Label>
+                <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
+                <PopoverTrigger asChild>
+                    <Button variant="outline" className="col-span-3 justify-start font-normal">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {startDate ? format(startDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
+                    </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0" align="start">
+                    <Calendar
+                    mode="single"
+                    selected={startDate}
+                    onSelect={(date) => {
+                        handleDateChange(date, setStartDate);
+                        setStartDatePickerOpen(false);
+                    }}
+                    initialFocus
+                    locale={ptBR}
+                    />
+                </PopoverContent>
+                </Popover>
+            </div>
+        </div>
+
+        <Separator />
+        
+        {/* Progress Registration */}
+        <div className="space-y-4">
+             <h3 className="font-semibold text-lg">Registrar Progresso</h3>
+             <p className="text-sm text-muted-foreground">
+                Atualize o andamento de sua atividade para o mês de {format(new Date(), 'MMMM', { locale: ptBR })}.
+            </p>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="current-progress" className="text-right">Conclusão (%)</Label>
+                <Input
+                    id="current-progress"
+                    type="number"
+                    value={currentProgress}
+                    onChange={(e) => setCurrentProgress(Number(e.target.value))}
+                    min="0"
+                    max="100"
+                    disabled={!canAddProgressForCurrentMonth}
+                    className="col-span-3"
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
-          <div className="grid grid-cols-4 items-center gap-4">
-            <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
-            <Popover open={isEndDatePickerOpen} onOpenChange={setEndDatePickerOpen}>
-              <PopoverTrigger asChild>
-                <Button variant="outline" className="col-span-3 justify-start font-normal">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  {endDate ? format(endDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
-                </Button>
-              </PopoverTrigger>
-              <PopoverContent className="w-auto p-0" align="start">
-                <Calendar
-                  mode="single"
-                  selected={endDate}
-                  onSelect={(date) => {
-                    handleDateChange(date, setEndDate);
-                    setEndDatePickerOpen(false);
-                  }}
-                  disabled={{ before: startDate || new Date() }}
-                  initialFocus
-                  locale={ptBR}
+            </div>
+            <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="current-comment" className="text-right">Comentário</Label>
+                <Textarea
+                    id="current-comment"
+                    value={currentComment}
+                    onChange={e => setCurrentComment(e.target.value)}
+                    className="col-span-3"
+                    placeholder="Descreva o que foi feito este mês..."
+                    disabled={!canAddProgressForCurrentMonth}
                 />
-              </PopoverContent>
-            </Popover>
-          </div>
+            </div>
+            {!canAddProgressForCurrentMonth && (
+            <p className="text-center text-sm text-destructive col-span-4">Não é possível registrar progresso para uma atividade com data de início futura.</p>
+            )}
         </div>
       </div>
       <DialogFooter>
         <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-        <Button onClick={handleSubmit}>Salvar Atividade</Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-};
-
-const ProgressForm = ({
-  activity,
-  onSave,
-  onClose,
-}: {
-  activity: Activity;
-  onSave: (activity: Activity) => void;
-  onClose: () => void;
-}) => {
-  const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
-  const [currentProgress, setCurrentProgress] = React.useState(0);
-  const [currentComment, setCurrentComment] = React.useState("");
-
-  const { toast } = useToast();
-  const currentMonth = getMonth(new Date()) + 1;
-  const currentYear = getYear(new Date());
-
-  const canAddProgressForCurrentMonth = React.useMemo(() => {
-    if (!activity.startDate || !activity.endDate) return false;
-    const today = startOfDay(new Date());
-    return today >= startOfDay(activity.startDate) && today <= startOfDay(activity.endDate);
-  }, [activity.startDate, activity.endDate]);
-
-  const hasProgressForCurrentMonth = React.useMemo(() => {
-    return progressHistory.some(p => p.year === currentYear && p.month === currentMonth);
-  }, [progressHistory, currentYear, currentMonth]);
-
-  React.useEffect(() => {
-    setProgressHistory(activity.progressHistory || []);
-    const existingEntry = activity.progressHistory?.find(p => p.year === currentYear && p.month === currentMonth);
-    if (existingEntry) {
-      setCurrentProgress(existingEntry.percentage);
-      setCurrentComment(existingEntry.comment);
-    } else {
-      setCurrentProgress(0);
-      setCurrentComment("");
-    }
-  }, [activity, currentYear, currentMonth]);
-
-  const handleSaveProgress = () => {
-    if (!canAddProgressForCurrentMonth) {
-      toast({
-        variant: "destructive",
-        title: "Ação não permitida",
-        description: "Não é possível registrar progresso fora do período da atividade.",
-      });
-      return;
-    }
-
-    const newEntry: ProgressEntry = {
-      year: currentYear,
-      month: currentMonth,
-      percentage: currentProgress,
-      comment: currentComment,
-    };
-
-    const existingEntryIndex = progressHistory.findIndex(p => p.year === currentYear && p.month === currentMonth);
-
-    let updatedHistory = [...progressHistory];
-    if (existingEntryIndex > -1) {
-      updatedHistory[existingEntryIndex] = newEntry;
-    } else {
-      updatedHistory.push(newEntry);
-    }
-
-    const updatedActivity = { ...activity, progressHistory: updatedHistory };
-    onSave(updatedActivity);
-    onClose();
-  };
-
-  return (
-    <DialogContent>
-      <DialogHeader>
-        <DialogTitle>Registrar Progresso de Atividade</DialogTitle>
-        <DialogDescription>
-          Atualize o andamento de "{activity.title}" para o mês de {format(new Date(), 'MMMM', { locale: ptBR })}.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="py-4 space-y-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="current-progress" className="text-right">Conclusão (%)</Label>
-          <Input
-            id="current-progress"
-            type="number"
-            value={currentProgress}
-            onChange={(e) => setCurrentProgress(Number(e.target.value))}
-            min="0"
-            max="100"
-            disabled={!canAddProgressForCurrentMonth}
-            className="col-span-3"
-          />
-        </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="current-comment" className="text-right">Comentário</Label>
-          <Textarea
-            id="current-comment"
-            value={currentComment}
-            onChange={e => setCurrentComment(e.target.value)}
-            className="col-span-3"
-            placeholder="Descreva o que foi feito este mês..."
-            disabled={!canAddProgressForCurrentMonth}
-          />
-        </div>
-        {!canAddProgressForCurrentMonth && (
-          <p className="text-center text-sm text-destructive">Não é possível registrar progresso para esta atividade no mês atual.</p>
-        )}
-      </div>
-      <DialogFooter>
-        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-        <Button onClick={handleSaveProgress} disabled={!canAddProgressForCurrentMonth}>
-          {hasProgressForCurrentMonth ? 'Atualizar Progresso' : 'Salvar Progresso'}
-        </Button>
+        <Button onClick={handleSubmit}>Salvar</Button>
       </DialogFooter>
     </DialogContent>
   );
@@ -331,13 +265,11 @@ const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
-  onProgress,
   latestProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
-  onProgress: (activity: Activity) => void;
   latestProgress: number;
 }) => {
 
@@ -346,7 +278,7 @@ const ActivityCard = ({
       <CardHeader>
         <CardTitle>{activity.title}</CardTitle>
         <CardDescription>
-          {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
+          Iniciada em {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -355,7 +287,7 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => onProgress(activity)}>
+        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
           <Edit className="mr-2 h-4 w-4" /> Editar
         </Button>
         <AlertDialog>
@@ -393,7 +325,6 @@ export default function AppraiseeDashboard() {
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
-  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -422,14 +353,8 @@ export default function AppraiseeDashboard() {
     setActivityFormOpen(true);
   }
 
-  const handleOpenProgressForm = (activity: Activity) => {
-      setSelectedActivity(activity);
-      setProgressFormOpen(true);
-  }
-
   const handleCloseForms = () => {
     setActivityFormOpen(false);
-    setProgressFormOpen(false);
     setSelectedActivity(null);
   }
 
@@ -471,7 +396,6 @@ export default function AppraiseeDashboard() {
                     activity={activity}
                     onEdit={handleOpenActivityForm}
                     onDelete={handleDeleteActivity}
-                    onProgress={handleOpenProgressForm}
                     latestProgress={getLatestProgress(activity)}
                   />
                 ))}
@@ -506,7 +430,7 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell>
-                              {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })} - {format(activity.endDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                              Iniciada em {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>
@@ -542,15 +466,6 @@ export default function AppraiseeDashboard() {
           )}
         </Dialog>
         
-        <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
-            {isProgressFormOpen && selectedActivity && (
-                 <ProgressForm
-                    activity={selectedActivity}
-                    onSave={handleSaveActivity}
-                    onClose={handleCloseForms}
-                />
-            )}
-        </Dialog>
       </div>
     </>
   );
