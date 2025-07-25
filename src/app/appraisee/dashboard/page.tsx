@@ -29,6 +29,7 @@ import {
   DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -98,7 +99,7 @@ const ActivityForm = ({
 
     const today = new Date();
     const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth(); // 0-11
+    const currentMonth = today.getMonth();
     const selectedMonthIndex = monthMap[month];
 
     const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
@@ -108,6 +109,7 @@ const ActivityForm = ({
     }
     
     // Determine the year for the selected month based on the evaluation period
+    // November and December belong to the start year of the period
     const startYear = activePeriod.startDate.getFullYear();
     const endYear = activePeriod.endDate.getFullYear();
     const monthYear = selectedMonthIndex >= monthMap['Novembro'] ? startYear : endYear;
@@ -115,13 +117,14 @@ const ActivityForm = ({
     const isFuture = monthYear > currentYear || (monthYear === currentYear && selectedMonthIndex > currentMonth);
     setIsFutureMonth(isFuture);
     
-    // If it's a new activity for a future month, force percentage to 0
-    if (!activity && isFuture) {
+    if (isFuture) {
+      // Force percentage to 0 if the month is in the future
       setPercentage(0);
     }
-  }, [month, activity, evaluationPeriods]);
+    
+  }, [month, evaluationPeriods]);
 
-  const handleSubmit = () => {
+  const handleSubmit = (closeDialog: () => void) => {
     const newActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
       title,
@@ -131,7 +134,7 @@ const ActivityForm = ({
       userId: currentUserId,
     };
     onSave(newActivity);
-    onClose();
+    closeDialog();
   };
 
   return (
@@ -180,8 +183,12 @@ const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <Button variant="outline" onClick={onClose}>Cancelar</Button>
-        <Button onClick={handleSubmit}>Salvar Atividade</Button>
+        <DialogClose asChild>
+          <Button variant="outline">Cancelar</Button>
+        </DialogClose>
+        <DialogClose asChild>
+          <Button onClick={() => handleSubmit(onClose)}>Salvar Atividade</Button>
+        </DialogClose>
       </DialogFooter>
     </>
   );
@@ -357,3 +364,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
