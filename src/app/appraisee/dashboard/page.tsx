@@ -50,11 +50,11 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity, ProgressEntry } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, Activity as ActivityIcon } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, parse, isValid, startOfDay } from 'date-fns';
+import { format, getMonth, getYear, startOfDay } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -331,11 +331,13 @@ const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
+  onProgress,
   latestProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
+  onProgress: (activity: Activity) => void;
   latestProgress: number;
 }) => {
 
@@ -353,8 +355,8 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-          <Edit className="mr-2 h-4 w-4" /> Editar / Registrar Progresso
+        <Button variant="outline" size="sm" onClick={() => onProgress(activity)}>
+          <Edit className="mr-2 h-4 w-4" /> Editar
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -467,8 +469,9 @@ export default function AppraiseeDashboard() {
                   <ActivityCard
                     key={activity.id}
                     activity={activity}
-                    onEdit={() => handleOpenProgressForm(activity)}
+                    onEdit={handleOpenActivityForm}
                     onDelete={handleDeleteActivity}
+                    onProgress={handleOpenProgressForm}
                     latestProgress={getLatestProgress(activity)}
                   />
                 ))}
