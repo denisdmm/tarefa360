@@ -314,6 +314,46 @@ export default function AdminDashboard() {
 
   const { toast } = useToast();
 
+  React.useEffect(() => {
+    const today = new Date();
+    const currentYear = today.getFullYear();
+    const currentMonth = today.getMonth(); // 0-11
+
+    let startYear, endYear;
+
+    if (currentMonth >= 10) { // November or December
+      startYear = currentYear;
+      endYear = currentYear + 1;
+    } else { // January to October
+      startYear = currentYear - 1;
+      endYear = currentYear;
+    }
+
+    const periodName = `Avaliação ${startYear}/${endYear}`;
+    const periodExists = evaluationPeriods.some(p => p.name === periodName);
+
+    if (!periodExists) {
+      const newPeriod: EvaluationPeriod = {
+        id: `period-${Date.now()}`,
+        name: periodName,
+        startDate: new Date(startYear, 10, 1), // November 1st
+        endDate: new Date(endYear, 9, 31), // October 31st
+        status: 'Ativo',
+      };
+      
+      // Deactivate all other periods
+      const updatedPeriods = evaluationPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
+      
+      setEvaluationPeriods([newPeriod, ...updatedPeriods]);
+
+      toast({
+        title: "Período Automático Criado",
+        description: `O período "${periodName}" foi criado e definido como ativo.`,
+      });
+    }
+  }, []); // Runs only once on component mount
+
+
   const handleSaveUser = (updatedUser: User) => {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
     toast({
