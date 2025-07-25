@@ -32,12 +32,15 @@ import type { Activity, User } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
 import { format } from 'date-fns';
+import jsPDF from 'jspdf';
+import html2canvas from 'html2canvas';
 
 export default function AppraiseeDetailView({ params }: { params: { id: string } }) {
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [userActivities, setUserActivities] = React.useState<Activity[]>([]);
   const [filteredActivities, setFilteredActivities] = React.useState<Activity[]>([]);
   const [monthFilter, setMonthFilter] = React.useState('all');
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === params.id) || null;
@@ -54,8 +57,45 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     }
   }, [userActivities, monthFilter]);
   
-  const handlePrint = () => {
-    window.print();
+  const handleDownloadPdf = async () => {
+    const reportElement = document.getElementById('print-content');
+    if (!reportElement) return;
+
+    setIsGeneratingPdf(true);
+
+    // Temporarily make the element visible for capture
+    reportElement.style.display = 'block';
+    reportElement.style.fontFamily = `'Times New Roman', Times, serif`;
+    reportElement.style.fontSize = '12pt';
+
+    const canvas = await html2canvas(reportElement, {
+      scale: 2, // Improve quality
+      useCORS: true,
+      onclone: (document) => {
+        // Ensure styles are applied in the cloned document
+        const clonedReport = document.getElementById('print-content')!;
+        clonedReport.style.display = 'block';
+        clonedReport.style.fontFamily = `'Times New Roman', Times, serif`;
+        clonedReport.style.fontSize = '12pt';
+      }
+    });
+
+    // Hide the element again
+    reportElement.style.display = 'none';
+
+    const imgData = canvas.toDataURL('image/png');
+    const pdf = new jsPDF({
+      orientation: 'p',
+      unit: 'mm',
+      format: 'a4',
+    });
+
+    const pdfWidth = pdf.internal.pageSize.getWidth();
+    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
+    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    pdf.save(`relatorio-${appraisee?.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
+    
+    setIsGeneratingPdf(false);
   };
 
   if (!appraisee) {
@@ -113,9 +153,9 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handlePrint}>
+              <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
                 <Printer className="mr-2 h-4 w-4" />
-                Gerar PDF
+                {isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
               </Button>
             </div>
           </div>
@@ -163,7 +203,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
         </main>
       </div>
 
-      <div id="print-content" className="hidden print:block p-8 font-sans">
+      <div id="print-content" className="hidden print:block p-8 bg-white" style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
         <div className="text-center mb-6">
             <h1 className="text-xl font-bold">FICHA DE REGISTRO DE TRABALHOS REALIZADOS</h1>
         </div>
@@ -196,12 +236,12 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                 <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
                   {month.toUpperCase()} {activePeriod && format(activePeriod.startDate, 'yyyy')}
                 </div>
-                <table className="w-full">
+                <table className="w-full" style={{borderCollapse: 'collapse'}}>
                   <tbody>
                   {groupedActivities[month].map(activity => (
                      <tr key={activity.id}>
                        <td className="w-[15%] p-2 border-r border-black text-center">{activity.completionPercentage}%</td>
-                       <td className="p-2">{activity.title}</td>
+                       <td className="p-2 border-b border-black">{activity.title}</td>
                      </tr>
                   ))}
                   </tbody>
@@ -213,23 +253,6 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
             )}
         </div>
         
-        <style jsx global>{`
-          @media print {
-            body {
-              background-color: white !important;
-              font-family: 'Times New Roman', Times, serif;
-            }
-            #print-content {
-                font-size: 12pt;
-            }
-            table {
-                border-color: black !important;
-            }
-            td, th {
-                border-color: black !important;
-            }
-          }
-        `}</style>
       </div>
     </>
   );
