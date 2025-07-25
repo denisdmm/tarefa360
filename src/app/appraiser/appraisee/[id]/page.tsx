@@ -27,7 +27,7 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { activities, users } from "@/lib/mock-data";
+import { activities, users, evaluationPeriods } from "@/lib/mock-data";
 import type { Activity, User } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
@@ -35,21 +35,25 @@ import { format } from 'date-fns';
 
 export default function AppraiseeDetailView({ params }: { params: { id: string } }) {
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
+  const [userActivities, setUserActivities] = React.useState<Activity[]>([]);
   const [filteredActivities, setFilteredActivities] = React.useState<Activity[]>([]);
   const [monthFilter, setMonthFilter] = React.useState('all');
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === params.id) || null;
     setAppraisee(foundUser);
-    const userActivities = activities.filter(a => a.userId === params.id);
-    
+    const activitiesForUser = activities.filter(a => a.userId === params.id);
+    setUserActivities(activitiesForUser);
+  }, [params.id]);
+
+  React.useEffect(() => {
     if (monthFilter === 'all') {
       setFilteredActivities(userActivities);
     } else {
       setFilteredActivities(userActivities.filter(a => a.month === monthFilter));
     }
-  }, [params.id, monthFilter]);
-
+  }, [userActivities, monthFilter]);
+  
   const handlePrint = () => {
     window.print();
   };
@@ -59,8 +63,22 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
   }
   
   const allMonths = [
-    ...new Set(activities.filter(a => a.userId === params.id).map(a => a.month)),
+    ...new Set(userActivities.map(a => a.month)),
   ];
+
+  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+
+  const groupedActivities = filteredActivities.reduce((acc, activity) => {
+    const month = activity.month;
+    if (!acc[month]) {
+      acc[month] = [];
+    }
+    acc[month].push(activity);
+    return acc;
+  }, {} as Record<string, Activity[]>);
+
+  const monthOrder = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+  const sortedMonths = Object.keys(groupedActivities).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
 
   return (
     <>
@@ -135,7 +153,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   ))}
                    {filteredActivities.length === 0 && (
                      <TableRow>
-                       <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade encontrada para o mês selecionado.</TableCell>
+                       <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade encontrada para o período ou filtro selecionado.</TableCell>
                      </TableRow>
                    )}
                 </TableBody>
@@ -145,50 +163,74 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
         </main>
       </div>
 
-      <div id="print-content" className="hidden print:block p-8 font-body">
-         <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold font-headline">Tarefa360 - Relatório de Atividades</h1>
-         </div>
-         <div className="mb-6">
-            <h2 className="text-xl font-semibold">Informações do Avaliado</h2>
-            <p><strong>Nome:</strong> {appraisee.name}</p>
-            <p><strong>Função:</strong> {appraisee.jobTitle}</p>
-            <p><strong>Setor:</strong> {appraisee.sector}</p>
-            <p><strong>Email:</strong> {appraisee.email}</p>
-         </div>
-         <h2 className="text-xl font-semibold mb-2">Atividades ({monthFilter === 'all' ? 'Todos' : monthFilter})</h2>
-         <table className="w-full border-collapse border border-gray-400">
-           <thead>
-             <tr className="bg-gray-200">
-               <th className="border border-gray-300 p-2 text-left">Título</th>
-               <th className="border border-gray-300 p-2 text-left">Descrição</th>
-               <th className="border border-gray-300 p-2 text-left">Mês</th>
-               <th className="border border-gray-300 p-2 text-left">% de Conclusão</th>
-             </tr>
-           </thead>
-           <tbody>
-             {filteredActivities.map(activity => (
-               <tr key={activity.id}>
-                 <td className="border border-gray-300 p-2">{activity.title}</td>
-                 <td className="border border-gray-300 p-2 text-sm">{activity.description}</td>
-                 <td className="border border-gray-300 p-2">{activity.month}</td>
-                 <td className="border border-gray-300 p-2 text-center">{activity.completionPercentage}%</td>
-               </tr>
-             ))}
-           </tbody>
-         </table>
-         <style jsx global>{`
-            @media print {
-              body {
-                background-color: white !important;
-              }
+      <div id="print-content" className="hidden print:block p-8 font-sans">
+        <div className="text-center mb-6">
+            <h1 className="text-xl font-bold">FICHA DE REGISTRO DE TRABALHOS REALIZADOS</h1>
+        </div>
+        
+        <table className="w-full border-collapse border border-black mb-6">
+            <tbody>
+                <tr>
+                    <td className="border border-black p-2 font-bold text-center">POSTO/GRAD. E NOME DO AVALIADO</td>
+                    <td className="border border-black p-2 font-bold text-center">CARGO/FUNÇÃO</td>
+                </tr>
+                <tr>
+                    <td className="border border-black p-2 text-center">{appraisee.name}</td>
+                    <td className="border border-black p-2 text-center">{appraisee.jobTitle}</td>
+                </tr>
+            </tbody>
+        </table>
+
+        <div className="border border-black">
+            <div className="text-center p-2 border-b border-black">
+                <p className="font-bold">PRINCIPAIS ATIVIDADES DESENVOLVIDAS NO PERÍODO DE AVALIAÇÃO</p>
+            </div>
+            {activePeriod && (
+                <div className="text-center p-1 border-b border-black font-bold">
+                    <span>{format(activePeriod.startDate, 'yyyy')}</span>-<span>{format(activePeriod.endDate, 'yyyy')}</span>
+                </div>
+            )}
+
+            {sortedMonths.map(month => (
+              <div key={month}>
+                <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
+                  {month.toUpperCase()} {activePeriod && format(activePeriod.startDate, 'yyyy')}
+                </div>
+                <table className="w-full">
+                  <tbody>
+                  {groupedActivities[month].map(activity => (
+                     <tr key={activity.id}>
+                       <td className="w-[15%] p-2 border-r border-black text-center">{activity.completionPercentage}%</td>
+                       <td className="p-2">{activity.title}</td>
+                     </tr>
+                  ))}
+                  </tbody>
+                </table>
+              </div>
+            ))}
+             {sortedMonths.length === 0 && (
+                <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
+            )}
+        </div>
+        
+        <style jsx global>{`
+          @media print {
+            body {
+              background-color: white !important;
+              font-family: 'Times New Roman', Times, serif;
             }
-         `}</style>
+            #print-content {
+                font-size: 12pt;
+            }
+            table {
+                border-color: black !important;
+            }
+            td, th {
+                border-color: black !important;
+            }
+          }
+        `}</style>
       </div>
     </>
   );
 }
-
-    
-
-    
