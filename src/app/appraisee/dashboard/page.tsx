@@ -102,16 +102,8 @@ const ActivityForm = ({
         return true;
     }
     
-    // For new activities, date must be within the active period
-    if (!activity && activePeriod) {
-       const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
-       if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
-           return true;
-       }
-    }
-    
     return false;
-  }, [title, startDate, activity, activePeriod, isReadOnly]);
+  }, [title, startDate, isReadOnly]);
 
 
   React.useEffect(() => {
@@ -179,7 +171,7 @@ const ActivityForm = ({
             toast({
                 variant: "destructive",
                 title: "Data Inválida",
-                description: `A data de início da atividade deve estar dentro do período de avaliação ativo (${format(activePeriod.startDate, 'dd/MM/yyyy')} - ${format(activePeriod.endDate, 'dd/MM/yyyy')}).`,
+                description: "Data inválida para o período de avaliação.",
             });
             return;
         }
@@ -611,5 +603,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
