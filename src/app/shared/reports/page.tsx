@@ -13,8 +13,8 @@ import { useRouter } from "next/navigation";
 
 // This is a shared component, so we need to know who is viewing it.
 // In a real app, this would come from an auth context.
-// For now, we'll hardcode it, assuming the appraiser or appraisee is logged in.
-const FAKE_LOGGED_IN_USER_ID = 'user-appraisee-1'; // or 'user-appraiser-1'
+// For now, we'll hardcode it, assuming the appraisee is logged in.
+const FAKE_LOGGED_IN_USER_ID = 'user-appraisee-1';
 
 export default function ReportsPage() {
     const router = useRouter();
@@ -28,13 +28,8 @@ export default function ReportsPage() {
         if (currentUser.role === 'appraisee') {
             // Appraisee views their own report
             reportUrl = `/appraiser/appraisee/${currentUser.id}`;
-        } else if (currentUser.role === 'appraiser') {
-            // For this example, let's just use the first appraisee of the appraiser
-            const appraiseeId = currentUser.appraiseeIds?.[0];
-            if(appraiseeId) {
-                reportUrl = `/appraiser/appraisee/${appraiseeId}`;
-            }
         }
+        // Note: Appraiser logic is now handled in its own dedicated page.
         
         // In a real app, we might pass the periodId to the report page
         // so it can filter the activities for that specific period.
@@ -52,8 +47,8 @@ export default function ReportsPage() {
             <main className="flex-1 p-4 md:p-6 overflow-auto">
                 <Card>
                     <CardHeader>
-                        <CardTitle>Períodos de Avaliação</CardTitle>
-                        <CardDescription>Selecione um período para ver o relatório de atividades.</CardDescription>
+                        <CardTitle>Meus Períodos de Avaliação</CardTitle>
+                        <CardDescription>Selecione um período para ver o seu relatório de atividades.</CardDescription>
                     </CardHeader>
                     <CardContent>
                         <Table>
