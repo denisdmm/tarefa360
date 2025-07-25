@@ -54,7 +54,7 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -89,12 +89,28 @@ const ActivityForm = ({
 
   const availableMonths = React.useMemo(() => {
     if (!startDate) return [];
+    // The range of months for progress registration should go from the activity's start date
+    // up to at least the current month, to allow for past entries.
     const today = new Date();
+    const endRangeDate = max([startOfMonth(today), startOfMonth(startDate)]);
+    
     const interval = {
       start: startOfMonth(startDate),
-      end: startOfMonth(today),
+      end: endRangeDate,
     };
-    if(interval.start > interval.end) return [];
+
+    if (interval.start > interval.end) {
+        // This case handles when the start date is in the future. 
+        // We still want to allow registering progress for the start month itself.
+        const startMonthDate = startOfMonth(startDate);
+         return [{
+            year: getYear(startMonthDate),
+            month: getMonth(startMonthDate) + 1,
+            label: format(startMonthDate, "MMMM 'de' yyyy", { locale: ptBR }),
+            value: `${getYear(startMonthDate)}-${getMonth(startMonthDate) + 1}`
+        }];
+    }
+
     return eachMonthOfInterval(interval).map(date => ({
       year: getYear(date),
       month: getMonth(date) + 1,
@@ -146,7 +162,8 @@ const ActivityForm = ({
        setCurrentProgress(latestProgress?.percentage || 0);
        setCurrentComment("");
     }
-  }, [activity, selectedMonth, selectedYear, progressHistory]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity, selectedMonth, selectedYear]);
 
 
   const handleDateChange = (date: Date | undefined, setter: (value: Date | undefined) => void) => {
