@@ -32,6 +32,7 @@ import type { Activity, User } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
 import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
@@ -54,7 +55,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     if (monthFilter === 'all') {
       setFilteredActivities(userActivities);
     } else {
-      setFilteredActivities(userActivities.filter(a => a.month === monthFilter));
+      setFilteredActivities(userActivities.filter(a => format(a.date, 'MMMM', { locale: ptBR }) === monthFilter));
     }
   }, [userActivities, monthFilter]);
   
@@ -106,22 +107,22 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
   }
   
   const allMonths = [
-    ...new Set(userActivities.map(a => a.month)),
+    ...new Set(userActivities.map(a => format(a.date, 'MMMM', { locale: ptBR }))),
   ];
 
   const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
   const groupedActivities = filteredActivities.reduce((acc, activity) => {
-    const month = activity.month;
+    const month = format(activity.date, 'MMMM', { locale: ptBR });
     if (!acc[month]) {
       acc[month] = [];
     }
     acc[month].push(activity);
     return acc;
   }, {} as Record<string, Activity[]>);
-
-  const monthOrder = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
-  const sortedMonths = Object.keys(groupedActivities).sort((a, b) => monthOrder.indexOf(a) - monthOrder.indexOf(b));
+  
+  const monthOrder = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
+  const sortedMonths = Object.keys(groupedActivities).sort((a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()));
 
   return (
     <>
@@ -152,7 +153,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Meses</SelectItem>
-                    {allMonths.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
+                    {allMonths.map(m => <SelectItem key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -177,7 +178,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                 <TableHeader>
                   <TableRow>
                     <TableHead className="w-[40%]">Título</TableHead>
-                    <TableHead>Mês</TableHead>
+                    <TableHead>Data</TableHead>
                     <TableHead className="w-[30%]">Conclusão</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -185,7 +186,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   {filteredActivities.map(activity => (
                     <TableRow key={activity.id}>
                       <TableCell className="font-medium">{activity.title}</TableCell>
-                      <TableCell>{activity.month}</TableCell>
+                      <TableCell>{format(activity.date, 'dd/MM/yyyy')}</TableCell>
                       <TableCell>
                         <div className="flex items-center gap-2">
                           <Progress value={activity.completionPercentage} className="w-[80%]" />
@@ -237,7 +238,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
             {sortedMonths.map(month => (
               <div key={month}>
                 <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
-                  {month.toUpperCase()} {activePeriod && format(activePeriod.startDate, 'yyyy')}
+                  {month.toUpperCase()} {activePeriod && format(new Date(0, monthOrder.indexOf(month.toLowerCase())), 'yyyy')}
                 </div>
                 <table className="w-full" style={{borderCollapse: 'collapse'}}>
                   <tbody>

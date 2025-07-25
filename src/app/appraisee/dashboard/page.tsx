@@ -34,13 +34,6 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Progress } from "@/components/ui/progress";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import {
   Tabs,
@@ -57,13 +50,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-
-const monthMap: { [key: string]: number } = { "Janeiro": 0, "Fevereiro": 1, "Março": 2, "Abril": 3, "Maio": 4, "Junho": 5, "Julho": 6, "Agosto": 7, "Setembro": 8, "Outubro": 9, "Novembro": 10, "Dezembro": 11 };
-const monthNames = ["Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro"];
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Calendar } from "@/components/ui/calendar";
+import { cn } from "@/lib/utils";
+import { format } from 'date-fns';
+import { ptBR } from 'date-fns/locale';
 
 const ActivityForm = ({
   activity,
@@ -78,66 +73,48 @@ const ActivityForm = ({
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [month, setMonth] = React.useState("");
+  const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [percentage, setPercentage] = React.useState(0);
-  const [isFutureMonth, setIsFutureMonth] = React.useState(false);
+  const [isFutureDate, setIsFutureDate] = React.useState(false);
   
-  const { evaluationPeriods } = useDataContext();
-
   React.useEffect(() => {
     if (activity) {
         setTitle(activity.title || "");
         setDescription(activity.description || "");
-        setMonth(activity.month || "");
+        setDate(activity.date || new Date());
         setPercentage(activity.completionPercentage || 0);
     } else {
-        const currentMonthName = monthNames[new Date().getMonth()];
         setTitle("");
         setDescription("");
-        setMonth(currentMonthName);
+        setDate(new Date());
         setPercentage(0);
     }
   }, [activity]);
 
   React.useEffect(() => {
-    if (!month) {
-        setIsFutureMonth(false);
-        return;
+    if (!date) {
+      setIsFutureDate(false);
+      return;
     }
-
     const today = new Date();
-    const currentYear = today.getFullYear();
-    const currentMonth = today.getMonth();
-    const selectedMonthIndex = monthMap[month];
-
-    const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
-    if (!activePeriod) {
-        setIsFutureMonth(false);
-        return;
-    }
+    today.setHours(0, 0, 0, 0); // Ignore time part
     
-    // Determine the year for the selected month based on the evaluation period
-    // November and December belong to the start year of the period
-    const startYear = activePeriod.startDate.getFullYear();
-    const endYear = activePeriod.endDate.getFullYear();
-    const monthYear = selectedMonthIndex >= monthMap['Novembro'] ? startYear : endYear;
+    const isFuture = date > today;
+    setIsFutureDate(isFuture);
 
-    const isFuture = monthYear > currentYear || (monthYear === currentYear && selectedMonthIndex > currentMonth);
-    setIsFutureMonth(isFuture);
-    
     if (isFuture) {
-      // Force percentage to 0 if the month is in the future
       setPercentage(0);
     }
-    
-  }, [month, evaluationPeriods]);
+  }, [date]);
+
 
   const handleSubmit = (closeDialog: () => void) => {
+    if (!date) return;
     const newActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
       title,
       description,
-      month,
+      date,
       completionPercentage: Number(percentage),
       userId: currentUserId,
     };
@@ -165,17 +142,30 @@ const ActivityForm = ({
           <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="month" className="text-right">Mês</Label>
-          <Select value={month} onValueChange={setMonth}>
-            <SelectTrigger className="col-span-3">
-              <SelectValue placeholder="Selecione o mês" />
-            </SelectTrigger>
-            <SelectContent>
-              {monthNames.map(m => (
-                <SelectItem key={m} value={m}>{m}</SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+            <Label htmlFor="date" className="text-right">Data</Label>
+            <Popover>
+                <PopoverTrigger asChild>
+                <Button
+                    variant={"outline"}
+                    className={cn(
+                    "col-span-3 justify-start text-left font-normal",
+                    !date && "text-muted-foreground"
+                    )}
+                >
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    {date ? format(date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
+                </Button>
+                </PopoverTrigger>
+                <PopoverContent className="w-auto p-0">
+                <Calendar
+                    mode="single"
+                    selected={date}
+                    onSelect={setDate}
+                    initialFocus
+                    locale={ptBR}
+                />
+                </PopoverContent>
+            </Popover>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="percentage" className="text-right">Conclusão</Label>
@@ -185,8 +175,8 @@ const ActivityForm = ({
             value={percentage} 
             onChange={(e) => setPercentage(Number(e.target.value))} 
             className="col-span-3" 
-            disabled={isFutureMonth}
-            title={isFutureMonth ? "Não é possível editar a conclusão de uma atividade futura." : ""}
+            disabled={isFutureDate}
+            title={isFutureDate ? "Não é possível editar a conclusão de uma atividade futura." : ""}
           />
         </div>
       </div>
@@ -268,7 +258,7 @@ export default function AppraiseeDashboard() {
                       <Card key={activity.id} className="flex flex-col">
                         <CardHeader>
                           <CardTitle>{activity.title}</CardTitle>
-                          <CardDescription>{activity.month}</CardDescription>
+                          <CardDescription>{format(activity.date, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</CardDescription>
                         </CardHeader>
                         <CardContent className="flex-grow">
                           <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
@@ -323,7 +313,7 @@ export default function AppraiseeDashboard() {
                             <TableHeader>
                                 <TableRow>
                                     <TableHead>Título</TableHead>
-                                    <TableHead>Mês</TableHead>
+                                    <TableHead>Data</TableHead>
                                     <TableHead>Status</TableHead>
                                     <TableHead className="text-right">Ações</TableHead>
                                 </TableRow>
@@ -333,7 +323,7 @@ export default function AppraiseeDashboard() {
                                     completedActivities.map(activity => (
                                         <TableRow key={activity.id}>
                                             <TableCell className="font-medium">{activity.title}</TableCell>
-                                            <TableCell>{activity.month}</TableCell>
+                                            <TableCell>{format(activity.date, "dd/MM/yyyy")}</TableCell>
                                             <TableCell>
                                                 <Badge>Concluído</Badge>
                                             </TableCell>

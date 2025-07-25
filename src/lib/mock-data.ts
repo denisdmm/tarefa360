@@ -11,12 +11,12 @@ export const users: User[] = [
 ];
 
 export const activities: Activity[] = [
-  { id: 'act-1', userId: 'user-appraisee-1', title: 'Desenvolver novo módulo de autenticação', description: 'Implementar autenticação baseada em JWT para a API principal.', month: 'Janeiro', completionPercentage: 100 },
-  { id: 'act-2', userId: 'user-appraisee-1', title: 'Refatorar esquema do banco de dados', description: 'Otimizar tabelas para performance e adicionar novos índices.', month: 'Fevereiro', completionPercentage: 75 },
-  { id: 'act-3', userId: 'user-appraisee-1', title: 'Escrever documentação da API', description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', month: 'Março', completionPercentage: 40 },
-  { id: 'act-4', userId: 'user-appraisee-2', title: 'Projetar nova interface do painel', description: 'Criar wireframes e mockups para o painel v2.', month: 'Janeiro', completionPercentage: 100 },
-  { id: 'act-5', userId: 'user-appraisee-2', title: 'Conduzir sessões de pesquisa com usuários', description: 'Coletar feedback sobre o produto atual de usuários chave.', month: 'Fevereiro', completionPercentage: 90 },
-  { id: 'act-6', userId: 'user-appraisee-3', title: 'Criar suíte de testes automatizados para pagamentos', description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', month: 'Março', completionPercentage: 60 },
+  { id: 'act-1', userId: 'user-appraisee-1', title: 'Desenvolver novo módulo de autenticação', description: 'Implementar autenticação baseada em JWT para a API principal.', date: new Date(2024, 0, 15), completionPercentage: 100 },
+  { id: 'act-2', userId: 'user-appraisee-1', title: 'Refatorar esquema do banco de dados', description: 'Otimizar tabelas para performance e adicionar novos índices.', date: new Date(2024, 1, 20), completionPercentage: 75 },
+  { id: 'act-3', userId: 'user-appraisee-1', title: 'Escrever documentação da API', description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', date: new Date(2024, 2, 10), completionPercentage: 40 },
+  { id: 'act-4', userId: 'user-appraisee-2', title: 'Projetar nova interface do painel', description: 'Criar wireframes e mockups para o painel v2.', date: new Date(2024, 0, 25), completionPercentage: 100 },
+  { id: 'act-5', userId: 'user-appraisee-2', title: 'Conduzir sessões de pesquisa com usuários', description: 'Coletar feedback sobre o produto atual de usuários chave.', date: new Date(2024, 1, 5), completionPercentage: 90 },
+  { id: 'act-6', userId: 'user-appraisee-3', title: 'Criar suíte de testes automatizados para pagamentos', description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', date: new Date(2024, 2, 28), completionPercentage: 60 },
 ];
 
 export const evaluationPeriods: EvaluationPeriod[] = [

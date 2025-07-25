@@ -19,7 +19,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  month: string;
+  date: Date;
   completionPercentage: number;
   userId: string;
 }
