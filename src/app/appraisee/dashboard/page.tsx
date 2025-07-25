@@ -54,7 +54,7 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, endOfMonth } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -93,18 +93,13 @@ const ActivityForm = ({
     const today = new Date();
     // The range of months for progress registration should go from the activity's start date
     // up to the current month.
-    const endRangeDate = max([startOfMonth(today), startOfMonth(startDate)]);
+    const endRangeDate = startOfMonth(today);
 
     const interval = {
       start: startOfMonth(startDate),
       end: endRangeDate,
     };
     
-    // Make sure we don't allow future months if start date is in the past
-    if (interval.end > today) {
-        interval.end = startOfMonth(today);
-    }
-
     if (interval.start > interval.end) {
         return [{
             year: getYear(interval.start),
@@ -120,7 +115,8 @@ const ActivityForm = ({
       label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
       value: `${getYear(date)}-${getMonth(date) + 1}`
     })).reverse();
-  }, [startDate]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [startDate, activity]);
 
 
   React.useEffect(() => {
@@ -137,18 +133,20 @@ const ActivityForm = ({
       setCurrentProgress(0);
       setCurrentComment("");
     }
-    // Set default selected month/year to current
-    const currentMonthInList = availableMonths.find(m => m.year === getYear(new Date()) && m.month === getMonth(new Date()) + 1);
+    
+    // Set default selected month/year to current if available
+    const today = new Date();
+    const currentMonthInList = availableMonths.find(m => m.year === getYear(today) && m.month === getMonth(today) + 1);
+
     if(currentMonthInList) {
-        setSelectedYear(getYear(new Date()));
-        setSelectedMonth(getMonth(new Date()) + 1);
+        setSelectedYear(getYear(today));
+        setSelectedMonth(getMonth(today) + 1);
     } else if (availableMonths.length > 0) {
-        // If current month is not available (e.g. activity starts in future), select the first available month
+        // If current month is not available, select the first available month (most recent)
         const [year, month] = availableMonths[0].value.split('-').map(Number);
         setSelectedYear(year);
         setSelectedMonth(month);
     }
-
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity, availableMonths.length]);
 
@@ -207,15 +205,17 @@ const ActivityForm = ({
     };
     const existingEntryIndex = progressHistory.findIndex(p => p.year === selectedYear && p.month === selectedMonth);
 
-    if (currentComment || currentProgress > 0){
+    if (currentComment || currentProgress > 0 || existingEntryIndex > -1){
         if (existingEntryIndex > -1) {
-            updatedHistory[existingEntryIndex] = newEntry;
+            if(currentComment || currentProgress > 0) {
+              updatedHistory[existingEntryIndex] = newEntry;
+            } else {
+              // If user clears the fields, remove the entry
+              updatedHistory.splice(existingEntryIndex, 1);
+            }
         } else {
             updatedHistory.push(newEntry);
         }
-    } else if(existingEntryIndex > -1) {
-        // If user clears the fields, remove the entry
-        updatedHistory.splice(existingEntryIndex, 1);
     }
     
     // --- Save Activity ---
@@ -265,7 +265,7 @@ const ActivityForm = ({
                 <PopoverTrigger asChild>
                     <Button variant="outline" className="col-span-3 justify-start font-normal">
                     <CalendarIcon className="mr-2 h-4 w-4" />
-                    {startDate ? format(startDate, 'dd/MM/yyyy') : <span>Escolha uma data</span>}
+                    {startDate ? format(startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : <span>Escolha uma data</span>}
                     </Button>
                 </PopoverTrigger>
                 <PopoverContent className="w-auto p-0" align="start">
@@ -306,8 +306,11 @@ const ActivityForm = ({
                         {availableMonths.map(m => (
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                         ))}
-                         {availableMonths.length === 0 && (
-                            <SelectItem value="none" disabled>Nenhum período disponível</SelectItem>
+                         {availableMonths.length === 0 && startDate && (
+                            <SelectItem value="none" disabled>Progresso pode ser lançado a partir do mês atual.</SelectItem>
+                        )}
+                        {!startDate && (
+                            <SelectItem value="none" disabled>Selecione uma data de início.</SelectItem>
                         )}
                     </SelectContent>
                 </Select>
@@ -351,13 +354,23 @@ const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
-  latestProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
-  latestProgress: number;
 }) => {
+    
+  const getLatestProgress = (activity: Activity) => {
+    const { progressHistory } = activity;
+    if (!progressHistory || progressHistory.length === 0) return 0;
+    const sortedHistory = [...progressHistory].sort((a, b) => {
+      if (a.year !== b.year) return b.year - a.year;
+      return b.month - a.month;
+    });
+    return sortedHistory[0].percentage;
+  };
+  
+  const latestProgress = getLatestProgress(activity);
 
   return (
     <Card className="flex flex-col">
@@ -379,7 +392,7 @@ const ActivityCard = ({
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="sm">
-              <Trash2 className="mr-2 h-4 w-4" />
+              <Trash2 />
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -482,7 +495,6 @@ export default function AppraiseeDashboard() {
                     activity={activity}
                     onEdit={handleOpenActivityForm}
                     onDelete={handleDeleteActivity}
-                    latestProgress={getLatestProgress(activity)}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -505,7 +517,7 @@ export default function AppraiseeDashboard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
-                        <TableHead>Período</TableHead>
+                        <TableHead>Início</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -516,7 +528,7 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell>
-                              Iniciada em {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })}
+                              {format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR })}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>
