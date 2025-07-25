@@ -127,9 +127,8 @@ const ActivityForm = ({
     } else {
       setTitle("");
       setDescription("");
-      const today = startOfDay(new Date());
-      setStartDate(today);
-      setStartDateInput(format(today, "dd/MM/yyyy"));
+      setStartDate(undefined);
+      setStartDateInput("");
       setProgressHistory([]);
       setCurrentProgress(0);
       setCurrentComment("");
@@ -188,16 +187,21 @@ const ActivityForm = ({
     if (isValid(parsedDate)) {
         setStartDate(startOfDay(parsedDate));
     } else {
-        // If parsing fails, you might want to set startDate to undefined 
-        // or keep the last valid date, depending on desired behavior.
-        // For now, we allow invalid text but won't have a valid Date object.
         setStartDate(undefined);
     }
   };
 
 
   const handleSubmit = () => {
-    const finalStartDate = startDate || new Date(); // Fallback to today if date is invalid
+    if (!startDate) {
+        toast({
+            variant: "destructive",
+            title: "Data de Início Obrigatória",
+            description: "Por favor, insira uma data de início válida.",
+        });
+        return;
+    }
+    const finalStartDate = startDate;
 
     // --- Save Progress Entry ---
     let updatedHistory = [...progressHistory];
@@ -559,5 +563,7 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
 
     
