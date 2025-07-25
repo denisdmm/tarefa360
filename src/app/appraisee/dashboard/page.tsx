@@ -67,10 +67,12 @@ const ActivityForm = ({
   activity,
   onSave,
   onClose,
+  currentUserId,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => void;
   onClose: () => void;
+  currentUserId: string;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -125,7 +127,7 @@ const ActivityForm = ({
       description,
       month,
       completionPercentage: Number(percentage),
-      userId: activity?.userId || 'user-appraisee-1',
+      userId: activity?.userId || currentUserId,
     };
     onSave(newActivity);
     onClose();
@@ -188,7 +190,8 @@ const ActivityForm = ({
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
   const { activities, setActivities } = useDataContext();
-  const userActivities = activities.filter(a => a.userId === 'user-appraisee-1');
+  const currentUserId = 'user-appraisee-1'; // Hardcoded for now
+  const userActivities = activities.filter(a => a.userId === currentUserId);
 
   const [isFormOpen, setFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
@@ -345,6 +348,7 @@ export default function AppraiseeDashboard() {
                     activity={selectedActivity} 
                     onSave={handleSaveActivity} 
                     onClose={handleCloseForm}
+                    currentUserId={currentUserId}
                 />
             </DialogContent>
         </Dialog>
