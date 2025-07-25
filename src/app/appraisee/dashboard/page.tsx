@@ -85,10 +85,18 @@ const ActivityForm = ({
   const { evaluationPeriods } = useDataContext();
 
   React.useEffect(() => {
-    setTitle(activity?.title || "");
-    setDescription(activity?.description || "");
-    setMonth(activity?.month || "");
-    setPercentage(activity?.completionPercentage || 0);
+    if (activity) {
+        setTitle(activity.title || "");
+        setDescription(activity.description || "");
+        setMonth(activity.month || "");
+        setPercentage(activity.completionPercentage || 0);
+    } else {
+        const currentMonthName = monthNames[new Date().getMonth()];
+        setTitle("");
+        setDescription("");
+        setMonth(currentMonthName);
+        setPercentage(0);
+    }
   }, [activity]);
 
   React.useEffect(() => {
