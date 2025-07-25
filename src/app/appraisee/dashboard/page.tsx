@@ -49,12 +49,12 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import type { Activity, ProgressEntry } from "@/lib/types";
+import type { Activity, ProgressEntry, EvaluationPeriod } from "@/lib/types";
 import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, Plus, X, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid, add, sub } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid, add, sub, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -66,16 +66,18 @@ const ActivityForm = ({
   onClose,
   currentUserId,
   isReadOnly = false,
+  activePeriod,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => void;
   onClose: () => void;
   currentUserId: string;
   isReadOnly?: boolean;
+  activePeriod?: EvaluationPeriod;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
-  const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
+  const [startDate, setStartDate] = React.useState('');
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
 
   const [isAddingProgress, setIsAddingProgress] = React.useState(false);
@@ -87,27 +89,16 @@ const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
+      setStartDate(activity.startDate ? format(activity.startDate, 'yyyy-MM-dd') : '');
       setProgressHistory(activity.progressHistory || []);
     } else {
       // For new activities
       setTitle("");
       setDescription("");
-      setStartDate(undefined);
+      setStartDate('');
       setProgressHistory([]);
     }
   }, [activity]);
-
-  const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const value = e.target.value;
-    if (value) {
-        const date = new Date(value);
-        const dateWithOffset = add(date, {minutes: date.getTimezoneOffset()});
-        setStartDate(dateWithOffset);
-    } else {
-        setStartDate(undefined);
-    }
-  };
 
   const handleStartAddNewProgress = () => {
     const today = new Date();
@@ -149,20 +140,34 @@ const ActivityForm = ({
         });
         return;
     }
+    
+    const parsedDate = new Date(startDate);
+    const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
+
+    if (!activity && activePeriod) {
+        if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
+            toast({
+                variant: "destructive",
+                title: "Data Inválida",
+                description: `A data de início da atividade deve estar dentro do período de avaliação ativo (${format(activePeriod.startDate, 'dd/MM/yyyy')} - ${format(activePeriod.endDate, 'dd/MM/yyyy')}).`,
+            });
+            return;
+        }
+    }
+
 
     const updatedActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
       title,
       description,
-      startDate: startDate,
+      startDate: dateWithOffset,
       progressHistory: progressHistory,
       userId: currentUserId,
     };
     onSave(updatedActivity);
     onClose();
   };
-
-  const startDateValue = startDate ? format(startDate, 'yyyy-MM-dd') : '';
+  
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
     return b.month - a.month;
@@ -197,8 +202,8 @@ const ActivityForm = ({
               <Input
                 id="start-date"
                 type="date"
-                value={startDateValue}
-                onChange={handleDateInputChange}
+                value={startDate}
+                onChange={e => setStartDate(e.target.value)}
                 className="col-span-3"
                 readOnly={isReadOnly}
               />
@@ -345,7 +350,7 @@ const ActivityCard = ({
       <CardHeader>
         <CardTitle>{activity.title}</CardTitle>
         <CardDescription>
-          Iniciada em {activity.startDate ? format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
+          Iniciada em {activity.startDate ? format(activity.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -386,13 +391,15 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, setActivities } = useDataContext();
+  const { activities, setActivities, evaluationPeriods } = useDataContext();
   const currentUserId = 'user-appraisee-1'; // Hardcoded for now
   const userActivities = activities.filter(a => a.userId === currentUserId);
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
+
+  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -499,7 +506,7 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell>
-                              {activity.startDate ? format(activity.startDate, "MMMM 'de' yyyy", { locale: ptBR }) : 'N/A'}
+                              {activity.startDate ? format(activity.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>
@@ -553,6 +560,7 @@ export default function AppraiseeDashboard() {
               onClose={handleCloseForms}
               currentUserId={currentUserId}
               isReadOnly={isFormReadOnly}
+              activePeriod={activePeriod}
             />
           )}
         </Dialog>
@@ -561,4 +569,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
