@@ -15,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LogOut, Settings, LayoutDashboard } from "lucide-react";
+import { LogOut, Settings, LayoutDashboard, FileText } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -42,6 +42,14 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
                 <Link href="/appraisee/dashboard">
                   <LayoutDashboard />
                   Painel
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+             <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/appraisee/reports")}>
+                <Link href="/appraisee/reports">
+                  <FileText />
+                  Relatórios
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -84,5 +92,3 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
-
-    
