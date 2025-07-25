@@ -50,7 +50,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity, ProgressEntry } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, Plus, X } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon, Plus, X, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
@@ -65,11 +65,13 @@ const ActivityForm = ({
   onSave,
   onClose,
   currentUserId,
+  isReadOnly = false,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => void;
   onClose: () => void;
   currentUserId: string;
+  isReadOnly?: boolean;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -169,9 +171,11 @@ const ActivityForm = ({
   return (
     <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
-        <DialogTitle>{activity ? "Editar Atividade" : "Criar Nova Atividade"}</DialogTitle>
+        <DialogTitle>{activity ? (isReadOnly ? "Visualizar Atividade" : "Editar Atividade") : "Criar Nova Atividade"}</DialogTitle>
         <DialogDescription>
-          {activity
+          {isReadOnly 
+            ? "Visualize os detalhes e o progresso da sua atividade."
+            : activity
             ? "Atualize os detalhes e o progresso da sua atividade."
             : "Registre uma nova atividade para o período de avaliação atual."}
         </DialogDescription>
@@ -182,11 +186,11 @@ const ActivityForm = ({
             <h3 className="font-semibold text-lg">Detalhes da Atividade</h3>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="title" className="text-right">Título</Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
+                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" readOnly={isReadOnly} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="description" className="text-right">Descrição</Label>
-                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
+                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" readOnly={isReadOnly} />
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="start-date" className="text-right">Data de Início</Label>
@@ -196,6 +200,7 @@ const ActivityForm = ({
                 value={startDateValue}
                 onChange={handleDateInputChange}
                 className="col-span-3"
+                readOnly={isReadOnly}
               />
             </div>
         </div>
@@ -206,7 +211,7 @@ const ActivityForm = ({
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                 {!isAddingProgress && (
+                 {!isAddingProgress && !isReadOnly && (
                      <Button variant="outline" size="sm" onClick={handleStartAddNewProgress}>
                         <Plus className="mr-2 h-4 w-4" /> Adicionar Novo Progresso
                      </Button>
@@ -275,7 +280,7 @@ const ActivityForm = ({
                             <TableHead>Período</TableHead>
                             <TableHead>Progresso</TableHead>
                             <TableHead>Comentário</TableHead>
-                            <TableHead className="text-right"></TableHead>
+                            {!isReadOnly && <TableHead className="text-right"></TableHead>}
                         </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -286,15 +291,17 @@ const ActivityForm = ({
                                 </TableCell>
                                 <TableCell>{p.percentage}%</TableCell>
                                 <TableCell className="text-muted-foreground">{p.comment}</TableCell>
+                                {!isReadOnly && (
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month)}>
                                         <Trash2 className="h-4 w-4 text-destructive"/>
                                     </Button>
                                 </TableCell>
+                                )}
                             </TableRow>
                         )) : (
                             <TableRow>
-                                <TableCell colSpan={4} className="h-24 text-center">Nenhum progresso registrado.</TableCell>
+                                <TableCell colSpan={isReadOnly ? 3 : 4} className="h-24 text-center">Nenhum progresso registrado.</TableCell>
                             </TableRow>
                         )}
                     </TableBody>
@@ -303,8 +310,8 @@ const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
-        <Button onClick={handleSubmit}>Salvar Atividade</Button>
+        <DialogClose asChild><Button variant="outline">Fechar</Button></DialogClose>
+        {!isReadOnly && <Button onClick={handleSubmit}>Salvar Atividade</Button>}
       </DialogFooter>
     </DialogContent>
   );
@@ -385,6 +392,7 @@ export default function AppraiseeDashboard() {
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
+  const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -408,14 +416,16 @@ export default function AppraiseeDashboard() {
     handleCloseForms();
   };
 
-  const handleOpenActivityForm = (activity: Activity | null) => {
+  const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
     setSelectedActivity(activity);
+    setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
 
   const handleCloseForms = () => {
     setActivityFormOpen(false);
     setSelectedActivity(null);
+    setIsFormReadOnly(false);
   }
 
   const handleDeleteActivity = (activityId: string) => {
@@ -454,7 +464,7 @@ export default function AppraiseeDashboard() {
                   <ActivityCard
                     key={activity.id}
                     activity={activity}
-                    onEdit={handleOpenActivityForm}
+                    onEdit={() => handleOpenActivityForm(activity)}
                     onDelete={handleDeleteActivity}
                   />
                 ))}
@@ -494,10 +504,31 @@ export default function AppraiseeDashboard() {
                             <TableCell>
                               <Badge>Concluído</Badge>
                             </TableCell>
-                            <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity)}>
-                                <Edit className="h-4 w-4" />
+                            <TableCell className="text-right space-x-2">
+                              <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity, true)}>
+                                <Eye className="h-4 w-4" />
                               </Button>
+                               <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
+                                      <Trash2 className="h-4 w-4" />
+                                  </Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                                    <AlertDialogDescription>
+                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
+                                    </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                    <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
+                                        Excluir
+                                    </AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                                </AlertDialog>
                             </TableCell>
                           </TableRow>
                         ))
@@ -521,6 +552,7 @@ export default function AppraiseeDashboard() {
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
               currentUserId={currentUserId}
+              isReadOnly={isFormReadOnly}
             />
           )}
         </Dialog>
@@ -529,3 +561,4 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
