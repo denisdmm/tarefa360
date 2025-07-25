@@ -75,7 +75,8 @@ const ActivityForm = ({
   const [description, setDescription] = React.useState("");
   const [date, setDate] = React.useState<Date | undefined>(new Date());
   const [percentage, setPercentage] = React.useState(0);
-  const [isFutureDate, setIsFutureDate] = React.useState(false);
+  const [isCompletionDisabled, setIsCompletionDisabled] = React.useState(false);
+  const { evaluationPeriods } = useDataContext();
   
   React.useEffect(() => {
     if (activity) {
@@ -92,20 +93,26 @@ const ActivityForm = ({
   }, [activity]);
 
   React.useEffect(() => {
-    if (!date) {
-      setIsFutureDate(false);
+    const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+    if (!date || !activePeriod) {
+      setIsCompletionDisabled(false);
       return;
     }
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Ignore time part
-    
-    const isFuture = date > today;
-    setIsFutureDate(isFuture);
 
-    if (isFuture) {
+    // isFuture is true if the selected date is after today
+    const isFuture = date > today;
+    // isWithinPeriod is true if the selected date is before or on the last day of the evaluation
+    const isWithinPeriod = date <= activePeriod.endDate;
+
+    const shouldDisable = isFuture && isWithinPeriod;
+    setIsCompletionDisabled(shouldDisable);
+
+    if (shouldDisable) {
       setPercentage(0);
     }
-  }, [date]);
+  }, [date, evaluationPeriods]);
 
 
   const handleSubmit = (closeDialog: () => void) => {
@@ -175,8 +182,8 @@ const ActivityForm = ({
             value={percentage} 
             onChange={(e) => setPercentage(Number(e.target.value))} 
             className="col-span-3" 
-            disabled={isFutureDate}
-            title={isFutureDate ? "Não é possível editar a conclusão de uma atividade futura." : ""}
+            disabled={isCompletionDisabled}
+            title={isCompletionDisabled ? "Não é possível editar a conclusão de uma atividade futura." : ""}
           />
         </div>
       </div>
