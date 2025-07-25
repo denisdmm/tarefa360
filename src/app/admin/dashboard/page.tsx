@@ -520,9 +520,6 @@ export default function AdminDashboard() {
                           </TableCell>
                           <TableCell className="text-right">
                             <div className="flex items-center justify-end space-x-2">
-                                <Label htmlFor={`status-toggle-${period.id}`} className="text-muted-foreground text-xs">
-                                    {period.status === 'Ativo' ? 'Ativo' : 'Inativo'}
-                                </Label>
                                 <Switch
                                     id={`status-toggle-${period.id}`}
                                     checked={period.status === 'Ativo'}
