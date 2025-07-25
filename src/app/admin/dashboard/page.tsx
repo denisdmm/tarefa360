@@ -39,7 +39,7 @@ import {
 import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import type { User, EvaluationPeriod } from "@/lib/types";
+import type { User, EvaluationPeriod, Role } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -343,6 +343,15 @@ export default function AdminDashboard() {
   }
 
   const getUsernameById = (id: string) => users.find(u => u.id === id)?.name || 'Desconhecido';
+  
+  const translateRole = (role: Role) => {
+    const roles: Record<Role, string> = {
+      admin: 'Administrador',
+      appraiser: 'Avaliador',
+      appraisee: 'Avaliado',
+    };
+    return roles[role] || role;
+  }
 
   return (
     <>
@@ -405,7 +414,7 @@ export default function AdminDashboard() {
                           <TableCell>{user.cpf}</TableCell>
                           <TableCell>{user.sector}</TableCell>
                           <TableCell>{user.jobTitle}</TableCell>
-                          <TableCell><Badge variant="secondary" className="capitalize">{user.role}</Badge></TableCell>
+                          <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
                           <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user)}>
                                 <Edit className="h-4 w-4" />
