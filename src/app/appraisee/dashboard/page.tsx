@@ -26,6 +26,7 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
+  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
@@ -127,7 +128,7 @@ const ActivityForm = ({
       description,
       month,
       completionPercentage: Number(percentage),
-      userId: activity?.userId || currentUserId,
+      userId: currentUserId,
     };
     onSave(newActivity);
     onClose();
@@ -356,5 +357,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
