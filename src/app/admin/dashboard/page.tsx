@@ -53,6 +53,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
+import { Switch } from "@/components/ui/switch";
 
 const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
   const [cpf, setCpf] = React.useState('');
@@ -364,6 +365,30 @@ export default function AdminDashboard() {
     setSelectedAppraiser('');
   };
 
+  const handleTogglePeriodStatus = (periodId: string, newStatus: boolean) => {
+    const status: EvaluationPeriod['status'] = newStatus ? 'Ativo' : 'Inativo';
+    
+    if (status === 'Ativo') {
+      const hasOtherActivePeriod = evaluationPeriods.some(
+        p => p.status === 'Ativo' && p.id !== periodId
+      );
+      if (hasOtherActivePeriod) {
+        toast({
+          variant: "destructive",
+          title: "Operação não permitida",
+          description: "Já existe um período de avaliação ativo. Apenas um período pode estar ativo por vez.",
+        });
+        return;
+      }
+    }
+
+    setEvaluationPeriods(
+      evaluationPeriods.map(p =>
+        p.id === periodId ? { ...p, status } : p
+      )
+    );
+  };
+
 
   const openUserModal = (user: User) => {
     setSelectedUser(user);
@@ -494,7 +519,20 @@ export default function AdminDashboard() {
                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                             <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}><Edit className="h-4 w-4" /></Button>
+                            <div className="flex items-center justify-end space-x-2">
+                                <Label htmlFor={`status-toggle-${period.id}`} className="text-muted-foreground text-xs">
+                                    {period.status === 'Ativo' ? 'Ativo' : 'Inativo'}
+                                </Label>
+                                <Switch
+                                    id={`status-toggle-${period.id}`}
+                                    checked={period.status === 'Ativo'}
+                                    onCheckedChange={(newStatus) => handleTogglePeriodStatus(period.id, newStatus)}
+                                    aria-label={`Mudar status para ${period.status === 'Ativo' ? 'Inativo' : 'Ativo'}`}
+                                />
+                                <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}>
+                                    <Edit className="h-4 w-4" />
+                                </Button>
+                            </div>
                           </TableCell>
                         </TableRow>
                       ))}
