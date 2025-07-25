@@ -73,10 +73,12 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
       useCORS: true,
       onclone: (document) => {
         // Ensure styles are applied in the cloned document
-        const clonedReport = document.getElementById('print-content')!;
-        clonedReport.style.display = 'block';
-        clonedReport.style.fontFamily = `'Times New Roman', Times, serif`;
-        clonedReport.style.fontSize = '12pt';
+        const clonedReport = document.getElementById('print-content');
+        if (clonedReport) {
+            clonedReport.style.display = 'block';
+            clonedReport.style.fontFamily = `'Times New Roman', Times, serif`;
+            clonedReport.style.fontSize = '12pt';
+        }
       }
     });
 

@@ -34,12 +34,12 @@ import {
 import {
   users as mockUsers,
   evaluationPeriods as mockPeriods,
-  associations,
+  associations as mockAssociations,
 } from "@/lib/mock-data";
 import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import type { User, EvaluationPeriod, Role } from "@/lib/types";
+import type { User, EvaluationPeriod, Role, Association } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -55,13 +55,13 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 
 const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
-  const [cpf, setCpf] = React.useState(user?.cpf || '');
-  const [name, setName] = React.useState(user?.name || '');
-  const [socialName, setSocialName] = React.useState(user?.socialName || '');
-  const [email, setEmail] = React.useState(user?.email || '');
-  const [sector, setSector] = React.useState(user?.sector || '');
-  const [jobTitle, setJobTitle] = React.useState(user?.jobTitle || '');
-  const [role, setRole] = React.useState(user?.role || 'appraisee');
+  const [cpf, setCpf] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [socialName, setSocialName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [sector, setSector] = React.useState('');
+  const [jobTitle, setJobTitle] = React.useState('');
+  const [role, setRole] = React.useState<Role>('appraisee');
 
   const { toast } = useToast();
   
@@ -303,10 +303,14 @@ const PeriodFormModal = ({
 export default function AdminDashboard() {
   const [users, setUsers] = React.useState<User[]>(mockUsers);
   const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(mockPeriods);
+  const [associations, setAssociations] = React.useState<Association[]>(mockAssociations);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
   const [selectedPeriod, setSelectedPeriod] = React.useState<EvaluationPeriod | null>(null);
   const [isUserModalOpen, setUserModalOpen] = React.useState(false);
   const [isPeriodModalOpen, setPeriodModalOpen] = React.useState(false);
+  
+  const [selectedAppraisee, setSelectedAppraisee] = React.useState('');
+  const [selectedAppraiser, setSelectedAppraiser] = React.useState('');
 
   const { toast } = useToast();
 
@@ -331,6 +335,35 @@ export default function AdminDashboard() {
     setPeriodModalOpen(false);
     setSelectedPeriod(null);
   };
+
+  const handleCreateAssociation = () => {
+    if (!selectedAppraisee || !selectedAppraiser) {
+        toast({
+            variant: "destructive",
+            title: "Seleção Incompleta",
+            description: "Por favor, selecione um avaliado e um avaliador.",
+        });
+        return;
+    }
+
+    const newAssociation: Association = {
+        id: `assoc-${Date.now()}`,
+        appraiseeId: selectedAppraisee,
+        appraiserId: selectedAppraiser,
+    };
+    
+    setAssociations([...associations, newAssociation]);
+
+    toast({
+        title: "Associação Criada",
+        description: "O vínculo entre avaliado e avaliador foi criado com sucesso.",
+    });
+
+    // Reset fields
+    setSelectedAppraisee('');
+    setSelectedAppraiser('');
+  };
+
 
   const openUserModal = (user: User) => {
     setSelectedUser(user);
@@ -483,7 +516,7 @@ export default function AdminDashboard() {
                       <div className="grid md:grid-cols-3 gap-4">
                            <div>
                               <Label htmlFor="appraisee-select">Avaliado</Label>
-                              <Select>
+                              <Select value={selectedAppraisee} onValueChange={setSelectedAppraisee}>
                                   <SelectTrigger id="appraisee-select"><SelectValue placeholder="Selecione um avaliado" /></SelectTrigger>
                                   <SelectContent>
                                       {users.filter(u => u.role === 'appraisee').map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
@@ -492,7 +525,7 @@ export default function AdminDashboard() {
                            </div>
                            <div>
                               <Label htmlFor="appraiser-select">Avaliador</Label>
-                              <Select>
+                              <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
                                   <SelectTrigger id="appraiser-select"><SelectValue placeholder="Selecione um avaliador" /></SelectTrigger>
                                   <SelectContent>
                                       {users.filter(u => u.role === 'appraiser').map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
@@ -500,7 +533,7 @@ export default function AdminDashboard() {
                               </Select>
                            </div>
                            <div className="flex items-end">
-                              <Button className="w-full md:w-auto"><Link2 className="mr-2 h-4 w-4"/>Associar</Button>
+                              <Button className="w-full md:w-auto" onClick={handleCreateAssociation}><Link2 className="mr-2 h-4 w-4"/>Associar</Button>
                            </div>
                       </div>
                   </div>

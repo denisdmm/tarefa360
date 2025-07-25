@@ -119,7 +119,7 @@ const ActivityForm = ({
               <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
-              {[ "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro" ].map(m => (
+              {[ "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro", "Dezembro" ].map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
@@ -259,23 +259,24 @@ export default function AppraiseeDashboard() {
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
-                                {completedActivities.map(activity => (
-                                    <TableRow key={activity.id}>
-                                        <TableCell className="font-medium">{activity.title}</TableCell>
-                                        <TableCell>{activity.month}</TableCell>
-                                        <TableCell>
-                                            <Badge>Concluído</Badge>
-                                        </TableCell>
-                                        <TableCell className="text-right">
-                                            <DialogTrigger asChild>
-                                                <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(activity)}>
-                                                    <Edit className="h-4 w-4" />
-                                                </Button>
-                                            </DialogTrigger>
-                                        </TableCell>
-                                    </TableRow>
-                                ))}
-                                {completedActivities.length === 0 && (
+                                {completedActivities.length > 0 ? (
+                                    completedActivities.map(activity => (
+                                        <TableRow key={activity.id}>
+                                            <TableCell className="font-medium">{activity.title}</TableCell>
+                                            <TableCell>{activity.month}</TableCell>
+                                            <TableCell>
+                                                <Badge>Concluído</Badge>
+                                            </TableCell>
+                                            <TableCell className="text-right">
+                                                <DialogTrigger asChild>
+                                                    <Button variant="ghost" size="icon" onClick={() => setSelectedActivity(activity)}>
+                                                        <Edit className="h-4 w-4" />
+                                                    </Button>
+                                                </DialogTrigger>
+                                            </TableCell>
+                                        </TableRow>
+                                    ))
+                                ) : (
                                     <TableRow>
                                         <TableCell colSpan={4} className="h-24 text-center">Nenhuma atividade concluída ainda.</TableCell>
                                     </TableRow>
@@ -302,5 +303,3 @@ export default function AppraiseeDashboard() {
     </Dialog>
   );
 }
-
-    
