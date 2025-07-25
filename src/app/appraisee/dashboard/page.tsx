@@ -54,7 +54,7 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid, add, sub } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -74,8 +74,7 @@ const ActivityForm = ({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
-  const [startDateInput, setStartDateInput] = React.useState("");
-
+  
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
   const [currentProgress, setCurrentProgress] = React.useState(0);
   const [currentComment, setCurrentComment] = React.useState("");
@@ -116,19 +115,12 @@ const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      const activityStartDate = activity.startDate ? startOfDay(activity.startDate) : undefined;
-      setStartDate(activityStartDate);
-      if (activityStartDate) {
-        setStartDateInput(format(activityStartDate, "dd/MM/yyyy"));
-      } else {
-        setStartDateInput("");
-      }
+      setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
       setProgressHistory(activity.progressHistory || []);
     } else {
       setTitle("");
       setDescription("");
       setStartDate(undefined);
-      setStartDateInput("");
       setProgressHistory([]);
       setCurrentProgress(0);
       setCurrentComment("");
@@ -181,11 +173,12 @@ const ActivityForm = ({
 
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setStartDateInput(value); // Keep input as is
-    
-    const parsedDate = parse(value, 'dd/MM/yyyy', new Date());
-    if (isValid(parsedDate)) {
-        setStartDate(startOfDay(parsedDate));
+    if (value) {
+        // The value from a date input is 'yyyy-MM-dd'. The Date constructor
+        // parses this as UTC, so we add the timezone offset to get the correct local date.
+        const date = new Date(value);
+        const dateWithOffset = add(date, {minutes: date.getTimezoneOffset()});
+        setStartDate(dateWithOffset);
     } else {
         setStartDate(undefined);
     }
@@ -201,7 +194,6 @@ const ActivityForm = ({
         });
         return;
     }
-    const finalStartDate = startDate;
 
     // --- Save Progress Entry ---
     let updatedHistory = [...progressHistory];
@@ -231,7 +223,7 @@ const ActivityForm = ({
       id: activity?.id || `act-${Date.now()}`,
       title,
       description,
-      startDate: finalStartDate,
+      startDate: startDate,
       progressHistory: updatedHistory,
       userId: currentUserId,
     };
@@ -244,6 +236,8 @@ const ActivityForm = ({
       setSelectedYear(year);
       setSelectedMonth(month);
   }
+
+  const startDateValue = startDate ? format(startDate, 'yyyy-MM-dd') : '';
 
   return (
     <DialogContent className="sm:max-w-[625px]">
@@ -271,9 +265,9 @@ const ActivityForm = ({
               <Label htmlFor="start-date" className="text-right">Data de Início</Label>
               <Input
                 id="start-date"
-                value={startDateInput}
+                type="date"
+                value={startDateValue}
                 onChange={handleDateInputChange}
-                placeholder="DD/MM/AAAA"
                 className="col-span-3"
               />
             </div>
@@ -563,7 +557,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
-
-    
