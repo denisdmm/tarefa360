@@ -31,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, ProgressEntry } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, getMonth, getYear } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -56,15 +56,42 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
-        activity.progressHistory.forEach(progress => {
+        // Ensure there is a 0% progress entry for the start date if no other entry exists for that month
+        const startYear = getYear(activity.startDate);
+        const startMonth = getMonth(activity.startDate) + 1;
+        const startMonthKey = format(activity.startDate, 'yyyy-MM');
+        
+        const hasEntryForStartMonth = activity.progressHistory.some(p => p.year === startYear && p.month === startMonth);
+        
+        const historyWithBaseline = [...activity.progressHistory];
+
+        if (!hasEntryForStartMonth) {
+            historyWithBaseline.unshift({
+                year: startYear,
+                month: startMonth,
+                percentage: 0,
+                comment: "Início da atividade."
+            });
+        }
+
+
+        historyWithBaseline.forEach(progress => {
             const monthYearKey = format(new Date(progress.year, progress.month - 1), 'yyyy-MM');
             if (!monthlyData[monthYearKey]) {
                 monthlyData[monthYearKey] = [];
             }
-            monthlyData[monthYearKey].push({
-                ...activity,
-                progressForMonth: progress,
-            });
+             // Avoid duplicating activity if multiple progress points are in the same month (take latest)
+            const existingActivityIndex = monthlyData[monthYearKey].findIndex(a => a.id === activity.id);
+            if (existingActivityIndex > -1) {
+                // Replace if current progress is more recent (e.g. user edits)
+                // This scenario is less likely with one entry per month, but good practice
+                monthlyData[monthYearKey][existingActivityIndex].progressForMonth = progress;
+            } else {
+                 monthlyData[monthYearKey].push({
+                    ...activity,
+                    progressForMonth: progress,
+                });
+            }
         });
     });
     return monthlyData;

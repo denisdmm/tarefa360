@@ -54,7 +54,7 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, endOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
@@ -89,25 +89,28 @@ const ActivityForm = ({
 
   const availableMonths = React.useMemo(() => {
     if (!startDate) return [];
-    // The range of months for progress registration should go from the activity's start date
-    // up to at least the current month, to allow for past entries.
-    const today = new Date();
-    const endRangeDate = max([startOfMonth(today), startOfMonth(startDate)]);
     
+    const today = new Date();
+    // The range of months for progress registration should go from the activity's start date
+    // up to the current month.
+    const endRangeDate = max([startOfMonth(today), startOfMonth(startDate)]);
+
     const interval = {
       start: startOfMonth(startDate),
       end: endRangeDate,
     };
+    
+    // Make sure we don't allow future months if start date is in the past
+    if (interval.end > today) {
+        interval.end = startOfMonth(today);
+    }
 
     if (interval.start > interval.end) {
-        // This case handles when the start date is in the future. 
-        // We still want to allow registering progress for the start month itself.
-        const startMonthDate = startOfMonth(startDate);
-         return [{
-            year: getYear(startMonthDate),
-            month: getMonth(startMonthDate) + 1,
-            label: format(startMonthDate, "MMMM 'de' yyyy", { locale: ptBR }),
-            value: `${getYear(startMonthDate)}-${getMonth(startMonthDate) + 1}`
+        return [{
+            year: getYear(interval.start),
+            month: getMonth(interval.start) + 1,
+            label: format(interval.start, "MMMM 'de' yyyy", { locale: ptBR }),
+            value: `${getYear(interval.start)}-${getMonth(interval.start) + 1}`
         }];
     }
 
@@ -135,9 +138,19 @@ const ActivityForm = ({
       setCurrentComment("");
     }
     // Set default selected month/year to current
-    setSelectedYear(getYear(new Date()));
-    setSelectedMonth(getMonth(new Date()) + 1);
-  }, [activity]);
+    const currentMonthInList = availableMonths.find(m => m.year === getYear(new Date()) && m.month === getMonth(new Date()) + 1);
+    if(currentMonthInList) {
+        setSelectedYear(getYear(new Date()));
+        setSelectedMonth(getMonth(new Date()) + 1);
+    } else if (availableMonths.length > 0) {
+        // If current month is not available (e.g. activity starts in future), select the first available month
+        const [year, month] = availableMonths[0].value.split('-').map(Number);
+        setSelectedYear(year);
+        setSelectedMonth(month);
+    }
+
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activity, availableMonths.length]);
 
   // This effect updates the form when the selected month/year changes
   React.useEffect(() => {
@@ -293,6 +306,9 @@ const ActivityForm = ({
                         {availableMonths.map(m => (
                             <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
                         ))}
+                         {availableMonths.length === 0 && (
+                            <SelectItem value="none" disabled>Nenhum período disponível</SelectItem>
+                        )}
                     </SelectContent>
                 </Select>
             </div>
