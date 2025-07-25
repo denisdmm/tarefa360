@@ -56,8 +56,6 @@ import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth, max, parse, isValid } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { cn } from "@/lib/utils";
@@ -76,7 +74,6 @@ const ActivityForm = ({
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState<Date | undefined>(undefined);
-  const [isStartDatePickerOpen, setStartDatePickerOpen] = React.useState(false);
   const [isDateInvalid, setIsDateInvalid] = React.useState(false);
   const [startDateInput, setStartDateInput] = React.useState("");
 
@@ -184,25 +181,16 @@ const ActivityForm = ({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activity, selectedMonth, selectedYear]);
 
-  const handleDateSelect = (date: Date | undefined) => {
-    if (date) {
-      const day = startOfDay(date);
-      setStartDate(day);
-      setStartDateInput(format(day, "dd/MM/yyyy"));
-      setIsDateInvalid(false);
-      setStartDatePickerOpen(false);
-    }
-  };
-  
   const handleDateInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setStartDateInput(value);
 
     const formattedValue = value
       .replace(/\D/g, '')
       .replace(/(\d{2})(\d)/, '$1/$2')
       .replace(/(\d{2})\/(\d{2})(\d)/, '$1/$2/$3')
       .replace(/(\d{2})\/(\d{2})\/(\d{4}).*/, '$1/$2/$3');
+
+    setStartDateInput(formattedValue);
 
     if (formattedValue.length === 10) {
       const parsedDate = parse(formattedValue, 'dd/MM/yyyy', new Date());
@@ -300,34 +288,17 @@ const ActivityForm = ({
             </div>
             <div className="grid grid-cols-4 items-center gap-4">
               <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-              <Popover open={isStartDatePickerOpen} onOpenChange={setStartDatePickerOpen}>
-                <PopoverTrigger asChild>
-                  <div className="col-span-3 relative">
-                     <Input
-                        id="start-date"
-                        value={startDateInput}
-                        onChange={handleDateInputChange}
-                        onFocus={() => setStartDatePickerOpen(true)}
-                        placeholder="DD/MM/AAAA"
-                        className={cn(
-                          "pr-8",
-                          isDateInvalid && "border-destructive focus-visible:ring-destructive"
-                        )}
-                      />
-                      <CalendarIcon className="absolute right-2 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                  </div>
-                </PopoverTrigger>
-                <PopoverContent className="w-auto p-0" align="start">
-                  <Calendar
-                    mode="single"
-                    selected={startDate}
-                    onSelect={handleDateSelect}
-                    initialFocus
-                    locale={ptBR}
-                    month={startDate}
-                  />
-                </PopoverContent>
-              </Popover>
+              <Input
+                id="start-date"
+                value={startDateInput}
+                onChange={handleDateInputChange}
+                placeholder="DD/MM/AAAA"
+                maxLength={10}
+                className={cn(
+                  "col-span-3",
+                  isDateInvalid && "border-destructive focus-visible:ring-destructive"
+                )}
+              />
             </div>
         </div>
 
