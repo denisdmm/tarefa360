@@ -33,13 +33,13 @@ import {
 } from "@/components/ui/tabs"
 import {
   users as mockUsers,
-  evaluationPeriods,
+  evaluationPeriods as mockPeriods,
   associations,
 } from "@/lib/mock-data";
 import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import type { User } from "@/lib/types";
+import type { User, EvaluationPeriod } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
@@ -52,6 +52,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { format } from "date-fns";
 
 const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
   const [cpf, setCpf] = React.useState(user?.cpf || '');
@@ -71,7 +72,6 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
   const handleSave = () => {
     if (!user) return;
 
-    // Basic validation
     if (!cpf || cpf.length !== 11) {
         toast({
             variant: "destructive",
@@ -81,7 +81,6 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
         return;
     }
 
-    // Uniqueness validation
     const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user.id);
     if (isCpfTaken) {
         toast({
@@ -91,8 +90,6 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
         });
         return;
     }
-
-    // Assuming other fields are handled, for this example we just update the cpf
     const updatedUser = { ...user, cpf };
     onSave(updatedUser);
   };
@@ -155,10 +152,122 @@ const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (us
   );
 };
 
+const PeriodFormModal = ({
+  period,
+  onSave,
+  periods,
+  onClose,
+}: {
+  period: EvaluationPeriod | null;
+  onSave: (period: EvaluationPeriod) => void;
+  periods: EvaluationPeriod[];
+  onClose: () => void;
+}) => {
+  const [name, setName] = React.useState('');
+  const [startDate, setStartDate] = React.useState('');
+  const [endDate, setEndDate] = React.useState('');
+  const [status, setStatus] = React.useState<'Ativo' | 'Inativo'>('Inativo');
+  const { toast } = useToast();
+
+  React.useEffect(() => {
+    if (period) {
+      setName(period.name);
+      setStartDate(format(period.startDate, 'yyyy-MM-dd'));
+      setEndDate(format(period.endDate, 'yyyy-MM-dd'));
+      setStatus(period.status);
+    } else {
+      // Reset form for new period
+      setName('');
+      setStartDate('');
+      setEndDate('');
+      setStatus('Inativo');
+    }
+  }, [period]);
+
+  const handleSave = () => {
+    if (!name || !startDate || !endDate) {
+      toast({
+        variant: "destructive",
+        title: "Campos Obrigatórios",
+        description: "Preencha todos os campos para salvar o período.",
+      });
+      return;
+    }
+    
+    // Validation: Only one active period allowed
+    if (status === 'Ativo') {
+        const hasOtherActivePeriod = periods.some(p => p.status === 'Ativo' && p.id !== period?.id);
+        if (hasOtherActivePeriod) {
+            toast({
+                variant: "destructive",
+                title: "Validação Falhou",
+                description: "Já existe um período de avaliação ativo. Apenas um período pode estar ativo por vez.",
+            });
+            return;
+        }
+    }
+
+    const savedPeriod: EvaluationPeriod = {
+      id: period?.id || `period-${Date.now()}`,
+      name,
+      startDate: new Date(startDate),
+      endDate: new Date(endDate),
+      status,
+    };
+    onSave(savedPeriod);
+  };
+
+  return (
+    <DialogContent>
+      <DialogHeader>
+        <DialogTitle>{period ? 'Editar Período' : 'Novo Período de Avaliação'}</DialogTitle>
+        <DialogDescription>
+          {period ? 'Atualize os detalhes do período.' : 'Crie um novo ciclo de avaliação.'}
+        </DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="period-name" className="text-right">Nome</Label>
+          <Input id="period-name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="start-date" className="text-right">Data de Início</Label>
+          <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="col-span-3" />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
+          <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="col-span-3" />
+        </div>
+        <div className="grid grid-cols-4 items-center gap-4">
+          <Label htmlFor="status" className="text-right">Status</Label>
+          <Select value={status} onValueChange={(value: 'Ativo' | 'Inativo') => setStatus(value)}>
+            <SelectTrigger className="col-span-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="Ativo">Ativo</SelectItem>
+              <SelectItem value="Inativo">Inativo</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+      </div>
+      <DialogFooter>
+         <Button variant="outline" onClick={onClose}>Cancelar</Button>
+         <Button onClick={handleSave}>Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+};
+
 
 export default function AdminDashboard() {
   const [users, setUsers] = React.useState<User[]>(mockUsers);
+  const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(mockPeriods);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const [selectedPeriod, setSelectedPeriod] = React.useState<EvaluationPeriod | null>(null);
+  const [isUserModalOpen, setUserModalOpen] = React.useState(false);
+  const [isPeriodModalOpen, setPeriodModalOpen] = React.useState(false);
+
   const { toast } = useToast();
 
   const handleSaveUser = (updatedUser: User) => {
@@ -167,12 +276,51 @@ export default function AdminDashboard() {
         title: "Usuário Atualizado",
         description: "Os dados do usuário foram salvos com sucesso.",
     });
+    setUserModalOpen(false);
   };
   
+  const handleSavePeriod = (periodToSave: EvaluationPeriod) => {
+    const isEditing = evaluationPeriods.some(p => p.id === periodToSave.id);
+    if (isEditing) {
+        setEvaluationPeriods(evaluationPeriods.map(p => p.id === periodToSave.id ? periodToSave : p));
+        toast({ title: "Período Atualizado", description: "O período de avaliação foi atualizado." });
+    } else {
+        setEvaluationPeriods([periodToSave, ...evaluationPeriods]);
+        toast({ title: "Período Criado", description: "O novo período de avaliação foi criado." });
+    }
+    setPeriodModalOpen(false);
+    setSelectedPeriod(null);
+  };
+
+  const openUserModal = (user: User) => {
+    setSelectedUser(user);
+    setUserModalOpen(true);
+  }
+
+  const openPeriodModal = (period: EvaluationPeriod | null) => {
+    setSelectedPeriod(period);
+    setPeriodModalOpen(true);
+  }
+
   const getUsernameById = (id: string) => users.find(u => u.id === id)?.name || 'Desconhecido';
 
   return (
-    <Dialog>
+    <>
+      <Dialog open={isUserModalOpen} onOpenChange={setUserModalOpen}>
+        <UserFormModal user={selectedUser} onSave={handleSaveUser} users={users} />
+      </Dialog>
+      <Dialog open={isPeriodModalOpen} onOpenChange={setPeriodModalOpen}>
+        <PeriodFormModal 
+            period={selectedPeriod} 
+            onSave={handleSavePeriod} 
+            periods={evaluationPeriods} 
+            onClose={() => {
+                setPeriodModalOpen(false);
+                setSelectedPeriod(null);
+            }} 
+        />
+      </Dialog>
+      
       <div className="flex flex-col h-full">
         <header className="bg-card border-b p-4">
           <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
@@ -215,11 +363,9 @@ export default function AdminDashboard() {
                           <TableCell>{user.cpf}</TableCell>
                           <TableCell><Badge variant="secondary" className="capitalize">{user.role}</Badge></TableCell>
                           <TableCell className="text-right">
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="icon" onClick={() => setSelectedUser(user)}>
+                              <Button variant="ghost" size="icon" onClick={() => openUserModal(user)}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                            </DialogTrigger>
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>
                         </TableRow>
@@ -238,7 +384,7 @@ export default function AdminDashboard() {
                         <CardTitle>Períodos de Avaliação</CardTitle>
                         <CardDescription>Defina e gerencie os ciclos de avaliação.</CardDescription>
                       </div>
-                      <Button><PlusCircle className="mr-2 h-4 w-4" />Novo Período</Button>
+                      <Button onClick={() => openPeriodModal(null)}><PlusCircle className="mr-2 h-4 w-4" />Novo Período</Button>
                    </div>
                 </CardHeader>
                 <CardContent>
@@ -256,13 +402,13 @@ export default function AdminDashboard() {
                       {evaluationPeriods.map((period) => (
                         <TableRow key={period.id}>
                           <TableCell>{period.name}</TableCell>
-                          <TableCell>{period.startDate.toLocaleDateString()}</TableCell>
-                          <TableCell>{period.endDate.toLocaleDateString()}</TableCell>
+                          <TableCell>{format(period.startDate, 'dd/MM/yyyy')}</TableCell>
+                          <TableCell>{format(period.endDate, 'dd/MM/yyyy')}</TableCell>
                           <TableCell>
                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                           </TableCell>
                           <TableCell className="text-right">
-                             <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
+                             <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}><Edit className="h-4 w-4" /></Button>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -332,7 +478,8 @@ export default function AdminDashboard() {
           </Tabs>
         </main>
       </div>
-      <UserFormModal user={selectedUser} onSave={handleSaveUser} users={users} />
-    </Dialog>
+    </>
   );
 }
+
+    
