@@ -1,6 +1,8 @@
+
 "use client"
 
 import * as React from "react"
+import { useRouter } from "next/navigation"
 import { Slot } from "@radix-ui/react-slot"
 import { VariantProps, cva } from "class-variance-authority"
 import { PanelLeft } from "lucide-react"
@@ -68,6 +70,7 @@ const SidebarProvider = React.forwardRef<
     ref
   ) => {
     const isMobile = useIsMobile()
+    const router = useRouter()
     const [openMobile, setOpenMobile] = React.useState(false)
 
     // This is the internal state of the sidebar.
@@ -761,3 +764,5 @@ export {
   SidebarTrigger,
   useSidebar,
 }
+
+    
