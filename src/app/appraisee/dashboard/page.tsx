@@ -103,10 +103,8 @@ const ActivityForm = ({
 
     // isFuture is true if the selected date is after today
     const isFuture = date > today;
-    // isWithinPeriod is true if the selected date is before or on the last day of the evaluation
-    const isWithinPeriod = date <= activePeriod.endDate;
-
-    const shouldDisable = isFuture && isWithinPeriod;
+    
+    const shouldDisable = isFuture;
     setIsCompletionDisabled(shouldDisable);
 
     if (shouldDisable) {
@@ -182,7 +180,7 @@ const ActivityForm = ({
             value={percentage} 
             onChange={(e) => setPercentage(Number(e.target.value))} 
             className="col-span-3" 
-            disabled={isCompletionDisabled}
+            readOnly={isCompletionDisabled}
             title={isCompletionDisabled ? "Não é possível editar a conclusão de uma atividade futura." : ""}
           />
         </div>
