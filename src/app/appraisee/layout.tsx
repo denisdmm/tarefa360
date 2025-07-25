@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -40,7 +41,7 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
               <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")}>
                 <Link href="/appraisee/dashboard">
                   <LayoutDashboard />
-                  Dashboard
+                  Painel
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -48,7 +49,7 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
               <SidebarMenuButton asChild isActive={isActive("/appraisee/settings")}>
                 <Link href="#">
                   <Settings />
-                  Settings
+                  Configurações
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -68,7 +69,7 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
            <Button variant="ghost" className="w-full justify-start gap-2" asChild>
              <Link href="/">
               <LogOut />
-              Logout
+              Sair
              </Link>
           </Button>
         </SidebarFooter>
@@ -83,3 +84,5 @@ export default function AppraiseeLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    

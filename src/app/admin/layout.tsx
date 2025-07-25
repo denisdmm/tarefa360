@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -13,7 +14,7 @@ import {
   SidebarFooter,
   SidebarInset,
 } from "@/components/ui/sidebar";
-import { LogOut, Users, Calendar, Link2, LayoutDashboard } from "lucide-react";
+import { LogOut, LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -37,7 +38,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
               <SidebarMenuButton asChild isActive={isActive("/admin/dashboard")}>
                 <Link href="/admin/dashboard">
                   <LayoutDashboard />
-                  Dashboard
+                  Painel
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -57,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
            <Button variant="ghost" className="w-full justify-start gap-2" asChild>
              <Link href="/">
               <LogOut />
-              Logout
+              Sair
              </Link>
           </Button>
         </SidebarFooter>
@@ -66,3 +67,5 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
     </SidebarProvider>
   );
 }
+
+    

@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -84,43 +85,43 @@ const ActivityForm = ({
   return (
     <>
       <DialogHeader>
-        <DialogTitle>{activity ? "Edit Activity" : "Create New Activity"}</DialogTitle>
+        <DialogTitle>{activity ? "Editar Atividade" : "Criar Nova Atividade"}</DialogTitle>
         <DialogDescription>
           {activity
-            ? "Update the details of your activity."
-            : "Register a new activity for the current evaluation period."}
+            ? "Atualize os detalhes da sua atividade."
+            : "Registre uma nova atividade para o período de avaliação atual."}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="title" className="text-right">Title</Label>
+          <Label htmlFor="title" className="text-right">Título</Label>
           <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="description" className="text-right">Description</Label>
+          <Label htmlFor="description" className="text-right">Descrição</Label>
           <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="month" className="text-right">Month</Label>
+          <Label htmlFor="month" className="text-right">Mês</Label>
           <Select value={month} onValueChange={setMonth}>
             <SelectTrigger className="col-span-3">
-              <SelectValue placeholder="Select month" />
+              <SelectValue placeholder="Selecione o mês" />
             </SelectTrigger>
             <SelectContent>
-              {[ "January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November" ].map(m => (
+              {[ "Janeiro", "Fevereiro", "Março", "Abril", "Maio", "Junho", "Julho", "Agosto", "Setembro", "Outubro", "Novembro" ].map(m => (
                 <SelectItem key={m} value={m}>{m}</SelectItem>
               ))}
             </SelectContent>
           </Select>
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="percentage" className="text-right">Completion</Label>
+          <Label htmlFor="percentage" className="text-right">Conclusão</Label>
           <Input id="percentage" type="number" value={percentage} onChange={(e) => setPercentage(Number(e.target.value))} className="col-span-3" />
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline">Cancel</Button></DialogClose>
-        <Button onClick={handleSubmit}>Save Activity</Button>
+        <DialogClose asChild><Button variant="outline">Cancelar</Button></DialogClose>
+        <Button onClick={handleSubmit}>Salvar Atividade</Button>
       </DialogFooter>
     </>
   );
@@ -137,10 +138,10 @@ export default function AppraiseeDashboard() {
     const isEditing = activities.some(a => a.id === activity.id);
     if (isEditing) {
       setActivities(activities.map(a => a.id === activity.id ? activity : a));
-      toast({ title: "Activity Updated", description: "Your activity has been successfully updated." });
+      toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
       setActivities([activity, ...activities]);
-      toast({ title: "Activity Created", description: "Your new activity has been registered." });
+      toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
     setFormOpen(false);
     setSelectedActivity(null);
@@ -148,7 +149,7 @@ export default function AppraiseeDashboard() {
 
   const handleDeleteActivity = (activityId: string) => {
     setActivities(activities.filter(a => a.id !== activityId));
-    toast({ variant: 'destructive', title: "Activity Deleted", description: "The activity has been removed." });
+    toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
 
   return (
@@ -157,13 +158,13 @@ export default function AppraiseeDashboard() {
          <header className="bg-card border-b p-4">
            <div className="flex justify-between items-center">
              <div>
-               <h1 className="text-3xl font-bold font-headline">My Activities</h1>
-               <p className="text-muted-foreground">Manage your ongoing tasks and progress.</p>
+               <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>
+               <p className="text-muted-foreground">Gerencie suas tarefas e progressos em andamento.</p>
              </div>
              <DialogTrigger asChild>
                 <Button onClick={() => setSelectedActivity(null)}>
                   <PlusCircle className="mr-2 h-4 w-4" />
-                  Register Activity
+                  Registrar Atividade
                 </Button>
              </DialogTrigger>
            </div>
@@ -179,32 +180,32 @@ export default function AppraiseeDashboard() {
                 </CardHeader>
                 <CardContent className="flex-grow">
                   <p className="text-sm text-muted-foreground mb-4">{activity.description}</p>
-                  <Progress value={activity.completionPercentage} aria-label={`${activity.completionPercentage}% complete`} />
+                  <Progress value={activity.completionPercentage} aria-label={`${activity.completionPercentage}% completo`} />
                   <p className="text-sm font-medium text-right mt-1">{activity.completionPercentage}%</p>
                 </CardContent>
                 <CardFooter className="flex justify-end gap-2">
                    <DialogTrigger asChild>
                       <Button variant="outline" size="sm" onClick={() => setSelectedActivity(activity)}>
-                        <Edit className="mr-2 h-4 w-4" /> Edit
+                        <Edit className="mr-2 h-4 w-4" /> Editar
                       </Button>
                    </DialogTrigger>
                    <AlertDialog>
                       <AlertDialogTrigger asChild>
                         <Button variant="destructive" size="sm">
-                          <Trash2 className="mr-2 h-4 w-4" /> Delete
+                          <Trash2 className="mr-2 h-4 w-4" /> Excluir
                         </Button>
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>Are you sure?</AlertDialogTitle>
+                          <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
                           <AlertDialogDescription>
-                            This action cannot be undone. This will permanently delete this activity.
+                            Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
                           <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
-                            Delete
+                            Excluir
                           </AlertDialogAction>
                         </AlertDialogFooter>
                       </AlertDialogContent>
@@ -229,3 +230,5 @@ export default function AppraiseeDashboard() {
     </Dialog>
   );
 }
+
+    

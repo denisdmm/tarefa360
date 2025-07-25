@@ -1,3 +1,4 @@
+
 "use client";
 
 import Link from "next/link";
@@ -14,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, Users } from "lucide-react";
+import { LogOut, LayoutDashboard } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -40,7 +41,7 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
               <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")}>
                 <Link href="/appraiser/dashboard">
                   <LayoutDashboard />
-                  Dashboard
+                  Painel
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
@@ -60,7 +61,7 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
            <Button variant="ghost" className="w-full justify-start gap-2" asChild>
              <Link href="/">
               <LogOut />
-              Logout
+              Sair
              </Link>
           </Button>
         </SidebarFooter>
@@ -75,3 +76,5 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
     </SidebarProvider>
   );
 }
+
+    

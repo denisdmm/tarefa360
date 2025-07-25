@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -38,23 +39,23 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Logo className="h-8 w-8" />
           </div>
-          <CardTitle className="font-headline text-3xl">Tarefa360 Companion</CardTitle>
+          <CardTitle className="font-headline text-3xl">Acompanhante Tarefa360</CardTitle>
           <CardDescription>
-            Sign in to continue to your dashboard
+            Faça login para continuar para o seu painel
           </CardDescription>
         </CardHeader>
         <CardContent>
           <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="role">Select Your Role</Label>
+              <Label htmlFor="role">Selecione sua Função</Label>
               <Select onValueChange={(value: Role) => setRole(value)} value={role}>
                 <SelectTrigger id="role" className="w-full">
-                  <SelectValue placeholder="Choose a role..." />
+                  <SelectValue placeholder="Escolha uma função..." />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="admin">Admin</SelectItem>
-                  <SelectItem value="appraiser">Appraiser</SelectItem>
-                  <SelectItem value="appraisee">Appraisee</SelectItem>
+                  <SelectItem value="admin">Administrador</SelectItem>
+                  <SelectItem value="appraiser">Avaliador</SelectItem>
+                  <SelectItem value="appraisee">Avaliado</SelectItem>
                 </SelectContent>
               </Select>
             </div>
@@ -67,3 +68,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    

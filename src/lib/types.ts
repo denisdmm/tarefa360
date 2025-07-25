@@ -1,3 +1,4 @@
+
 export type Role = "admin" | "appraisee" | "appraiser";
 
 export interface User {
@@ -26,7 +27,7 @@ export interface EvaluationPeriod {
   name: string;
   startDate: Date;
   endDate: Date;
-  status: 'Active' | 'Inactive';
+  status: 'Ativo' | 'Inativo';
 }
 
 export interface Association {
@@ -34,3 +35,5 @@ export interface Association {
     appraiseeId: string;
     appraiserId: string;
 }
+
+    

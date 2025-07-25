@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from 'react';
@@ -53,7 +54,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
   };
 
   if (!appraisee) {
-    return <div className="p-6">Appraisee not found.</div>;
+    return <div className="p-6">Avaliado não encontrado.</div>;
   }
   
   const allMonths = [
@@ -68,10 +69,10 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
             <div>
               <Button variant="ghost" asChild className="mb-2">
                  <Link href="/appraiser/dashboard">
-                    <ArrowLeft className="mr-2 h-4 w-4" /> Back to Dashboard
+                    <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel
                  </Link>
               </Button>
-              <h1 className="text-3xl font-bold font-headline">Activity Report</h1>
+              <h1 className="text-3xl font-bold font-headline">Relatório de Atividades</h1>
               <div className="flex items-center gap-2 mt-1">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={appraisee.avatarUrl} />
@@ -85,17 +86,17 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
                   <SelectTrigger className="w-[180px]">
-                    <SelectValue placeholder="Filter by month" />
+                    <SelectValue placeholder="Filtrar por mês" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="all">All Months</SelectItem>
+                    <SelectItem value="all">Todos os Meses</SelectItem>
                     {allMonths.map(m => <SelectItem key={m} value={m}>{m}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
               <Button onClick={handlePrint}>
                 <Printer className="mr-2 h-4 w-4" />
-                Generate PDF
+                Gerar PDF
               </Button>
             </div>
           </div>
@@ -104,18 +105,18 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
         <main className="flex-1 p-4 md:p-6 overflow-auto">
           <Card>
             <CardHeader>
-              <CardTitle>Tasks Overview</CardTitle>
+              <CardTitle>Visão Geral das Tarefas</CardTitle>
               <CardDescription>
-                Detailed list of activities undertaken during the evaluation period.
+                Lista detalhada de atividades realizadas durante o período de avaliação.
               </CardDescription>
             </CardHeader>
             <CardContent>
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead className="w-[40%]">Title</TableHead>
-                    <TableHead>Month</TableHead>
-                    <TableHead className="w-[30%]">Completion</TableHead>
+                    <TableHead className="w-[40%]">Título</TableHead>
+                    <TableHead>Mês</TableHead>
+                    <TableHead className="w-[30%]">Conclusão</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -133,7 +134,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   ))}
                    {filteredActivities.length === 0 && (
                      <TableRow>
-                       <TableCell colSpan={3} className="text-center h-24">No activities found for the selected month.</TableCell>
+                       <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade encontrada para o mês selecionado.</TableCell>
                      </TableRow>
                    )}
                 </TableBody>
@@ -145,22 +146,22 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
       <div id="print-content" className="hidden print:block p-8 font-body">
          <div className="text-center mb-8">
-            <h1 className="text-3xl font-bold font-headline">Tarefa360 - Activity Report</h1>
+            <h1 className="text-3xl font-bold font-headline">Tarefa360 - Relatório de Atividades</h1>
          </div>
          <div className="mb-6">
-            <h2 className="text-xl font-semibold">Appraisee Information</h2>
-            <p><strong>Name:</strong> {appraisee.name}</p>
-            <p><strong>Title:</strong> {appraisee.title}</p>
+            <h2 className="text-xl font-semibold">Informações do Avaliado</h2>
+            <p><strong>Nome:</strong> {appraisee.name}</p>
+            <p><strong>Cargo:</strong> {appraisee.title}</p>
             <p><strong>Email:</strong> {appraisee.email}</p>
          </div>
-         <h2 className="text-xl font-semibold mb-2">Activities ({monthFilter === 'all' ? 'All' : monthFilter})</h2>
+         <h2 className="text-xl font-semibold mb-2">Atividades ({monthFilter === 'all' ? 'Todos' : monthFilter})</h2>
          <table className="w-full border-collapse border border-gray-400">
            <thead>
              <tr className="bg-gray-200">
-               <th className="border border-gray-300 p-2 text-left">Title</th>
-               <th className="border border-gray-300 p-2 text-left">Description</th>
-               <th className="border border-gray-300 p-2 text-left">Month</th>
-               <th className="border border-gray-300 p-2 text-left">Completion %</th>
+               <th className="border border-gray-300 p-2 text-left">Título</th>
+               <th className="border border-gray-300 p-2 text-left">Descrição</th>
+               <th className="border border-gray-300 p-2 text-left">Mês</th>
+               <th className="border border-gray-300 p-2 text-left">% de Conclusão</th>
              </tr>
            </thead>
            <tbody>
@@ -185,3 +186,5 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     </>
   );
 }
+
+    

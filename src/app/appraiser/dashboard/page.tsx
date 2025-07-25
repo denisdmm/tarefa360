@@ -1,8 +1,8 @@
+
 "use client";
 
 import Link from "next/link";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -20,35 +20,34 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { users } from "@/lib/mock-data";
-import type { User } from "@/lib/types";
 import { FileText } from "lucide-react";
 
 export default function AppraiserDashboard() {
-  const appraiserId = 'user-appraiser-1'; // Mocked logged-in appraiser
+  const appraiserId = 'user-appraiser-1'; // Avaliador logado mockado
   const appraisees = users.filter(user => user.role === 'appraisee' && user.appraiserId === appraiserId);
 
   return (
      <div className="flex flex-col h-full">
       <header className="bg-card border-b p-4">
-        <h1 className="text-3xl font-bold font-headline">Appraiser Dashboard</h1>
-        <p className="text-muted-foreground">Review and monitor your appraisees' progress.</p>
+        <h1 className="text-3xl font-bold font-headline">Painel do Avaliador</h1>
+        <p className="text-muted-foreground">Revise e monitore o progresso de seus avaliados.</p>
       </header>
 
       <main className="flex-1 p-4 md:p-6 overflow-auto">
         <Card>
           <CardHeader>
-            <CardTitle>My Appraisees</CardTitle>
+            <CardTitle>Meus Avaliados</CardTitle>
             <CardDescription>
-              A list of employees you are responsible for evaluating.
+              Uma lista de funcionários que você é responsável por avaliar.
             </CardDescription>
           </CardHeader>
           <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
-                  <TableHead>Employee</TableHead>
-                  <TableHead>Title</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
+                  <TableHead>Funcionário</TableHead>
+                  <TableHead>Cargo</TableHead>
+                  <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -73,7 +72,7 @@ export default function AppraiserDashboard() {
                       <Button asChild>
                         <Link href={`/appraiser/appraisee/${appraisee.id}`}>
                           <FileText className="mr-2 h-4 w-4" />
-                          View Activities
+                          Ver Atividades
                         </Link>
                       </Button>
                     </TableCell>
@@ -87,3 +86,5 @@ export default function AppraiserDashboard() {
     </div>
   );
 }
+
+    
