@@ -32,7 +32,7 @@ import {
     TabsTrigger,
 } from "@/components/ui/tabs"
 import {
-  users,
+  users as mockUsers,
   evaluationPeriods,
   associations,
 } from "@/lib/mock-data";
@@ -51,24 +51,54 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
+import { useToast } from "@/hooks/use-toast";
 
-const UserFormModal = ({ user }: { user: User | null }) => {
+const UserFormModal = ({ user, onSave, users }: { user: User | null; onSave: (user: User) => void; users: User[] }) => {
   const [cpf, setCpf] = React.useState(user?.cpf || '');
+  const { toast } = useToast();
   
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
     setCpf(onlyNumbers);
   };
 
-  // Need to set the initial state for cpf when user changes
   React.useEffect(() => {
     if (user) {
         setCpf(user.cpf || '');
     }
   }, [user]);
 
+  const handleSave = () => {
+    if (!user) return;
+
+    // Basic validation
+    if (!cpf || cpf.length !== 11) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Validação",
+            description: "O CPF deve conter 11 dígitos.",
+        });
+        return;
+    }
+
+    // Uniqueness validation
+    const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user.id);
+    if (isCpfTaken) {
+        toast({
+            variant: "destructive",
+            title: "CPF Duplicado",
+            description: "Este CPF já está sendo utilizado por outro usuário.",
+        });
+        return;
+    }
+
+    // Assuming other fields are handled, for this example we just update the cpf
+    const updatedUser = { ...user, cpf };
+    onSave(updatedUser);
+  };
+
+
   if (!user) return null;
-  
 
   return (
     <DialogContent>
@@ -89,7 +119,7 @@ const UserFormModal = ({ user }: { user: User | null }) => {
           <Label htmlFor="cpf" className="text-right">
             CPF (Login)
           </Label>
-          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-3" placeholder="Apenas números" />
+          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-3" placeholder="Apenas números" maxLength={11} />
         </div>
         <div className="grid grid-cols-4 items-center gap-4">
           <Label htmlFor="email" className="text-right">
@@ -117,7 +147,9 @@ const UserFormModal = ({ user }: { user: User | null }) => {
         <DialogClose asChild>
           <Button variant="outline">Cancelar</Button>
         </DialogClose>
-        <Button>Salvar Alterações</Button>
+        <DialogClose asChild>
+          <Button onClick={handleSave}>Salvar Alterações</Button>
+        </DialogClose>
       </DialogFooter>
     </DialogContent>
   );
@@ -125,7 +157,17 @@ const UserFormModal = ({ user }: { user: User | null }) => {
 
 
 export default function AdminDashboard() {
+  const [users, setUsers] = React.useState<User[]>(mockUsers);
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
+  const { toast } = useToast();
+
+  const handleSaveUser = (updatedUser: User) => {
+    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+    toast({
+        title: "Usuário Atualizado",
+        description: "Os dados do usuário foram salvos com sucesso.",
+    });
+  };
   
   const getUsernameById = (id: string) => users.find(u => u.id === id)?.name || 'Desconhecido';
 
@@ -290,7 +332,7 @@ export default function AdminDashboard() {
           </Tabs>
         </main>
       </div>
-      <UserFormModal user={selectedUser} />
+      <UserFormModal user={selectedUser} onSave={handleSaveUser} users={users} />
     </Dialog>
   );
 }
