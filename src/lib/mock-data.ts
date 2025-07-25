@@ -11,12 +11,73 @@ export const users: User[] = [
 ];
 
 export const activities: Activity[] = [
-  { id: 'act-1', userId: 'user-appraisee-1', title: 'Desenvolver novo módulo de autenticação', description: 'Implementar autenticação baseada em JWT para a API principal.', date: new Date(2024, 0, 15), completionPercentage: 100 },
-  { id: 'act-2', userId: 'user-appraisee-1', title: 'Refatorar esquema do banco de dados', description: 'Otimizar tabelas para performance e adicionar novos índices.', date: new Date(2024, 1, 20), completionPercentage: 75 },
-  { id: 'act-3', userId: 'user-appraisee-1', title: 'Escrever documentação da API', description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', date: new Date(2024, 2, 10), completionPercentage: 40 },
-  { id: 'act-4', userId: 'user-appraisee-2', title: 'Projetar nova interface do painel', description: 'Criar wireframes e mockups para o painel v2.', date: new Date(2024, 0, 25), completionPercentage: 100 },
-  { id: 'act-5', userId: 'user-appraisee-2', title: 'Conduzir sessões de pesquisa com usuários', description: 'Coletar feedback sobre o produto atual de usuários chave.', date: new Date(2024, 1, 5), completionPercentage: 90 },
-  { id: 'act-6', userId: 'user-appraisee-3', title: 'Criar suíte de testes automatizados para pagamentos', description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', date: new Date(2024, 2, 28), completionPercentage: 60 },
+  { 
+    id: 'act-1', 
+    userId: 'user-appraisee-1', 
+    title: 'Desenvolver novo módulo de autenticação', 
+    description: 'Implementar autenticação baseada em JWT para a API principal.', 
+    startDate: new Date(2024, 0, 1), 
+    endDate: new Date(2024, 0, 31),
+    progressHistory: [
+        { year: 2024, month: 1, percentage: 100, comment: "Finalizado e entregue." },
+    ] 
+  },
+  { 
+    id: 'act-2', 
+    userId: 'user-appraisee-1', 
+    title: 'Refatorar esquema do banco de dados', 
+    description: 'Otimizar tabelas para performance e adicionar novos índices.', 
+    startDate: new Date(2024, 1, 1), 
+    endDate: new Date(2024, 3, 30),
+    progressHistory: [
+        { year: 2024, month: 2, percentage: 30, comment: "Análise inicial concluída." },
+        { year: 2024, month: 3, percentage: 75, comment: "Scripts de migração desenvolvidos." },
+    ] 
+  },
+  { 
+    id: 'act-3', 
+    userId: 'user-appraisee-1', 
+    title: 'Escrever documentação da API', 
+    description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', 
+    startDate: new Date(2024, 2, 1), 
+    endDate: new Date(2024, 4, 31),
+    progressHistory: [
+        { year: 2024, month: 3, percentage: 40, comment: "Endpoints de autenticação documentados." },
+    ] 
+  },
+  { 
+    id: 'act-4', 
+    userId: 'user-appraisee-2', 
+    title: 'Projetar nova interface do painel', 
+    description: 'Criar wireframes e mockups para o painel v2.', 
+    startDate: new Date(2024, 0, 10), 
+    endDate: new Date(2024, 1, 28),
+    progressHistory: [
+        { year: 2024, month: 1, percentage: 100, comment: "Wireframes aprovados e mockups entregues." },
+    ] 
+  },
+  { 
+    id: 'act-5', 
+    userId: 'user-appraisee-2', 
+    title: 'Conduzir sessões de pesquisa com usuários', 
+    description: 'Coletar feedback sobre o produto atual de usuários chave.', 
+    startDate: new Date(2024, 1, 5), 
+    endDate: new Date(2024, 2, 5),
+    progressHistory: [
+      { year: 2024, month: 2, percentage: 90, comment: "Sessões realizadas, aguardando análise final dos dados." },
+    ]
+  },
+  { 
+    id: 'act-6', 
+    userId: 'user-appraisee-3', 
+    title: 'Criar suíte de testes automatizados para pagamentos', 
+    description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', 
+    startDate: new Date(2024, 2, 1),
+    endDate: new Date(2024, 5, 30), 
+    progressHistory: [
+       { year: 2024, month: 3, percentage: 60, comment: "Estrutura do projeto de teste montada e primeiros cenários criados." },
+    ] 
+  },
 ];
 
 export const evaluationPeriods: EvaluationPeriod[] = [

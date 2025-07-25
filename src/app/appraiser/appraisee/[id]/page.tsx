@@ -28,36 +28,61 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
-import type { Activity, User } from "@/lib/types";
+import type { Activity, User, ProgressEntry } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, getMonth, getYear, parse } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 
+type MonthlyActivity = Activity & {
+    progressForMonth: ProgressEntry;
+};
+
 export default function AppraiseeDetailView({ params }: { params: { id: string } }) {
   const { users, activities, evaluationPeriods } = useDataContext();
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
-  const [userActivities, setUserActivities] = React.useState<Activity[]>([]);
-  const [filteredActivities, setFilteredActivities] = React.useState<Activity[]>([]);
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === params.id) || null;
     setAppraisee(foundUser);
-    const activitiesForUser = activities.filter(a => a.userId === params.id);
-    setUserActivities(activitiesForUser);
-  }, [params.id, users, activities]);
+  }, [params.id, users]);
+
+  const getActivitiesByMonth = React.useCallback(() => {
+    const userActivities = activities.filter(a => a.userId === params.id);
+    const monthlyData: Record<string, MonthlyActivity[]> = {};
+
+    userActivities.forEach(activity => {
+        activity.progressHistory.forEach(progress => {
+            const monthYearKey = format(new Date(progress.year, progress.month - 1), 'yyyy-MM');
+            if (!monthlyData[monthYearKey]) {
+                monthlyData[monthYearKey] = [];
+            }
+            monthlyData[monthYearKey].push({
+                ...activity,
+                progressForMonth: progress,
+            });
+        });
+    });
+    return monthlyData;
+  }, [activities, params.id]);
+
+  const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
 
   React.useEffect(() => {
+      setMonthlyActivities(getActivitiesByMonth());
+  }, [getActivitiesByMonth]);
+
+  const filteredMonths = React.useMemo(() => {
+    const allKeys = Object.keys(monthlyActivities).sort().reverse(); // Sort descending
     if (monthFilter === 'all') {
-      setFilteredActivities(userActivities);
-    } else {
-      setFilteredActivities(userActivities.filter(a => format(a.date, 'MMMM', { locale: ptBR }) === monthFilter));
+      return allKeys;
     }
-  }, [userActivities, monthFilter]);
+    return allKeys.filter(key => key === monthFilter);
+  }, [monthlyActivities, monthFilter]);
   
   const handleDownloadPdf = async () => {
     const reportElement = document.getElementById('print-content');
@@ -65,26 +90,13 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
     setIsGeneratingPdf(true);
 
-    // Temporarily make the element visible for capture
     reportElement.style.display = 'block';
-    reportElement.style.fontFamily = `'Times New Roman', Times, serif`;
-    reportElement.style.fontSize = '12pt';
 
     const canvas = await html2canvas(reportElement, {
-      scale: 2, // Improve quality
+      scale: 2,
       useCORS: true,
-      onclone: (document) => {
-        // Ensure styles are applied in the cloned document
-        const clonedReport = document.getElementById('print-content');
-        if (clonedReport) {
-            clonedReport.style.display = 'block';
-            clonedReport.style.fontFamily = `'Times New Roman', Times, serif`;
-            clonedReport.style.fontSize = '12pt';
-        }
-      }
     });
 
-    // Hide the element again
     reportElement.style.display = 'none';
 
     const imgData = canvas.toDataURL('image/png');
@@ -106,23 +118,16 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     return <div className="p-6">Avaliado não encontrado.</div>;
   }
   
-  const allMonths = [
-    ...new Set(userActivities.map(a => format(a.date, 'MMMM', { locale: ptBR }))),
-  ];
+  const allMonthsOptions = Object.keys(monthlyActivities).map(key => {
+    const [year, month] = key.split('-').map(Number);
+    return {
+        value: key,
+        label: format(new Date(year, month - 1), 'MMMM, yyyy', {locale: ptBR})
+    };
+  }).sort((a,b) => b.value.localeCompare(a.value));
+
 
   const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
-
-  const groupedActivities = filteredActivities.reduce((acc, activity) => {
-    const month = format(activity.date, 'MMMM', { locale: ptBR });
-    if (!acc[month]) {
-      acc[month] = [];
-    }
-    acc[month].push(activity);
-    return acc;
-  }, {} as Record<string, Activity[]>);
-  
-  const monthOrder = ["janeiro", "fevereiro", "março", "abril", "maio", "junho", "julho", "agosto", "setembro", "outubro", "novembro", "dezembro"];
-  const sortedMonths = Object.keys(groupedActivities).sort((a, b) => monthOrder.indexOf(a.toLowerCase()) - monthOrder.indexOf(b.toLowerCase()));
 
   return (
     <>
@@ -153,7 +158,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Meses</SelectItem>
-                    {allMonths.map(m => <SelectItem key={m} value={m}>{m.charAt(0).toUpperCase() + m.slice(1)}</SelectItem>)}
+                    {allMonthsOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
@@ -165,98 +170,105 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
           </div>
         </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
-          <Card>
-            <CardHeader>
-              <CardTitle>Visão Geral das Tarefas</CardTitle>
-              <CardDescription>
-                Lista detalhada de atividades realizadas durante o período de avaliação.
-              </CardDescription>
-            </CardHeader>
-            <CardContent>
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead className="w-[40%]">Título</TableHead>
-                    <TableHead>Data</TableHead>
-                    <TableHead className="w-[30%]">Conclusão</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {filteredActivities.map(activity => (
-                    <TableRow key={activity.id}>
-                      <TableCell className="font-medium">{activity.title}</TableCell>
-                      <TableCell>{format(activity.date, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Progress value={activity.completionPercentage} className="w-[80%]" />
-                          <span>{activity.completionPercentage}%</span>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                   {filteredActivities.length === 0 && (
-                     <TableRow>
-                       <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade encontrada para o período ou filtro selecionado.</TableCell>
-                     </TableRow>
-                   )}
-                </TableBody>
-              </Table>
-            </CardContent>
-          </Card>
+        <main className="flex-1 p-4 md:p-6 overflow-auto space-y-6">
+          {filteredMonths.length > 0 ? filteredMonths.map(monthKey => {
+            const [year, month] = monthKey.split('-').map(Number);
+             return (
+                <Card key={monthKey}>
+                    <CardHeader>
+                    <CardTitle>{format(new Date(year, month -1), 'MMMM, yyyy', {locale: ptBR})}</CardTitle>
+                    <CardDescription>
+                        Atividades com progresso registrado neste mês.
+                    </CardDescription>
+                    </CardHeader>
+                    <CardContent>
+                    <Table>
+                        <TableHeader>
+                        <TableRow>
+                            <TableHead className="w-[40%]">Título</TableHead>
+                            <TableHead className="w-[40%]">Comentário do Mês</TableHead>
+                            <TableHead>Progresso no Mês</TableHead>
+                        </TableRow>
+                        </TableHeader>
+                        <TableBody>
+                         {monthlyActivities[monthKey].map(activity => (
+                            <TableRow key={`${activity.id}-${monthKey}`}>
+                            <TableCell className="font-medium">{activity.title}</TableCell>
+                            <TableCell className="text-muted-foreground italic">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
+                            <TableCell>
+                                <div className="flex items-center gap-2">
+                                <Progress value={activity.progressForMonth.percentage} className="w-[80%]" />
+                                <span>{activity.progressForMonth.percentage}%</span>
+                                </div>
+                            </TableCell>
+                            </TableRow>
+                        ))}
+                        </TableBody>
+                    </Table>
+                    </CardContent>
+                </Card>
+             )
+          }) : (
+            <div className="text-center py-12 text-muted-foreground">
+                <p>Nenhuma atividade encontrada para o período ou filtro selecionado.</p>
+            </div>
+          )}
         </main>
       </div>
 
+      {/* Content for PDF Generation */}
       <div id="print-content" className="hidden print:block p-8 bg-white" style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
-        <div className="text-center mb-6">
-            <h1 className="text-xl font-bold">FICHA DE REGISTRO DE TRABALHOS REALIZADOS</h1>
-        </div>
-        
-        <table className="w-full border-collapse border border-black mb-6">
-            <tbody>
-                <tr>
-                    <td className="border border-black p-2 font-bold text-center">POSTO/GRAD. E NOME DO AVALIADO</td>
-                    <td className="border border-black p-2 font-bold text-center">CARGO/FUNÇÃO</td>
-                </tr>
-                <tr>
-                    <td className="border border-black p-2 text-center">{appraisee.name}</td>
-                    <td className="border border-black p-2 text-center">{appraisee.jobTitle}</td>
-                </tr>
-            </tbody>
-        </table>
+          <div className="text-center mb-6">
+              <h1 className="text-xl font-bold">FICHA DE REGISTRO DE TRABALHOS REALIZADOS</h1>
+          </div>
+          
+          <table className="w-full border-collapse border border-black mb-6">
+              <tbody>
+                  <tr>
+                      <td className="border border-black p-2 font-bold text-center">POSTO/GRAD. E NOME DO AVALIADO</td>
+                      <td className="border border-black p-2 font-bold text-center">CARGO/FUNÇÃO</td>
+                  </tr>
+                  <tr>
+                      <td className="border border-black p-2 text-center">{appraisee.name}</td>
+                      <td className="border border-black p-2 text-center">{appraisee.jobTitle}</td>
+                  </tr>
+              </tbody>
+          </table>
 
-        <div className="border border-black">
-            <div className="text-center p-2 border-b border-black">
-                <p className="font-bold">PRINCIPAIS ATIVIDADES DESENVOLVIDAS NO PERÍODO DE AVALIAÇÃO</p>
-            </div>
-            {activePeriod && (
-                <div className="text-center p-1 border-b border-black font-bold">
-                    <span>{format(activePeriod.startDate, 'yyyy')}</span>-<span>{format(activePeriod.endDate, 'yyyy')}</span>
-                </div>
-            )}
-
-            {sortedMonths.map(month => (
-              <div key={month}>
-                <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
-                   {month.toUpperCase()} {groupedActivities[month].length > 0 ? format(groupedActivities[month][0].date, 'yyyy') : ''}
-                </div>
-                <table className="w-full" style={{borderCollapse: 'collapse'}}>
-                  <tbody>
-                  {groupedActivities[month].map(activity => (
-                     <tr key={activity.id}>
-                       <td className="w-[15%] p-2 border border-black text-center">{activity.completionPercentage}%</td>
-                       <td className="p-2 border border-black text-center">{activity.title}</td>
-                     </tr>
-                  ))}
-                  </tbody>
-                </table>
+          <div className="border border-black">
+              <div className="text-center p-2 border-b border-black">
+                  <p className="font-bold">PRINCIPAIS ATIVIDADES DESENVOLVIDAS NO PERÍODO DE AVALIAÇÃO</p>
               </div>
-            ))}
-             {sortedMonths.length === 0 && (
-                <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
-            )}
-        </div>
-        
+              {activePeriod && (
+                  <div className="text-center p-1 border-b border-black font-bold">
+                      <span>{format(activePeriod.startDate, 'yyyy')}</span>-<span>{format(activePeriod.endDate, 'yyyy')}</span>
+                  </div>
+              )}
+
+              {filteredMonths.map(monthKey => {
+                const [year, month] = monthKey.split('-').map(Number);
+                return (
+                  <div key={monthKey}>
+                    <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
+                      {format(new Date(year, month - 1), 'MMMM, yyyy', {locale: ptBR}).toUpperCase()}
+                    </div>
+                    <table className="w-full" style={{borderCollapse: 'collapse'}}>
+                      <tbody>
+                      {monthlyActivities[monthKey].map(activity => (
+                        <tr key={`${activity.id}-${monthKey}-pdf`}>
+                          <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
+                          <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        </tr>
+                      ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )
+              })}
+              {filteredMonths.length === 0 && (
+                  <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
+              )}
+          </div>
       </div>
     </>
   );

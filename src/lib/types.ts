@@ -15,12 +15,20 @@ export interface User {
   appraiseeIds?: string[];
 }
 
+export interface ProgressEntry {
+  month: number; // 1-12
+  year: number;
+  percentage: number;
+  comment: string;
+}
+
 export interface Activity {
   id: string;
   title: string;
   description: string;
-  date: Date;
-  completionPercentage: number;
+  startDate: Date;
+  endDate: Date;
+  progressHistory: ProgressEntry[];
   userId: string;
 }
 
