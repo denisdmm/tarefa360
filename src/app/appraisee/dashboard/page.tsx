@@ -54,11 +54,12 @@ import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, CalendarIcon } from "l
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
-import { format, getMonth, getYear, startOfDay } from 'date-fns';
+import { format, getMonth, getYear, startOfDay, eachMonthOfInterval, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { Calendar } from "@/components/ui/calendar";
 import { Separator } from "@/components/ui/separator";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const ActivityForm = ({
   activity,
@@ -80,19 +81,28 @@ const ActivityForm = ({
   const [currentProgress, setCurrentProgress] = React.useState(0);
   const [currentComment, setCurrentComment] = React.useState("");
 
-  const { toast } = useToast();
-  const currentMonth = getMonth(new Date()) + 1;
-  const currentYear = getYear(new Date());
+  const [selectedYear, setSelectedYear] = React.useState<number>(getYear(new Date()));
+  const [selectedMonth, setSelectedMonth] = React.useState<number>(getMonth(new Date()) + 1);
 
-  const canAddProgressForCurrentMonth = React.useMemo(() => {
-    if (!startDate) return false;
-    const today = startOfDay(new Date());
-    return today >= startOfDay(startDate);
+
+  const { toast } = useToast();
+
+  const availableMonths = React.useMemo(() => {
+    if (!startDate) return [];
+    const today = new Date();
+    const interval = {
+      start: startOfMonth(startDate),
+      end: startOfMonth(today),
+    };
+    if(interval.start > interval.end) return [];
+    return eachMonthOfInterval(interval).map(date => ({
+      year: getYear(date),
+      month: getMonth(date) + 1,
+      label: format(date, "MMMM 'de' yyyy", { locale: ptBR }),
+      value: `${getYear(date)}-${getMonth(date) + 1}`
+    })).reverse();
   }, [startDate]);
-  
-  const hasProgressForCurrentMonth = React.useMemo(() => {
-    return progressHistory.some(p => p.year === currentYear && p.month === currentMonth);
-  }, [progressHistory, currentYear, currentMonth]);
+
 
   React.useEffect(() => {
     if (activity) {
@@ -100,15 +110,6 @@ const ActivityForm = ({
       setDescription(activity.description || "");
       setStartDate(activity.startDate ? startOfDay(activity.startDate) : undefined);
       setProgressHistory(activity.progressHistory || []);
-      const existingEntry = activity.progressHistory?.find(p => p.year === currentYear && p.month === currentMonth);
-      if (existingEntry) {
-        setCurrentProgress(existingEntry.percentage);
-        setCurrentComment(existingEntry.comment);
-      } else {
-         const latestProgress = activity.progressHistory?.sort((a, b) => b.year - a.year || b.month - a.month)[0];
-         setCurrentProgress(latestProgress?.percentage || 0);
-         setCurrentComment("");
-      }
     } else {
       setTitle("");
       setDescription("");
@@ -117,7 +118,36 @@ const ActivityForm = ({
       setCurrentProgress(0);
       setCurrentComment("");
     }
-  }, [activity, currentYear, currentMonth]);
+    // Set default selected month/year to current
+    setSelectedYear(getYear(new Date()));
+    setSelectedMonth(getMonth(new Date()) + 1);
+  }, [activity]);
+
+  // This effect updates the form when the selected month/year changes
+  React.useEffect(() => {
+    if (!activity) {
+        // For new activities, reset progress fields
+        const latestProgress = progressHistory.sort((a, b) => b.year - a.year || b.month - a.month)[0];
+        setCurrentProgress(latestProgress?.percentage || 0);
+        setCurrentComment("");
+        return;
+    };
+    
+    const existingEntry = activity.progressHistory?.find(p => p.year === selectedYear && p.month === selectedMonth);
+
+    if (existingEntry) {
+      setCurrentProgress(existingEntry.percentage);
+      setCurrentComment(existingEntry.comment);
+    } else {
+      // If no entry for selected month, find the latest one before it to suggest progress
+       const latestProgress = activity.progressHistory
+        ?.filter(p => new Date(p.year, p.month -1) < new Date(selectedYear, selectedMonth -1))
+        .sort((a, b) => b.year - a.year || b.month - a.month)[0];
+       setCurrentProgress(latestProgress?.percentage || 0);
+       setCurrentComment("");
+    }
+  }, [activity, selectedMonth, selectedYear, progressHistory]);
+
 
   const handleDateChange = (date: Date | undefined, setter: (value: Date | undefined) => void) => {
     if (date) {
@@ -140,12 +170,12 @@ const ActivityForm = ({
     // --- Save Progress Entry ---
     let updatedHistory = [...progressHistory];
     const newEntry: ProgressEntry = {
-      year: currentYear,
-      month: currentMonth,
+      year: selectedYear,
+      month: selectedMonth,
       percentage: currentProgress,
       comment: currentComment,
     };
-    const existingEntryIndex = progressHistory.findIndex(p => p.year === currentYear && p.month === currentMonth);
+    const existingEntryIndex = progressHistory.findIndex(p => p.year === selectedYear && p.month === selectedMonth);
 
     if (currentComment || currentProgress > 0){
         if (existingEntryIndex > -1) {
@@ -153,6 +183,9 @@ const ActivityForm = ({
         } else {
             updatedHistory.push(newEntry);
         }
+    } else if(existingEntryIndex > -1) {
+        // If user clears the fields, remove the entry
+        updatedHistory.splice(existingEntryIndex, 1);
     }
     
     // --- Save Activity ---
@@ -167,6 +200,12 @@ const ActivityForm = ({
     onSave(updatedActivity);
     onClose();
   };
+
+  const handleMonthYearChange = (value: string) => {
+      const [year, month] = value.split('-').map(Number);
+      setSelectedYear(year);
+      setSelectedMonth(month);
+  }
 
   return (
     <DialogContent className="sm:max-w-[625px]">
@@ -221,8 +260,25 @@ const ActivityForm = ({
         <div className="space-y-4">
              <h3 className="font-semibold text-lg">Registrar Progresso</h3>
              <p className="text-sm text-muted-foreground">
-                Atualize o andamento de sua atividade para o mês de {format(new Date(), 'MMMM', { locale: ptBR })}.
+                Selecione o período e atualize o andamento da sua atividade.
             </p>
+             <div className="grid grid-cols-4 items-center gap-4">
+                <Label htmlFor="month-year" className="text-right">Período</Label>
+                <Select 
+                    value={`${selectedYear}-${selectedMonth}`}
+                    onValueChange={handleMonthYearChange}
+                    disabled={!startDate}
+                >
+                    <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Selecione o mês/ano" />
+                    </SelectTrigger>
+                    <SelectContent>
+                        {availableMonths.map(m => (
+                            <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                        ))}
+                    </SelectContent>
+                </Select>
+            </div>
              <div className="grid grid-cols-4 items-center gap-4">
                 <Label htmlFor="current-progress" className="text-right">Conclusão (%)</Label>
                 <Input
@@ -232,7 +288,7 @@ const ActivityForm = ({
                     onChange={(e) => setCurrentProgress(Number(e.target.value))}
                     min="0"
                     max="100"
-                    disabled={!canAddProgressForCurrentMonth}
+                    disabled={!startDate}
                     className="col-span-3"
                 />
             </div>
@@ -244,12 +300,9 @@ const ActivityForm = ({
                     onChange={e => setCurrentComment(e.target.value)}
                     className="col-span-3"
                     placeholder="Descreva o que foi feito este mês..."
-                    disabled={!canAddProgressForCurrentMonth}
+                    disabled={!startDate}
                 />
             </div>
-            {!canAddProgressForCurrentMonth && (
-            <p className="text-center text-sm text-destructive col-span-4">Não é possível registrar progresso para uma atividade com data de início futura.</p>
-            )}
         </div>
       </div>
       <DialogFooter>
@@ -288,7 +341,7 @@ const ActivityCard = ({
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-          <Edit className="mr-2 h-4 w-4" /> Editar
+           Editar
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
