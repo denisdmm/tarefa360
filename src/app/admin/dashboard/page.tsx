@@ -60,6 +60,7 @@ import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { useDataContext } from "@/context/DataContext";
 import { UserFormModal, type UserFormData } from "./UserFormModal";
+import { NewAppraiserFormModal } from "./NewAppraiserFormModal";
 
 
 const PeriodFormModal = ({
@@ -187,6 +188,10 @@ export default function AdminDashboard() {
   
   const [selectedAppraisee, setSelectedAppraisee] = React.useState('');
   const [selectedAppraiser, setSelectedAppraiser] = React.useState('');
+  
+  const [isNewAppraiserModalOpen, setNewAppraiserModalOpen] = React.useState(false);
+  const [newlyCreatedAppraiserId, setNewlyCreatedAppraiserId] = React.useState<string>('');
+
 
   const { toast } = useToast();
 
@@ -339,6 +344,15 @@ export default function AdminDashboard() {
     setSelectedPeriod(period);
     setPeriodModalOpen(true);
   }
+  
+  const handleSaveNewAppraiser = (newUser: User) => {
+    setUsers([...users, newUser]);
+    setNewlyCreatedAppraiserId(newUser.id); // Save ID to auto-select
+    toast({
+      title: "Avaliador Criado",
+      description: `O usuário ${newUser.name} foi criado com sucesso.`,
+    });
+  };
 
   const getUsernameById = (id: string) => users.find(u => u.id === id)?.name || 'Desconhecido';
   
@@ -358,9 +372,21 @@ export default function AdminDashboard() {
           mode={userModalMode}
           user={selectedUser} 
           onSave={handleSaveUser}
-          onClose={() => setUserModalOpen(false)} 
+          onClose={() => setUserModalOpen(false)}
+          onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}
+          onAppraiserCreated={(newId) => {
+            // This callback seems redundant with the state approach,
+            // but could be useful if we didn't use state.
+            // For now, we'll use the state `newlyCreatedAppraiserId`
+          }}
         />
       </Dialog>
+      <NewAppraiserFormModal 
+        isOpen={isNewAppraiserModalOpen}
+        onClose={() => setNewAppraiserModalOpen(false)}
+        onSave={handleSaveNewAppraiser}
+        existingUsers={users}
+      />
       <Dialog open={isPeriodModalOpen} onOpenChange={setPeriodModalOpen}>
         <PeriodFormModal 
             period={selectedPeriod} 

@@ -36,9 +36,11 @@ interface UserFormModalProps {
   user: User | null;
   onSave: (formData: UserFormData) => void;
   onClose: () => void;
+  onOpenNewAppraiserModal: () => void;
+  onAppraiserCreated: (newAppraiserId: string) => void;
 }
 
-export const UserFormModal = ({ mode, user, onSave, onClose }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [socialName, setSocialName] = React.useState('');
@@ -77,6 +79,18 @@ export const UserFormModal = ({ mode, user, onSave, onClose }: UserFormModalProp
         setSelectedAppraiser('');
     }
   }, [user, mode]);
+  
+  React.useEffect(() => {
+    onAppraiserCreated(selectedAppraiser);
+  }, [selectedAppraiser, onAppraiserCreated]);
+
+  const handleAppraiserChange = (value: string) => {
+    if (value === 'new-appraiser') {
+      onOpenNewAppraiserModal();
+    } else {
+      setSelectedAppraiser(value);
+    }
+  }
 
   const handleSave = () => {
     // --- Validation ---
@@ -202,18 +216,17 @@ export const UserFormModal = ({ mode, user, onSave, onClose }: UserFormModalProp
             <Label htmlFor="appraiser" className="md:text-right">
               Avaliador Responsável
             </Label>
-            <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
+            <Select value={selectedAppraiser} onValueChange={handleAppraiserChange}>
                 <SelectTrigger className="col-span-1 md:col-span-3">
                 <SelectValue placeholder="Selecione o avaliador" />
                 </SelectTrigger>
                 <SelectContent>
-                  {appraisers.length > 0 ? (
-                    appraisers.map(appraiser => (
-                      <SelectItem key={appraiser.id} value={appraiser.id}>{appraiser.name}</SelectItem>
-                    ))
-                  ) : (
-                    <div className="p-2 text-sm text-muted-foreground">Nenhum avaliador disponível.</div>
-                  )}
+                  {appraisers.map(appraiser => (
+                    <SelectItem key={appraiser.id} value={appraiser.id}>{appraiser.name}</SelectItem>
+                  ))}
+                   <SelectItem value="new-appraiser" className="text-primary focus:text-primary-foreground focus:bg-primary">
+                    Cadastrar Novo Avaliador...
+                  </SelectItem>
                 </SelectContent>
             </Select>
           </div>
