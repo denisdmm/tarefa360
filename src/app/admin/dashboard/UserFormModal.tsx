@@ -1,0 +1,228 @@
+
+"use client";
+
+import * as React from "react";
+import {
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogFooter,
+  DialogClose,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { useToast } from "@/hooks/use-toast";
+import { useDataContext } from "@/context/DataContext";
+import type { User, Role } from "@/lib/types";
+
+export interface UserFormData {
+  mode: 'create' | 'edit';
+  user?: User | null;
+  data: Omit<User, 'id' | 'avatarUrl'>;
+  appraiserId?: string | null;
+}
+
+interface UserFormModalProps {
+  mode: 'create' | 'edit';
+  user: User | null;
+  onSave: (formData: UserFormData) => void;
+  onClose: () => void;
+}
+
+export const UserFormModal = ({ mode, user, onSave, onClose }: UserFormModalProps) => {
+  const [cpf, setCpf] = React.useState('');
+  const [name, setName] = React.useState('');
+  const [socialName, setSocialName] = React.useState('');
+  const [email, setEmail] = React.useState('');
+  const [sector, setSector] = React.useState('');
+  const [jobTitle, setJobTitle] = React.useState('');
+  const [role, setRole] = React.useState<Role>('appraisee');
+  const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
+
+  const { toast } = useToast();
+  const { users } = useDataContext();
+
+  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
+    setCpf(onlyNumbers);
+  };
+
+  React.useEffect(() => {
+    if (mode === 'edit' && user) {
+        setName(user.name || '');
+        setSocialName(user.socialName || '');
+        setEmail(user.email || '');
+        setCpf(user.cpf || '');
+        setSector(user.sector || '');
+        setJobTitle(user.jobTitle || '');
+        setRole(user.role || 'appraisee');
+    } else {
+        // Reset for create mode
+        setName('');
+        setSocialName('');
+        setEmail('');
+        setCpf('');
+        setSector('');
+        setJobTitle('');
+        setRole('appraisee');
+        setSelectedAppraiser('');
+    }
+  }, [user, mode]);
+
+  const handleSave = () => {
+    // --- Validation ---
+    if (!name || !socialName || !cpf || !email || !sector || !jobTitle) {
+        toast({
+            variant: "destructive",
+            title: "Campos Obrigatórios",
+            description: "Por favor, preencha todos os campos.",
+        });
+        return;
+    }
+    
+    if (!cpf || cpf.length !== 11) {
+        toast({
+            variant: "destructive",
+            title: "Erro de Validação",
+            description: "O CPF deve conter 11 dígitos.",
+        });
+        return;
+    }
+
+    const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user?.id);
+    if (isCpfTaken) {
+        toast({
+            variant: "destructive",
+            title: "CPF Duplicado",
+            description: "Este CPF já está sendo utilizado por outro usuário.",
+        });
+        return;
+    }
+
+    if (role === 'appraisee' && mode === 'create' && !selectedAppraiser) {
+       toast({
+            variant: "destructive",
+            title: "Avaliador Necessário",
+            description: "É necessário selecionar um avaliador responsável para criar um usuário com perfil 'Avaliado'.",
+        });
+        return;
+    }
+
+    const formData: UserFormData = {
+      mode,
+      user,
+      data: {
+        cpf,
+        name,
+        socialName,
+        email,
+        sector,
+        jobTitle,
+        role,
+      },
+      appraiserId: role === 'appraisee' ? selectedAppraiser : null,
+    };
+    onSave(formData);
+  };
+  
+  const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
+  const description = mode === 'edit' ? 'Atualize os dados do usuário.' : 'Preencha os dados para uma nova conta de usuário.';
+
+  const appraisers = users.filter(u => u.role === 'appraiser');
+
+  return (
+    <DialogContent className="sm:max-w-[625px]">
+      <DialogHeader>
+        <DialogTitle>{title}</DialogTitle>
+        <DialogDescription>{description}</DialogDescription>
+      </DialogHeader>
+      <div className="grid gap-4 py-4">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="name" className="md:text-right">
+            Nome Completo
+          </Label>
+          <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="socialName" className="md:text-right">
+            Nome Social
+          </Label>
+          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="cpf" className="md:text-right">
+            CPF (Login)
+          </Label>
+          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Apenas números" maxLength={11} />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="email" className="md:text-right">
+            Email
+          </Label>
+          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="sector" className="md:text-right">
+            Sigla do Setor
+          </Label>
+          <Input id="sector" value={sector} onChange={e => setSector(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="jobTitle" className="md:text-right">
+            Função
+          </Label>
+          <Input id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="role" className="md:text-right">
+            Perfil
+          </Label>
+          <Select value={role} onValueChange={value => setRole(value as Role)}>
+            <SelectTrigger className="col-span-1 md:col-span-3">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="admin">Administrador</SelectItem>
+              <SelectItem value="appraiser">Avaliador</SelectItem>
+              <SelectItem value="appraisee">Avaliado</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
+        {mode === 'create' && role === 'appraisee' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+            <Label htmlFor="appraiser" className="md:text-right">
+              Avaliador Responsável
+            </Label>
+            <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
+                <SelectTrigger className="col-span-1 md:col-span-3">
+                <SelectValue placeholder="Selecione o avaliador" />
+                </SelectTrigger>
+                <SelectContent>
+                  {appraisers.length > 0 ? (
+                    appraisers.map(appraiser => (
+                      <SelectItem key={appraiser.id} value={appraiser.id}>{appraiser.name}</SelectItem>
+                    ))
+                  ) : (
+                    <div className="p-2 text-sm text-muted-foreground">Nenhum avaliador disponível.</div>
+                  )}
+                </SelectContent>
+            </Select>
+          </div>
+        )}
+      </div>
+      <DialogFooter>
+        <Button variant="outline" onClick={onClose}>Cancelar</Button>
+        <Button onClick={handleSave}>Salvar</Button>
+      </DialogFooter>
+    </DialogContent>
+  );
+};

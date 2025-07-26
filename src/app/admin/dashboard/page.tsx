@@ -31,6 +31,17 @@ import {
     TabsList,
     TabsTrigger,
 } from "@/components/ui/tabs"
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
@@ -43,151 +54,13 @@ import {
   DialogTitle,
   DialogFooter,
   DialogClose,
-  DialogTrigger,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-import { format, getMonth, getYear, startOfDay } from "date-fns";
-import { ptBR } from "date-fns/locale";
+import { format } from "date-fns";
 import { useDataContext } from "@/context/DataContext";
+import { UserFormModal, type UserFormData } from "./UserFormModal";
 
-
-const UserFormModal = ({ user, onSave }: { user: User | null; onSave: (user: User) => void; }) => {
-  const [cpf, setCpf] = React.useState('');
-  const [name, setName] = React.useState('');
-  const [socialName, setSocialName] = React.useState('');
-  const [email, setEmail] = React.useState('');
-  const [sector, setSector] = React.useState('');
-  const [jobTitle, setJobTitle] = React.useState('');
-  const [role, setRole] = React.useState<Role>('appraisee');
-
-  const { toast } = useToast();
-  const { users } = useDataContext();
-  
-  const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
-    setCpf(onlyNumbers);
-  };
-
-  React.useEffect(() => {
-    if (user) {
-        setName(user.name || '');
-        setSocialName(user.socialName || '');
-        setEmail(user.email || '');
-        setCpf(user.cpf || '');
-        setSector(user.sector || '');
-        setJobTitle(user.jobTitle || '');
-        setRole(user.role || 'appraisee');
-    }
-  }, [user]);
-
-  const handleSave = () => {
-    if (!user) return;
-
-    if (!cpf || cpf.length !== 11) {
-        toast({
-            variant: "destructive",
-            title: "Erro de Validação",
-            description: "O CPF deve conter 11 dígitos.",
-        });
-        return;
-    }
-
-    const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user.id);
-    if (isCpfTaken) {
-        toast({
-            variant: "destructive",
-            title: "CPF Duplicado",
-            description: "Este CPF já está sendo utilizado por outro usuário.",
-        });
-        return;
-    }
-    const updatedUser: User = { 
-        ...user, 
-        cpf,
-        name,
-        socialName,
-        email,
-        sector,
-        jobTitle,
-        role,
-    };
-    onSave(updatedUser);
-  };
-
-
-  if (!user) return null;
-
-  return (
-    <DialogContent className="sm:max-w-[625px]">
-      <DialogHeader>
-        <DialogTitle>Editar Usuário</DialogTitle>
-        <DialogDescription>
-          Atualize os dados do usuário.
-        </DialogDescription>
-      </DialogHeader>
-      <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="md:text-right">
-            Nome Completo
-          </Label>
-          <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-1 md:col-span-3" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="socialName" className="md:text-right">
-            Nome Social
-          </Label>
-          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-1 md:col-span-3" />
-        </div>
-         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="cpf" className="md:text-right">
-            CPF (Login)
-          </Label>
-          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Apenas números" maxLength={11} />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="email" className="md:text-right">
-            Email
-          </Label>
-          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-1 md:col-span-3" />
-        </div>
-         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="sector" className="md:text-right">
-            Sigla do Setor
-          </Label>
-          <Input id="sector" value={sector} onChange={e => setSector(e.target.value)} className="col-span-1 md:col-span-3" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="jobTitle" className="md:text-right">
-            Função
-          </Label>
-          <Input id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="col-span-1 md:col-span-3" />
-        </div>
-        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="role" className="md:text-right">
-            Perfil
-          </Label>
-          <Select value={role} onValueChange={value => setRole(value as User['role'])}>
-            <SelectTrigger className="col-span-1 md:col-span-3">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="admin">Administrador</SelectItem>
-              <SelectItem value="appraiser">Avaliador</SelectItem>
-              <SelectItem value="appraisee">Avaliado</SelectItem>
-            </SelectContent>
-          </Select>
-        </div>
-      </div>
-      <DialogFooter>
-        <DialogClose asChild>
-          <Button variant="outline">Cancelar</Button>
-        </DialogClose>
-        <Button onClick={handleSave}>Salvar Alterações</Button>
-      </DialogFooter>
-    </DialogContent>
-  );
-};
 
 const PeriodFormModal = ({
   period,
@@ -246,8 +119,8 @@ const PeriodFormModal = ({
     const savedPeriod: EvaluationPeriod = {
       id: period?.id || `period-${Date.now()}`,
       name,
-      startDate: new Date(startDate),
-      endDate: new Date(endDate),
+      startDate: new Date(`${startDate}T12:00:00`),
+      endDate: new Date(`${endDate}T12:00:00`),
       status,
     };
     onSave(savedPeriod);
@@ -310,21 +183,65 @@ export default function AdminDashboard() {
   const [selectedPeriod, setSelectedPeriod] = React.useState<EvaluationPeriod | null>(null);
   const [isUserModalOpen, setUserModalOpen] = React.useState(false);
   const [isPeriodModalOpen, setPeriodModalOpen] = React.useState(false);
+  const [userModalMode, setUserModalMode] = React.useState<'create' | 'edit'>('create');
   
   const [selectedAppraisee, setSelectedAppraisee] = React.useState('');
   const [selectedAppraiser, setSelectedAppraiser] = React.useState('');
 
   const { toast } = useToast();
 
-  const handleSaveUser = (updatedUser: User) => {
-    setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
-    toast({
-        title: "Usuário Atualizado",
-        description: "Os dados do usuário foram salvos com sucesso.",
-    });
-    setUserModalOpen(false);
+  const handleSaveUser = (formData: UserFormData) => {
+      if (formData.mode === 'edit' && formData.user) {
+        const updatedUser: User = {
+          ...formData.user,
+          ...formData.data,
+        };
+        setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+        toast({
+            title: "Usuário Atualizado",
+            description: "Os dados foram salvos com sucesso.",
+        });
+      } else {
+        // Create mode
+        const newUser: User = {
+          id: `user-${Date.now()}`,
+          ...formData.data,
+          avatarUrl: 'https://placehold.co/100x100' // Default avatar
+        };
+        setUsers([...users, newUser]);
+
+        if (newUser.role === 'appraisee' && formData.appraiserId) {
+            const newAssociation: Association = {
+                id: `assoc-${Date.now()}`,
+                appraiseeId: newUser.id,
+                appraiserId: formData.appraiserId,
+            };
+            setAssociations([...associations, newAssociation]);
+            toast({
+                title: "Usuário Criado e Associado",
+                description: "A nova conta foi criada e vinculada ao avaliador.",
+            });
+        } else {
+            toast({
+                title: "Usuário Criado",
+                description: "A nova conta de usuário foi criada com sucesso.",
+            });
+        }
+      }
+      setUserModalOpen(false);
   };
   
+    const handleDeleteUser = (userId: string) => {
+        setUsers(users.filter(u => u.id !== userId));
+        // Optional: Also remove any associations related to this user
+        setAssociations(associations.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));
+        toast({
+            variant: "destructive",
+            title: "Usuário Excluído",
+            description: "A conta do usuário foi removida permanentemente.",
+        });
+    };
+
   const handleSavePeriod = (periodToSave: EvaluationPeriod) => {
     const isEditing = evaluationPeriods.some(p => p.id === periodToSave.id);
     if (isEditing) {
@@ -347,6 +264,20 @@ export default function AdminDashboard() {
         });
         return;
     }
+    
+    const isAlreadyAssociated = associations.some(
+        a => a.appraiseeId === selectedAppraisee && a.appraiserId === selectedAppraiser
+    );
+
+    if (isAlreadyAssociated) {
+        toast({
+            variant: "destructive",
+            title: "Associação Existente",
+            description: "Este avaliado já está associado a este avaliador.",
+        });
+        return;
+    }
+
 
     const newAssociation: Association = {
         id: `assoc-${Date.now()}`,
@@ -398,7 +329,8 @@ export default function AdminDashboard() {
   };
 
 
-  const openUserModal = (user: User) => {
+  const openUserModal = (user: User | null, mode: 'create' | 'edit') => {
+    setUserModalMode(mode);
     setSelectedUser(user);
     setUserModalOpen(true);
   }
@@ -422,7 +354,12 @@ export default function AdminDashboard() {
   return (
     <>
       <Dialog open={isUserModalOpen} onOpenChange={setUserModalOpen}>
-        <UserFormModal user={selectedUser} onSave={handleSaveUser} />
+        <UserFormModal 
+          mode={userModalMode}
+          user={selectedUser} 
+          onSave={handleSaveUser}
+          onClose={() => setUserModalOpen(false)} 
+        />
       </Dialog>
       <Dialog open={isPeriodModalOpen} onOpenChange={setPeriodModalOpen}>
         <PeriodFormModal 
@@ -455,7 +392,9 @@ export default function AdminDashboard() {
                     <CardTitle>Contas de Usuário</CardTitle>
                     <CardDescription>Crie, visualize e gerencie todas as contas de usuário.</CardDescription>
                   </div>
-                  <Button><PlusCircle className="mr-2 h-4 w-4" />Criar Conta</Button>
+                  <Button onClick={() => openUserModal(null, 'create')}>
+                    <PlusCircle className="mr-2 h-4 w-4" />Criar Conta
+                  </Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -478,10 +417,26 @@ export default function AdminDashboard() {
                           <TableCell className="hidden lg:table-cell">{user.jobTitle}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
                           <TableCell className="text-right">
-                              <Button variant="ghost" size="icon" onClick={() => openUserModal(user)}>
+                              <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
                                 <Edit className="h-4 w-4" />
                               </Button>
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Tem certeza que deseja excluir o usuário "{user.name}"? Esta ação não pode ser desfeita.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeleteUser(user.id)}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -587,7 +542,6 @@ export default function AdminDashboard() {
                           <TableCell>{getUsernameById(assoc.appraiseeId)}</TableCell>
                           <TableCell>{getUsernameById(assoc.appraiserId)}</TableCell>
                           <TableCell className="text-right">
-                            <Button variant="ghost" size="icon"><Edit className="h-4 w-4" /></Button>
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>
                         </TableRow>

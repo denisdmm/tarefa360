@@ -16,5 +16,5 @@ export const evaluationPeriods: EvaluationPeriod[] = [
 ];
 
 export const associations: Association[] = [
-    { id: 'assoc-1', appraiseeId: 'user-appraisee-1', appraiserId: 'user-appraiser-1'}, // Carlos is evaluated by Ana
+    { id: 'assoc-1', appraiseeId: 'user-appraisee-1', appraiserId: 'user-appraiser-1'},
 ];
