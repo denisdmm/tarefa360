@@ -28,10 +28,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
-import type { Activity, User, ProgressEntry } from "@/lib/types";
+import type { Activity, User, ProgressEntry, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, getMonth, getYear } from 'date-fns';
+import { format, getMonth, getYear, eachMonthOfInterval, startOfMonth } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -157,15 +157,24 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
   const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
-  // For the PDF, we want ascending chronological order
+  // For the PDF, we want ascending chronological order for all months in the period
   const pdfMonths = React.useMemo(() => {
-    const allKeys = Object.keys(monthlyActivities);
-    const sortedKeys = allKeys.sort((a, b) => a.localeCompare(b)); // Sort ascending: '2024-01', '2024-02'
+    if (!activePeriod) return [];
+    
+    const monthsInPeriod = eachMonthOfInterval({
+        start: startOfMonth(activePeriod.startDate),
+        end: startOfMonth(activePeriod.endDate)
+    });
+    
+    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM'));
+
     if (monthFilter === 'all') {
-      return sortedKeys;
+      return monthKeys; // Already sorted chronologically by eachMonthOfInterval
     }
-    return sortedKeys.filter(key => key === monthFilter); // Will be a single month, order doesn't matter
-  }, [monthlyActivities, monthFilter]);
+    
+    // If a filter is applied, only show that month if it's within the period
+    return monthKeys.filter(key => key === monthFilter);
+  }, [activePeriod, monthFilter]);
 
   return (
     <>
@@ -229,7 +238,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                         </TableRow>
                         </TableHeader>
                         <TableBody>
-                         {monthlyActivities[monthKey].map(activity => (
+                         {monthlyActivities[monthKey]?.map(activity => (
                             <TableRow key={`${activity.id}-${monthKey}`}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell className="text-muted-foreground italic">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
@@ -240,7 +249,11 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                                 </div>
                             </TableCell>
                             </TableRow>
-                        ))}
+                        )) ?? (
+                            <TableRow>
+                                <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade registrada para este mês.</TableCell>
+                           </TableRow>
+                        )}
                         </TableBody>
                     </Table>
                     </CardContent>
@@ -285,21 +298,26 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
               {pdfMonths.map(monthKey => {
                 const [year, month] = monthKey.split('-').map(Number);
+                const activitiesForMonth = monthlyActivities[monthKey];
                 return (
                   <div key={`${monthKey}-pdf`}>
                     <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
                       {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR}).toUpperCase()}
                     </div>
-                    <table className="w-full" style={{borderCollapse: 'collapse'}}>
-                      <tbody>
-                      {monthlyActivities[monthKey].map(activity => (
-                        <tr key={`${activity.id}-${monthKey}-pdf`}>
-                          <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
-                          <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
-                        </tr>
-                      ))}
-                      </tbody>
-                    </table>
+                    {activitiesForMonth && activitiesForMonth.length > 0 ? (
+                       <table className="w-full" style={{borderCollapse: 'collapse'}}>
+                        <tbody>
+                        {activitiesForMonth.map(activity => (
+                          <tr key={`${activity.id}-${monthKey}-pdf`}>
+                            <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
+                            <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                          </tr>
+                        ))}
+                        </tbody>
+                      </table>
+                    ) : (
+                        <div className="p-2 border-b border-black text-center italic">Nenhuma atividade registrada para este mês.</div>
+                    )}
                   </div>
                 )
               })}
@@ -311,5 +329,3 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     </>
   );
 }
-
-    
