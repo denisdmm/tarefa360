@@ -57,7 +57,7 @@ export default function AppraiserReports() {
     }
   }, [users, associations]);
   
-  const handleViewOwnReport = (periodId: string) => {
+  const handleViewOwnReport = () => {
     // Appraiser views their own report, so they are the appraisee in this context
     if(appraiser) {
         router.push(`/appraiser/appraisee/${appraiser.id}`);
@@ -184,13 +184,18 @@ export default function AppraiserReports() {
                           </Badge>
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button onClick={() => handleViewOwnReport(period.id)}>
+                          <Button onClick={() => handleViewOwnReport()}>
                             <Eye className="mr-2 h-4 w-4" />
                             Visualizar
                           </Button>
                         </TableCell>
                       </TableRow>
                     ))}
+                     {evaluationPeriods.length === 0 && (
+                        <TableRow>
+                            <TableCell colSpan={5} className="text-center h-24">Nenhum período de avaliação encontrado.</TableCell>
+                        </TableRow>
+                    )}
                   </TableBody>
                 </Table>
               </CardContent>
