@@ -87,7 +87,7 @@ const ActivityForm = ({
   const { toast } = useToast();
   
   const validateStartDate = (dateString: string) => {
-    // No validation when editing an existing activity
+    // Only validate for new activities.
     if (activity) {
         setDateError(null);
         return;
@@ -192,8 +192,6 @@ const ActivityForm = ({
 
 
   const handleSubmit = () => {
-    // Final validation before submitting
-    validateStartDate(startDate); // Re-validate on submit click
     if (isSaveDisabled) {
         toast({
             variant: "destructive",
