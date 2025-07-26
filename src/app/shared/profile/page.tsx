@@ -158,7 +158,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                         onChange={handleAvatarChange}
                     />
                      <p className="text-xs text-muted-foreground text-center">
-                        PNG, JPG (100x100px)
+                        PNG, JPG (200x200px)
                     </p>
                 </div>
                 <div className="w-full space-y-4">
