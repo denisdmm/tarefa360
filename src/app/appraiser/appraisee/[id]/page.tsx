@@ -58,49 +58,35 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   const getActivitiesByMonth = React.useCallback(() => {
     if (!activePeriod) return {};
 
-    const userActivities = activities.filter(a => 
-      a.userId === params.id &&
-      isWithinInterval(a.startDate, { start: activePeriod.startDate, end: activePeriod.endDate })
-    );
-
+    const userActivities = activities.filter(a => a.userId === params.id);
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
-        const startYear = getYear(activity.startDate);
-        const startMonth = getMonth(activity.startDate) + 1;
+      activity.progressHistory.forEach(progress => {
+        const progressDate = new Date(progress.year, progress.month - 1);
         
-        const hasEntryForStartMonth = activity.progressHistory.some(p => p.year === startYear && p.month === startMonth);
-        
-        const historyWithBaseline = [...activity.progressHistory];
-
-        if (!hasEntryForStartMonth) {
-            historyWithBaseline.unshift({
-                year: startYear,
-                month: startMonth,
-                percentage: 0,
-                comment: "Início da atividade."
-            });
-        }
-
-
-        historyWithBaseline.forEach(progress => {
-            const monthYearKey = format(new Date(progress.year, progress.month - 1), 'yyyy-MM');
+        // Include activity if its progress entry is within the active period
+        if (isWithinInterval(progressDate, { start: activePeriod.startDate, end: activePeriod.endDate })) {
+            const monthYearKey = format(progressDate, 'yyyy-MM');
+            
             if (!monthlyData[monthYearKey]) {
                 monthlyData[monthYearKey] = [];
             }
-            const existingActivityIndex = monthlyData[monthYearKey].findIndex(a => a.id === activity.id);
-            if (existingActivityIndex > -1) {
-                monthlyData[monthYearKey][existingActivityIndex].progressForMonth = progress;
-            } else {
-                 monthlyData[monthYearKey].push({
+
+            const existingActivity = monthlyData[monthYearKey].find(a => a.id === activity.id);
+            if (!existingActivity) {
+                monthlyData[monthYearKey].push({
                     ...activity,
                     progressForMonth: progress,
                 });
             }
-        });
+        }
+      });
     });
+
     return monthlyData;
   }, [activities, params.id, activePeriod]);
+
 
   React.useEffect(() => {
       setMonthlyActivities(getActivitiesByMonth());
