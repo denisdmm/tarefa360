@@ -11,78 +11,95 @@ export const users: User[] = [
 ];
 
 export const activities: Activity[] = [
+  // User 1: Carlos Silva
   { 
     id: 'act-1', 
     userId: 'user-appraisee-1', 
-    title: 'Desenvolver novo módulo de autenticação', 
-    description: 'Implementar autenticação baseada em JWT para a API principal.', 
-    startDate: new Date(2023, 10, 15), // Nov 2023
+    title: 'Implementar CI/CD para o novo microsserviço', 
+    description: 'Configurar pipeline de integração e entrega contínua no GitLab.', 
+    startDate: new Date(2024, 8, 10), // Sep 10, 2024
     progressHistory: [
-        { year: 2023, month: 11, percentage: 50, comment: "Iniciado." },
-        { year: 2023, month: 12, percentage: 100, comment: "Finalizado e entregue." },
+        { year: 2024, month: 9, percentage: 30, comment: "Análise de requisitos do pipeline." },
+        { year: 2024, month: 10, percentage: 70, comment: "Scripts de build e teste implementados." },
+        { year: 2025, month: 1, percentage: 90, comment: "Ambiente de staging configurado." },
+        { year: 2025, month: 3, percentage: 100, comment: "Pipeline em produção e monitorado." },
     ] 
   },
   { 
     id: 'act-2', 
     userId: 'user-appraisee-1', 
-    title: 'Refatorar esquema do banco de dados', 
-    description: 'Otimizar tabelas para performance e adicionar novos índices.', 
-    startDate: new Date(2024, 1, 1), 
+    title: 'Otimização de Consultas do Banco de Dados', 
+    description: 'Analisar e otimizar as consultas mais lentas da aplicação principal.', 
+    startDate: new Date(2025, 0, 15), // Jan 15, 2025
     progressHistory: [
-        { year: 2024, month: 2, percentage: 30, comment: "Análise inicial concluída." },
-        { year: 2024, month: 3, percentage: 75, comment: "Scripts de migração desenvolvidos." },
+        { year: 2025, month: 1, percentage: 20, comment: "Relatório de performance gerado." },
+        { year: 2025, month: 2, percentage: 60, comment: "Índices aplicados e primeiras otimizações." },
+        { year: 2025, month: 4, percentage: 80, comment: "Refatoração das queries mais críticas." },
     ] 
   },
-  { 
-    id: 'act-3', 
-    userId: 'user-appraisee-1', 
-    title: 'Escrever documentação da API', 
-    description: 'Usar Swagger/OpenAPI para documentar todos os endpoints.', 
-    startDate: new Date(2024, 2, 1), 
+  {
+    id: 'act-from-previous-period',
+    userId: 'user-appraisee-1',
+    title: 'Migração do Legado de Faturamento',
+    description: 'Migrar o sistema antigo de faturamento para a nova plataforma.',
+    startDate: new Date(2024, 5, 1), // Started in June 2024 (previous period)
     progressHistory: [
-        { year: 2024, month: 3, percentage: 40, comment: "Endpoints de autenticação documentados." },
-    ] 
+      { year: 2024, month: 6, percentage: 10, comment: "Mapeamento inicial do sistema legado." },
+      { year: 2024, month: 8, percentage: 25, comment: "Prova de conceito da migração de dados." },
+      // Progress within the new period
+      { year: 2024, month: 11, percentage: 40, comment: "Desenvolvimento dos scripts de migração." },
+      { year: 2025, month: 2, percentage: 55, comment: "Primeiro lote de dados migrado para ambiente de teste." },
+    ]
   },
+
+  // User 2: Juliana Costa
   { 
     id: 'act-4', 
     userId: 'user-appraisee-2', 
-    title: 'Projetar nova interface do painel', 
-    description: 'Criar wireframes e mockups para o painel v2.', 
-    startDate: new Date(2023, 11, 10), // Dec 2023
+    title: 'Redesenho do Fluxo de Onboarding de Clientes', 
+    description: 'Criar uma experiência de onboarding mais intuitiva e amigável.', 
+    startDate: new Date(2024, 9, 5), // Oct 5, 2024
     progressHistory: [
-        { year: 2023, month: 12, percentage: 50, comment: "Pesquisa inicial." },
-        { year: 2024, month: 1, percentage: 100, comment: "Wireframes aprovados e mockups entregues." },
+        { year: 2024, month: 10, percentage: 40, comment: "Pesquisa com usuários e definição de personas." },
+        { year: 2024, month: 12, percentage: 80, comment: "Wireframes e protótipo de baixa fidelidade aprovados." },
+        { year: 2025, month: 2, percentage: 100, comment: "Protótipo de alta fidelidade entregue para desenvolvimento." },
     ] 
   },
   { 
     id: 'act-5', 
     userId: 'user-appraisee-2', 
-    title: 'Conduzir sessões de pesquisa com usuários', 
-    description: 'Coletar feedback sobre o produto atual de usuários chave.', 
-    startDate: new Date(2024, 1, 5), 
+    title: 'Criação do Design System v2', 
+    description: 'Documentar e criar componentes reutilizáveis para a nova identidade visual.', 
+    startDate: new Date(2025, 3, 1), // Apr 1, 2025
     progressHistory: [
-      { year: 2024, month: 2, percentage: 90, comment: "Sessões realizadas, aguardando análise final dos dados." },
+      { year: 2025, month: 4, percentage: 25, comment: "Definição da paleta de cores e tipografia." },
+      { year: 2025, month: 5, percentage: 50, comment: "Criação dos componentes base (botões, inputs)." },
+      { year: 2025, month: 7, percentage: 75, comment: "Componentes complexos (modais, tabelas) em andamento." },
     ]
   },
+
+  // User 3: Fernando Martins
   { 
     id: 'act-6', 
     userId: 'user-appraisee-3', 
-    title: 'Criar suíte de testes automatizados para pagamentos', 
-    description: 'Usar Selenium para construir testes E2E para o fluxo de pagamento.', 
-    startDate: new Date(2024, 2, 1),
+    title: 'Implementar Testes de Carga na API', 
+    description: 'Utilizar k6 para simular alta carga e identificar gargalos na API de pedidos.', 
+    startDate: new Date(2024, 10, 20), // Nov 20, 2024
     progressHistory: [
-       { year: 2024, month: 3, percentage: 60, comment: "Estrutura do projeto de teste montada e primeiros cenários criados." },
+       { year: 2024, month: 11, percentage: 50, comment: "Ambiente e scripts de teste configurados." },
+       { year: 2025, month: 1, percentage: 100, comment: "Testes executados, relatório de gargalos entregue." },
     ] 
   },
   // Activity for the appraiser, so they can see their own reports
   {
     id: 'act-7',
     userId: 'user-appraiser-1',
-    title: 'Planejamento Estratégico Q3',
-    description: 'Definir metas e KPIs para o terceiro trimestre.',
-    startDate: new Date(2024, 4, 20), // May 2024
+    title: 'Revisão de Metas de Vendas 2025',
+    description: 'Analisar resultados de 2024 e definir metas para a equipe de vendas para 2025.',
+    startDate: new Date(2024, 11, 5), // Dec 5, 2024
     progressHistory: [
-      { year: 2024, month: 5, percentage: 50, comment: "Coleta de dados iniciada." }
+      { year: 2024, month: 12, percentage: 50, comment: "Análise dos dados históricos concluída." },
+      { year: 2025, month: 1, percentage: 90, comment: "Proposta de metas apresentada à diretoria." }
     ]
   }
 ];

@@ -25,18 +25,9 @@ interface DataContextProps {
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
 const initializePeriods = (): EvaluationPeriod[] => {
-    const today = new Date();
-    const currentYear = getYear(today);
-    const currentMonth = getMonth(today); // 0-11 (Jan is 0)
-  
-    let startYear, endYear;
-    if (currentMonth >= 10) { // Nov (10) or Dec (11)
-        startYear = currentYear;
-        endYear = currentYear + 1;
-    } else { // Jan to Oct
-        startYear = currentYear - 1;
-        endYear = currentYear;
-    }
+    // For the new mock data, we want the active period to be Nov 2024 - Oct 2025
+    const startYear = 2024;
+    const endYear = 2025;
 
     const periodName = `Avaliação ${startYear}/${endYear}`;
     const periodExists = initialPeriods.some(p => p.name === periodName);
@@ -45,16 +36,29 @@ const initializePeriods = (): EvaluationPeriod[] => {
         const newPeriod: EvaluationPeriod = {
             id: `period-${Date.now()}`,
             name: periodName,
-            startDate: new Date(startYear, 10, 1, 12, 0, 0), // Nov 1st
-            endDate: new Date(endYear, 9, 31, 12, 0, 0),   // Oct 31st
+            startDate: new Date(startYear, 10, 1, 12, 0, 0), // Nov 1st, 2024
+            endDate: new Date(endYear, 9, 31, 12, 0, 0),   // Oct 31st, 2025
             status: 'Ativo',
         };
         
+        // Add a previous period for historical data context
+        const previousPeriod: EvaluationPeriod = {
+             id: `period-prev-${Date.now()}`,
+             name: `Avaliação ${startYear - 1}/${endYear - 1}`,
+             startDate: new Date(startYear - 1, 10, 1, 12, 0, 0), // Nov 1st, 2023
+             endDate: new Date(endYear - 1, 9, 31, 12, 0, 0),   // Oct 31st, 2024
+             status: 'Inativo',
+        }
+
         const updatedPeriods = initialPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
-        return [newPeriod, ...updatedPeriods];
+        return [newPeriod, previousPeriod, ...updatedPeriods];
     }
     
-    return initialPeriods;
+    // Ensure the correct period is active if it already exists
+    return initialPeriods.map(p => ({
+        ...p,
+        status: p.name === periodName ? 'Ativo' : 'Inativo'
+    }));
 };
 
 
