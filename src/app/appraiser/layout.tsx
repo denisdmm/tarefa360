@@ -44,7 +44,7 @@ const AppraiserSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")} tooltip="Painel do Avaliador">
                         <Link href="/appraiser/dashboard">
                         <LayoutDashboard />
-                        <span>Painel do Avaliador</span>
+                        <span className="truncate">Painel do Avaliador</span>
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -52,7 +52,7 @@ const AppraiserSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/reports")} tooltip="Relatórios">
                         <Link href="/appraiser/reports">
                         <FileText />
-                        <span>Relatórios</span>
+                        <span className="truncate">Relatórios</span>
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -60,7 +60,7 @@ const AppraiserSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
                         <Link href="/appraisee/dashboard">
                         <Briefcase />
-                        <span>Minhas Atividades</span>
+                        <span className="truncate">Minhas Atividades</span>
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -68,7 +68,7 @@ const AppraiserSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/profile")} tooltip="Meu Perfil">
                         <Link href="/appraiser/profile">
                         <User />
-                        <span>Meu Perfil</span>
+                        <span className="truncate">Meu Perfil</span>
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -92,7 +92,7 @@ const AppraiserSidebarContent = () => {
                         <SidebarMenuButton asChild tooltip="Sair">
                             <Link href="/">
                             <LogOut />
-                            <span>Sair</span>
+                            <span className="truncate">Sair</span>
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>

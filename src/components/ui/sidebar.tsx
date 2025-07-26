@@ -464,21 +464,6 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
     
-    const childrenArray = React.Children.toArray(children);
-    const icon = childrenArray.find(
-      (c) => React.isValidElement(c) && (c.type as any).displayName?.includes("lucide")
-    );
-    const textSpan = childrenArray.find(
-      (c) => React.isValidElement(c) && c.type === "span"
-    );
-
-    const buttonContent = (
-      <div className="flex items-center gap-3">
-        {icon}
-        {state === 'expanded' && <span className="truncate">{ (textSpan as React.ReactElement)?.props.children }</span>}
-      </div>
-    );
-    
     const button = (
       <Comp
         ref={ref}
@@ -488,7 +473,7 @@ const SidebarMenuButton = React.forwardRef<
         className={cn(sidebarMenuButtonVariants({ variant, size }), state === 'collapsed' && "justify-center", className)}
         {...props}
       >
-         {buttonContent}
+         {children}
       </Comp>
     )
 

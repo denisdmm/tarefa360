@@ -44,7 +44,7 @@ const AdminSidebarContent = () => {
             <SidebarMenuButton asChild isActive={isActive("/admin/dashboard")} tooltip="Painel">
               <Link href="/admin/dashboard">
                 <LayoutDashboard />
-                <span>Painel</span>
+                <span className="truncate">Painel</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -52,7 +52,7 @@ const AdminSidebarContent = () => {
             <SidebarMenuButton asChild isActive={isActive("/admin/profile")} tooltip="Meu Perfil">
               <Link href="/admin/profile">
                 <User />
-                <span>Meu Perfil</span>
+                <span className="truncate">Meu Perfil</span>
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
@@ -76,7 +76,7 @@ const AdminSidebarContent = () => {
                 <SidebarMenuButton asChild tooltip="Sair">
                     <Link href="/">
                     <LogOut />
-                    <span>Sair</span>
+                    <span className="truncate">Sair</span>
                     </Link>
                 </SidebarMenuButton>
             </SidebarMenuItem>
