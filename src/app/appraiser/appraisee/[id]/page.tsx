@@ -333,8 +333,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                     <tbody>
                     {activitiesForMonth.map(activity => (
                         <tr key={`${activity.id}-${monthKey}-pdf`}>
-                        <td className="w-[15%] p-2 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
-                        <td className="p-2 border border-black text-center uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        <td className="w-[15%] p-2 pb-2 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
+                        <td className="p-2 pb-2 border border-black text-justify uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
                         </tr>
                     ))}
                     </tbody>
