@@ -19,6 +19,7 @@ import { useDataContext } from "@/context/DataContext";
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
+  const [password, setPassword] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
   const { users, setLoggedInUser } = useDataContext();
@@ -26,14 +27,14 @@ export default function LoginPage() {
   const handleLogin = () => {
     const user = users.find((u) => u.cpf === cpf);
 
-    if (user) {
+    if (user && user.password === password) {
       setLoggedInUser(user);
       router.push(`/${user.role}/dashboard`);
     } else {
       toast({
         variant: "destructive",
         title: "Falha no Login",
-        description: "CPF não encontrado. Verifique os dados e tente novamente.",
+        description: "CPF ou senha inválidos. Verifique os dados e tente novamente.",
       });
     }
   };
@@ -43,7 +44,13 @@ export default function LoginPage() {
     setCpf(onlyNumbers);
   };
 
-  const isLoginDisabled = cpf.length !== 11;
+  const isLoginDisabled = cpf.length !== 11 || password.length === 0;
+  
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Enter' && !isLoginDisabled) {
+      handleLogin();
+    }
+  }
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
@@ -54,7 +61,7 @@ export default function LoginPage() {
           </div>
           <CardTitle className="font-headline text-3xl">Tarefa360</CardTitle>
           <CardDescription>
-            Faça login com seu CPF para continuar
+            Faça login com seu CPF e senha para continuar
           </CardDescription>
         </CardHeader>
         <CardContent>
@@ -67,7 +74,18 @@ export default function LoginPage() {
                 value={cpf}
                 onChange={handleCpfChange}
                 maxLength={11}
-                onKeyDown={(e) => e.key === 'Enter' && !isLoginDisabled && handleLogin()}
+                onKeyDown={handleKeyDown}
+              />
+            </div>
+             <div className="space-y-2">
+              <Label htmlFor="password">Senha</Label>
+              <Input 
+                id="password" 
+                type="password"
+                placeholder="Digite sua senha" 
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                onKeyDown={handleKeyDown}
               />
             </div>
             

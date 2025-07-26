@@ -12,6 +12,7 @@ export interface User {
   sector: string;
   avatarUrl: string;
   cpf: string;
+  password?: string;
   status?: 'Ativo' | 'Inativo';
 }
 
