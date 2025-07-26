@@ -39,18 +39,23 @@ const FAKE_LOGGED_IN_APPRAISER_ID = 'user-appraiser-1';
 
 export default function AppraiserReports() {
   const router = useRouter();
-  const { users, evaluationPeriods } = useDataContext();
+  const { users, evaluationPeriods, associations } = useDataContext();
   const [appraiser, setAppraiser] = React.useState<User | null>(null);
   const [appraisees, setAppraisees] = React.useState<User[]>([]);
 
   React.useEffect(() => {
     const foundAppraiser = users.find(u => u.id === FAKE_LOGGED_IN_APPRAISER_ID);
+    setAppraiser(foundAppraiser || null);
+
     if (foundAppraiser) {
-        setAppraiser(foundAppraiser);
-        const foundAppraisees = users.filter(u => foundAppraiser.appraiseeIds?.includes(u.id));
+        const myAppraiseeIds = associations
+            .filter(assoc => assoc.appraiserId === foundAppraiser.id)
+            .map(assoc => assoc.appraiseeId);
+        
+        const foundAppraisees = users.filter(u => myAppraiseeIds.includes(u.id));
         setAppraisees(foundAppraisees);
     }
-  }, [users]);
+  }, [users, associations]);
   
   const handleViewOwnReport = (periodId: string) => {
     // Appraiser views their own report, so they are the appraisee in this context
@@ -196,5 +201,3 @@ export default function AppraiserReports() {
     </div>
   );
 }
-
-    

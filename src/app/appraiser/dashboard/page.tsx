@@ -21,11 +21,28 @@ import {
 } from "@/components/ui/table";
 import { useDataContext } from "@/context/DataContext";
 import { FileText } from "lucide-react";
+import * as React from "react";
+import type { User } from "@/lib/types";
+
 
 export default function AppraiserDashboard() {
-  const { users } = useDataContext();
+  const { users, associations } = useDataContext();
   const appraiserId = 'user-appraiser-1'; // Avaliador logado mockado
-  const appraisees = users.filter(user => user.role === 'appraisee' && user.appraiserId === appraiserId);
+  const [appraisees, setAppraisees] = React.useState<User[]>([]);
+
+  React.useEffect(() => {
+      // Find associations for the current appraiser
+      const myAppraiseeIds = associations
+          .filter(assoc => assoc.appraiserId === appraiserId)
+          .map(assoc => assoc.appraiseeId);
+
+      // Find the user objects for those appraisee IDs
+      const foundAppraisees = users.filter(user => myAppraiseeIds.includes(user.id));
+      
+      setAppraisees(foundAppraisees);
+
+  }, [users, associations, appraiserId]);
+
 
   return (
      <div className="flex flex-col h-full">
@@ -53,34 +70,40 @@ export default function AppraiserDashboard() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {appraisees.map((appraisee) => (
-                  <TableRow key={appraisee.id}>
-                    <TableCell>
-                      <div className="flex items-center gap-3">
-                        <Avatar>
-                          <AvatarImage src={appraisee.avatarUrl} alt={appraisee.name} />
-                          <AvatarFallback>
-                            {appraisee.name.charAt(0)}
-                          </AvatarFallback>
-                        </Avatar>
-                        <div className="flex flex-col">
-                            <span className="font-medium">{appraisee.name}</span>
-                            <span className="text-sm text-muted-foreground">{appraisee.email}</span>
+                {appraisees.length > 0 ? (
+                  appraisees.map((appraisee) => (
+                    <TableRow key={appraisee.id}>
+                      <TableCell>
+                        <div className="flex items-center gap-3">
+                          <Avatar>
+                            <AvatarImage src={appraisee.avatarUrl} alt={appraisee.name} />
+                            <AvatarFallback>
+                              {appraisee.name.charAt(0)}
+                            </AvatarFallback>
+                          </Avatar>
+                          <div className="flex flex-col">
+                              <span className="font-medium">{appraisee.name}</span>
+                              <span className="text-sm text-muted-foreground">{appraisee.email}</span>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>{appraisee.jobTitle}</TableCell>
-                    <TableCell>{appraisee.sector}</TableCell>
-                    <TableCell className="text-right">
-                      <Button asChild>
-                        <Link href={`/appraiser/appraisee/${appraisee.id}`}>
-                          <FileText className="mr-2 h-4 w-4" />
-                          Ver Atividades
-                        </Link>
-                      </Button>
-                    </TableCell>
+                      </TableCell>
+                      <TableCell>{appraisee.jobTitle}</TableCell>
+                      <TableCell>{appraisee.sector}</TableCell>
+                      <TableCell className="text-right">
+                        <Button asChild>
+                          <Link href={`/appraiser/appraisee/${appraisee.id}`}>
+                            <FileText className="mr-2 h-4 w-4" />
+                            Ver Atividades
+                          </Link>
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={4} className="h-24 text-center">Você não possui avaliados.</TableCell>
                   </TableRow>
-                ))}
+                )}
               </TableBody>
             </Table>
           </CardContent>
