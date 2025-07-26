@@ -49,7 +49,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
-  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(isGeneratingPdf);
   const [showPdfPreview, setShowPdfPreview] = React.useState(false);
   const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
   
@@ -345,8 +345,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                     <tbody>
                     {activitiesForMonth.map(activity => (
                         <tr key={`${activity.id}-${monthKey}-pdf`}>
-                        <td className="w-[15%] p-2 pb-2 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
-                        <td className="p-2 pb-2 border border-black text-justify uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        <td className="w-[15%] p-2 pb-5 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
+                        <td className="p-2 pb-5 border border-black text-justify uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
                         </tr>
                     ))}
                     </tbody>
@@ -362,7 +362,5 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     </>
   );
 }
-
-    
 
     
