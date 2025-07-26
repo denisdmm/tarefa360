@@ -29,6 +29,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
+  const [postoGrad, setPostoGrad] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -43,6 +44,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       setCurrentUser(user);
       setName(user.name);
       setNomeDeGuerra(user.nomeDeGuerra);
+      setPostoGrad(user.postoGrad);
       setEmail(user.email);
       setAvatarPreview(user.avatarUrl); // Initialize preview with current avatar
     }
@@ -83,7 +85,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     
     const updatedUsers = users.map(u => 
       u.id === currentUser.id 
-        ? { ...u, name, nomeDeGuerra, email, avatarUrl: avatarPreview || u.avatarUrl }
+        ? { ...u, name, nomeDeGuerra, postoGrad, email, avatarUrl: avatarPreview || u.avatarUrl }
         : u
     );
     setUsers(updatedUsers);
@@ -227,7 +229,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div className="space-y-2">
                             <Label htmlFor="postoGrad">Posto/Grad.</Label>
-                            <Input id="postoGrad" value={currentUser.postoGrad} disabled />
+                            <Input id="postoGrad" value={postoGrad} onChange={(e) => setPostoGrad(e.target.value)} />
                         </div>
                         <div className="space-y-2">
                             <Label htmlFor="nomeDeGuerra">Nome de Guerra</Label>
