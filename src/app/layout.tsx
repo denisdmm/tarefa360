@@ -5,7 +5,7 @@ import { Toaster } from "@/components/ui/toaster"
 import { DataProvider } from '@/context/DataContext';
 
 export const metadata: Metadata = {
-  title: 'Acompanhante Tarefa360',
+  title: 'Tarefa360',
   description: 'Aplicação de acompanhamento e avaliação de atividades.',
 };
 

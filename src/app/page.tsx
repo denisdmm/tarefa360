@@ -52,7 +52,7 @@ export default function LoginPage() {
           <div className="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-primary/10 text-primary">
             <Logo className="h-8 w-8" />
           </div>
-          <CardTitle className="font-headline text-3xl">Acompanhante Tarefa360</CardTitle>
+          <CardTitle className="font-headline text-3xl">Tarefa360</CardTitle>
           <CardDescription>
             Faça login com seu CPF para continuar
           </CardDescription>
