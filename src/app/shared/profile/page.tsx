@@ -39,6 +39,15 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     }
   }, [loggedInUserId, users]);
 
+  const translateRole = (role: User['role']) => {
+    const roles: Record<User['role'], string> = {
+      admin: 'Administrador',
+      appraiser: 'Avaliador',
+      appraisee: 'Avaliado',
+    };
+    return roles[role] || role;
+  }
+
   const handleUpdateProfile = () => {
     if (!currentUser) return;
     
@@ -116,7 +125,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 </div>
                  <div className="space-y-2">
                   <Label htmlFor="role">Perfil de Acesso</Label>
-                  <Input id="role" value={currentUser.role} disabled  />
+                  <Input id="role" value={translateRole(currentUser.role)} disabled  />
                 </div>
             </div>
             <div className="space-y-2">
