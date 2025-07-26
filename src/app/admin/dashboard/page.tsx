@@ -354,6 +354,12 @@ export default function AdminDashboard() {
     });
   };
 
+  const getUserDisplayById = (id: string) => {
+    const user = users.find(u => u.id === id);
+    if (!user) return 'Desconhecido';
+    return `${user.postoGrad} ${user.nomeDeGuerra}`;
+  };
+  
   const getUsernameById = (id: string) => users.find(u => u.id === id)?.name || 'Desconhecido';
   
   const translateRole = (role: Role) => {
@@ -426,7 +432,7 @@ export default function AdminDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nome de Guerra</TableHead>
+                        <TableHead>Posto/Grad. e Nome de Guerra</TableHead>
                         <TableHead className="hidden md:table-cell">CPF</TableHead>
                         <TableHead className="hidden md:table-cell">Setor</TableHead>
                         <TableHead className="hidden lg:table-cell">Função</TableHead>
@@ -437,7 +443,7 @@ export default function AdminDashboard() {
                     <TableBody>
                       {users.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>{user.nomeDeGuerra}</TableCell>
+                          <TableCell>{user.postoGrad} {user.nomeDeGuerra}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.cpf}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.sector}</TableCell>
                           <TableCell className="hidden lg:table-cell">{user.jobTitle}</TableCell>
@@ -536,7 +542,7 @@ export default function AdminDashboard() {
                               <Select value={selectedAppraisee} onValueChange={setSelectedAppraisee}>
                                   <SelectTrigger id="appraisee-select"><SelectValue placeholder="Selecione um avaliado" /></SelectTrigger>
                                   <SelectContent>
-                                      {users.filter(u => u.role === 'appraisee').map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                      {users.filter(u => u.role === 'appraisee').map(u => <SelectItem key={u.id} value={u.id}>{u.postoGrad} {u.nomeDeGuerra}</SelectItem>)}
                                   </SelectContent>
                               </Select>
                            </div>
@@ -545,7 +551,7 @@ export default function AdminDashboard() {
                               <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
                                   <SelectTrigger id="appraiser-select"><SelectValue placeholder="Selecione um avaliador" /></SelectTrigger>
                                   <SelectContent>
-                                      {users.filter(u => u.role === 'appraiser').map(u => <SelectItem key={u.id} value={u.id}>{u.name}</SelectItem>)}
+                                      {users.filter(u => u.role === 'appraiser').map(u => <SelectItem key={u.id} value={u.id}>{u.postoGrad} {u.nomeDeGuerra}</SelectItem>)}
                                   </SelectContent>
                               </Select>
                            </div>
@@ -565,8 +571,8 @@ export default function AdminDashboard() {
                     <TableBody>
                       {associations.map((assoc) => (
                         <TableRow key={assoc.id}>
-                          <TableCell>{getUsernameById(assoc.appraiseeId)}</TableCell>
-                          <TableCell>{getUsernameById(assoc.appraiserId)}</TableCell>
+                          <TableCell>{getUserDisplayById(assoc.appraiseeId)}</TableCell>
+                          <TableCell>{getUserDisplayById(assoc.appraiserId)}</TableCell>
                           <TableCell className="text-right">
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>

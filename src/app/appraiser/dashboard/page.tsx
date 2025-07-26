@@ -81,7 +81,7 @@ export default function AppraiserDashboard() {
                             </AvatarFallback>
                           </Avatar>
                           <div className="flex flex-col">
-                              <span className="font-medium">{appraisee.name}</span>
+                              <span className="font-medium">{appraisee.postoGrad} {appraisee.nomeDeGuerra}</span>
                               <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">{appraisee.email}</span>
                           </div>
                         </div>
