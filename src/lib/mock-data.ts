@@ -3,11 +3,11 @@ import type { User, Activity, EvaluationPeriod, Association } from './types';
 
 export const users: User[] = [
   { id: 'user-admin-1', name: 'Usuário Admin', socialName: 'Admin', email: 'admin@tarefa360.com', role: 'admin', jobTitle: 'Administrador do Sistema', sector: 'TI', avatarUrl: 'https://placehold.co/100x100', cpf: '00000000000' },
-  { id: 'user-appraiser-1', name: 'Ana Pereira', socialName: 'Ana', email: 'ana.p@tarefa360.com', role: 'appraiser', jobTitle: 'Gerente Sênior', sector: 'Vendas', avatarUrl: 'https://placehold.co/100x100', appraiseeIds: ['user-appraisee-1', 'user-appraisee-2'], cpf: '11111111111' },
-  { id: 'user-appraiser-2', name: 'Roberto Lima', socialName: 'Roberto', email: 'roberto.l@tarefa360.com', role: 'appraiser', jobTitle: 'Líder de Projeto', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', appraiseeIds: ['user-appraisee-3'], cpf: '22222222222' },
-  { id: 'user-appraisee-1', name: 'Carlos Silva', socialName: 'Carlos', email: 'carlos.s@tarefa360.com', role: 'appraisee', jobTitle: 'Engenheiro de Software', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', appraiserId: 'user-appraiser-1', cpf: '33333333333' },
-  { id: 'user-appraisee-2', name: 'Juliana Costa', socialName: 'Ju', email: 'juliana.c@tarefa360.com', role: 'appraisee', jobTitle: 'Designer UX/UI', sector: 'Produto', avatarUrl: 'https://placehold.co/100x100', appraiserId: 'user-appraiser-1', cpf: '44444444444' },
-  { id: 'user-appraisee-3', name: 'Fernando Martins', socialName: 'Fernando', email: 'fernando.m@tarefa360.com', role: 'appraisee', jobTitle: 'Analista de QA', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', appraiserId: 'user-appraiser-2', cpf: '55555555555' },
+  { id: 'user-appraiser-1', name: 'Ana Pereira', socialName: 'Ana', email: 'ana.p@tarefa360.com', role: 'appraiser', jobTitle: 'Gerente Sênior', sector: 'Vendas', avatarUrl: 'https://placehold.co/100x100', cpf: '11111111111' },
+  { id: 'user-appraiser-2', name: 'Roberto Lima', socialName: 'Roberto', email: 'roberto.l@tarefa360.com', role: 'appraiser', jobTitle: 'Líder de Projeto', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', cpf: '22222222222' },
+  { id: 'user-appraisee-1', name: 'Carlos Silva', socialName: 'Carlos', email: 'carlos.s@tarefa360.com', role: 'appraisee', jobTitle: 'Engenheiro de Software', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', cpf: '33333333333' },
+  { id: 'user-appraisee-2', name: 'Juliana Costa', socialName: 'Ju', email: 'juliana.c@tarefa360.com', role: 'appraisee', jobTitle: 'Designer UX/UI', sector: 'Produto', avatarUrl: 'https://placehold.co/100x100', cpf: '44444444444' },
+  { id: 'user-appraisee-3', name: 'Fernando Martins', socialName: 'Fernando', email: 'fernando.m@tarefa360.com', role: 'appraisee', jobTitle: 'Analista de QA', sector: 'Engenharia', avatarUrl: 'https://placehold.co/100x100', cpf: '55555555555' },
 ];
 
 export const activities: Activity[] = [
@@ -83,4 +83,5 @@ export const associations: Association[] = [
     { id: 'assoc-1', appraiseeId: 'user-appraisee-1', appraiserId: 'user-appraiser-1'},
     { id: 'assoc-2', appraiseeId: 'user-appraisee-2', appraiserId: 'user-appraiser-1'},
     { id: 'assoc-3', appraiseeId: 'user-appraisee-3', appraiserId: 'user-appraiser-2'},
+    { id: 'assoc-4', appraiseeId: 'user-appraiser-1', appraiserId: 'user-admin-1'}, // Ana Pereira is also evaluated
 ]

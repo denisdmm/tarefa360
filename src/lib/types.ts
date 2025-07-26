@@ -11,8 +11,6 @@ export interface User {
   sector: string;
   avatarUrl: string;
   cpf: string;
-  appraiserId?: string;
-  appraiseeIds?: string[];
 }
 
 export interface ProgressEntry {
