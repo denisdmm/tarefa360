@@ -82,7 +82,7 @@ const ActivityForm = ({
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
 
   const [isAddingProgress, setIsAddingProgress] = React.useState(false);
-  const [newProgress, setNewProgress] = React.useState<{year: number, month: number, percentage: number, comment: string} | null>(null);
+  const [newProgress, setNewProgress] = React.useState<{date: string, percentage: number, comment: string} | null>(null);
 
   const { toast } = useToast();
   
@@ -154,11 +154,9 @@ const ActivityForm = ({
   }, [activity]);
 
   const handleStartAddNewProgress = () => {
-    const today = new Date();
     const lastProgress = progressHistory.sort((a, b) => b.year - a.year || b.month - a.month)[0];
     setNewProgress({
-        year: getYear(today),
-        month: getMonth(today) + 1,
+        date: format(new Date(), 'yyyy-MM-dd'),
         percentage: lastProgress?.percentage || 0,
         comment: ""
     });
@@ -168,13 +166,22 @@ const ActivityForm = ({
   const handleSaveNewProgress = () => {
     if (!newProgress) return;
     
-    const existingEntryIndex = progressHistory.findIndex(p => p.year === newProgress.year && p.month === newProgress.month);
+    const parts = newProgress.date.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+
+    const existingEntryIndex = progressHistory.findIndex(p => p.year === year && p.month === month);
     if(existingEntryIndex > -1) {
         toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um registro de progresso para este mês."});
         return;
     }
 
-    setProgressHistory(prev => [...prev, newProgress]);
+    setProgressHistory(prev => [...prev, {
+        year,
+        month,
+        percentage: newProgress.percentage,
+        comment: newProgress.comment
+    }]);
     setIsAddingProgress(false);
     setNewProgress(null);
   };
@@ -297,24 +304,12 @@ const ActivityForm = ({
                         </Button>
                     </div>
                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-month" className="text-right">Mês</Label>
+                        <Label htmlFor="new-progress-date" className="text-right">Data do Registro</Label>
                         <Input 
-                            id="new-progress-month" 
-                            type="number" 
-                            min="1" 
-                            max="12" 
-                            value={newProgress.month} 
-                            onChange={e => setNewProgress({...newProgress, month: parseInt(e.target.value)})}
-                            className="col-span-3" 
-                        />
-                    </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-year" className="text-right">Ano</Label>
-                        <Input 
-                            id="new-progress-year" 
-                            type="number" 
-                            value={newProgress.year}
-                            onChange={e => setNewProgress({...newProgress, year: parseInt(e.target.value)})} 
+                            id="new-progress-date" 
+                            type="date"
+                            value={newProgress.date} 
+                            onChange={e => setNewProgress({...newProgress, date: e.target.value})}
                             className="col-span-3" 
                         />
                     </div>
