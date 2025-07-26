@@ -89,10 +89,10 @@ export default function AppraiserDashboard() {
                       <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
                       <TableCell className="hidden md:table-cell">{appraisee.sector}</TableCell>
                       <TableCell className="text-right">
-                        <Button asChild size="sm">
+                        <Button asChild size="sm" className="w-10 sm:w-auto p-0 sm:px-3 sm:py-2">
                           <Link href={`/appraiser/appraisee/${appraisee.id}`}>
-                            <FileText className="mr-2 h-4 w-4" />
-                            Ver Atividades
+                            <FileText className="h-4 w-4 sm:mr-2" />
+                            <span className="hidden sm:inline">Ver Atividades</span>
                           </Link>
                         </Button>
                       </TableCell>
