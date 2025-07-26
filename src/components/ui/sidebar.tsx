@@ -457,13 +457,21 @@ const SidebarMenuButton = React.forwardRef<
       tooltip,
       className,
       children,
+      onClick,
       ...props
     },
     ref
   ) => {
     const Comp = asChild ? Slot : "button"
-    const { isMobile, state } = useSidebar()
+    const { isMobile, state, setOpenMobile } = useSidebar()
     
+    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+      if (isMobile) {
+        setOpenMobile(false)
+      }
+      onClick?.(event)
+    }
+
     const button = (
       <Comp
         ref={ref}
@@ -471,6 +479,7 @@ const SidebarMenuButton = React.forwardRef<
         data-size={size}
         data-active={isActive}
         className={cn(sidebarMenuButtonVariants({ variant, size }), state === 'collapsed' && "justify-center", className)}
+        onClick={handleClick}
         {...props}
       >
          {children}
@@ -494,9 +503,8 @@ const SidebarMenuButton = React.forwardRef<
           side="right"
           align="center"
           hidden={state !== "collapsed" || isMobile}
-          {...tooltip}
         >
-         {typeof tooltip === 'object' ? tooltip.children : tooltip}
+         {tooltip.children ?? tooltip}
         </TooltipContent>
       </Tooltip>
     )
