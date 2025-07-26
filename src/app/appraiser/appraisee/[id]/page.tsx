@@ -40,7 +40,8 @@ type MonthlyActivity = Activity & {
     progressForMonth: ProgressEntry;
 };
 
-export default function AppraiseeDetailView({ params }: { params: { id: string } }) {
+export default function AppraiseeDetailView({ params: paramsProp }: { params: { id: string } }) {
+  const params = React.use(paramsProp);
   const { users, activities, evaluationPeriods } = useDataContext();
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
