@@ -92,8 +92,8 @@ export default function AppraiserReports() {
                   <TableHeader>
                     <TableRow>
                       <TableHead>Funcionário</TableHead>
-                      <TableHead>Função</TableHead>
-                      <TableHead>Setor</TableHead>
+                      <TableHead className="hidden md:table-cell">Função</TableHead>
+                      <TableHead className="hidden md:table-cell">Setor</TableHead>
                       <TableHead className="text-right">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
@@ -119,8 +119,8 @@ export default function AppraiserReports() {
                             </div>
                           </div>
                         </TableCell>
-                        <TableCell>{appraisee.jobTitle}</TableCell>
-                        <TableCell>{appraisee.sector}</TableCell>
+                        <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
+                        <TableCell className="hidden md:table-cell">{appraisee.sector}</TableCell>
                         <TableCell className="text-right">
                           <Button asChild>
                             <Link href={`/appraiser/appraisee/${appraisee.id}`}>
