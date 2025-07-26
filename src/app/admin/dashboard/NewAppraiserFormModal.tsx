@@ -51,11 +51,11 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
 
   const handleSave = () => {
     // --- Validation ---
-    if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
+    if (!name || !nomeDeGuerra) {
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
-            description: "Por favor, preencha todos os campos para criar o avaliador.",
+            description: "Por favor, preencha pelo menos o Nome Completo e o Nome de Guerra.",
         });
         return;
     }
@@ -106,7 +106,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
             <DialogTitle>Cadastrar Novo Avaliador</DialogTitle>
-            <DialogDescription>Preencha os dados do novo avaliador. Ele será salvo com o perfil 'Avaliador'.</DialogDescription>
+            <DialogDescription>Preencha os dados do novo avaliador. Se o CPF não for informado, a conta será criada como 'Inativa'.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">

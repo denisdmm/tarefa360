@@ -104,7 +104,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
-            description: "Por favor, preencha todos os campos, exceto o CPF que é opcional para contas inativas.",
+            description: "Por favor, preencha todos os campos para criar ou editar o usuário.",
         });
         return;
     }
