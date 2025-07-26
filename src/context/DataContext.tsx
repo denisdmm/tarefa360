@@ -4,10 +4,10 @@
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { 
-    users as mockUsers, 
-    activities as mockActivities, 
-    evaluationPeriods as mockPeriods, 
-    associations as mockAssociations 
+    users as initialUsers, 
+    activities as initialActivities, 
+    evaluationPeriods as initialPeriods, 
+    associations as initialAssociations 
 } from '@/lib/mock-data';
 import { getMonth, getYear } from 'date-fns';
 import { useToast } from '@/hooks/use-toast';
@@ -26,10 +26,10 @@ interface DataContextProps {
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
-    const [users, setUsers] = React.useState<User[]>(mockUsers);
-    const [activities, setActivities] = React.useState<Activity[]>(mockActivities);
-    const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(mockPeriods);
-    const [associations, setAssociations] = React.useState<Association[]>(mockAssociations);
+    const [users, setUsers] = React.useState<User[]>(() => initialUsers);
+    const [activities, setActivities] = React.useState<Activity[]>(() => initialActivities);
+    const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(() => initialPeriods);
+    const [associations, setAssociations] = React.useState<Association[]>(() => initialAssociations);
     const { toast } = useToast();
 
     React.useEffect(() => {
@@ -48,26 +48,32 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     
         const periodName = `Avaliação ${startYear}/${endYear}`;
-        const periodExists = evaluationPeriods.some(p => p.name === periodName);
-      
-        if (!periodExists) {
-          const newPeriod: EvaluationPeriod = {
-            id: `period-${Date.now()}`,
-            name: periodName,
-            startDate: new Date(startYear, 10, 1, 12, 0, 0), // Nov 1st
-            endDate: new Date(endYear, 9, 31, 12, 0, 0), // Oct 31st
-            status: 'Ativo',
-          };
-          
-          const updatedPeriods = evaluationPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
-          
-          setEvaluationPeriods(prevPeriods => [newPeriod, ...updatedPeriods]);
-      
-          toast({
-            title: "Período de Avaliação Criado",
-            description: `O período "${periodName}" foi criado e definido como ativo.`,
-          });
-        }
+        
+        setEvaluationPeriods(prevPeriods => {
+            const periodExists = prevPeriods.some(p => p.name === periodName);
+            
+            if (!periodExists) {
+                const newPeriod: EvaluationPeriod = {
+                    id: `period-${Date.now()}`,
+                    name: periodName,
+                    startDate: new Date(startYear, 10, 1, 12, 0, 0), // Nov 1st
+                    endDate: new Date(endYear, 9, 31, 12, 0, 0), // Oct 31st
+                    status: 'Ativo',
+                };
+                
+                const updatedPeriods = prevPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
+                
+                toast({
+                    title: "Período de Avaliação Criado",
+                    description: `O período "${periodName}" foi criado e definido como ativo.`,
+                });
+                
+                return [newPeriod, ...updatedPeriods];
+            }
+            
+            return prevPeriods;
+        });
+
       // eslint-disable-next-line react-hooks/exhaustive-deps
       }, []); // This effect runs once when the app loads
     
@@ -94,5 +100,3 @@ export const useDataContext = () => {
     }
     return context;
 };
-
-    

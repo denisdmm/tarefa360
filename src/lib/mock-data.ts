@@ -16,9 +16,10 @@ export const activities: Activity[] = [
     userId: 'user-appraisee-1', 
     title: 'Desenvolver novo módulo de autenticação', 
     description: 'Implementar autenticação baseada em JWT para a API principal.', 
-    startDate: new Date(2024, 0, 1), 
+    startDate: new Date(2023, 10, 15), // Nov 2023
     progressHistory: [
-        { year: 2024, month: 1, percentage: 100, comment: "Finalizado e entregue." },
+        { year: 2023, month: 11, percentage: 50, comment: "Iniciado." },
+        { year: 2023, month: 12, percentage: 100, comment: "Finalizado e entregue." },
     ] 
   },
   { 
@@ -47,8 +48,9 @@ export const activities: Activity[] = [
     userId: 'user-appraisee-2', 
     title: 'Projetar nova interface do painel', 
     description: 'Criar wireframes e mockups para o painel v2.', 
-    startDate: new Date(2024, 0, 10), 
+    startDate: new Date(2023, 11, 10), // Dec 2023
     progressHistory: [
+        { year: 2023, month: 12, percentage: 50, comment: "Pesquisa inicial." },
         { year: 2024, month: 1, percentage: 100, comment: "Wireframes aprovados e mockups entregues." },
     ] 
   },
@@ -72,16 +74,27 @@ export const activities: Activity[] = [
        { year: 2024, month: 3, percentage: 60, comment: "Estrutura do projeto de teste montada e primeiros cenários criados." },
     ] 
   },
+  // Activity for the appraiser, so they can see their own reports
+  {
+    id: 'act-7',
+    userId: 'user-appraiser-1',
+    title: 'Planejamento Estratégico Q3',
+    description: 'Definir metas e KPIs para o terceiro trimestre.',
+    startDate: new Date(2024, 4, 20), // May 2024
+    progressHistory: [
+      { year: 2024, month: 5, percentage: 50, comment: "Coleta de dados iniciada." }
+    ]
+  }
 ];
 
 export const evaluationPeriods: EvaluationPeriod[] = [
-    { id: 'period-1', name: 'Avaliação 2024', startDate: new Date('2024-01-01'), endDate: new Date('2024-11-30'), status: 'Ativo' },
-    { id: 'period-2', name: 'Avaliação 2023', startDate: new Date('2023-01-01'), endDate: new Date('2023-11-30'), status: 'Inativo' },
+    // This will be populated dynamically by the DataContext
 ];
 
 export const associations: Association[] = [
-    { id: 'assoc-1', appraiseeId: 'user-appraisee-1', appraiserId: 'user-appraiser-1'},
-    { id: 'assoc-2', appraiseeId: 'user-appraisee-2', appraiserId: 'user-appraiser-1'},
-    { id: 'assoc-3', appraiseeId: 'user-appraisee-3', appraiserId: 'user-appraiser-2'},
-    { id: 'assoc-4', appraiseeId: 'user-appraiser-1', appraiserId: 'user-admin-1'}, // Ana Pereira is also evaluated
-]
+    { id: 'assoc-1', appraiseeId: 'user-appraisee-1', appraiserId: 'user-appraiser-2'}, // Carlos is evaluated by Roberto
+    { id: 'assoc-2', appraiseeId: 'user-appraisee-2', appraiserId: 'user-appraiser-1'}, // Juliana is evaluated by Ana
+    { id: 'assoc-3', appraiseeId: 'user-appraisee-3', appraiserId: 'user-appraiser-2'}, // Fernando is evaluated by Roberto
+    { id: 'assoc-4', appraiseeId: 'user-appraiser-1', appraiserId: 'user-admin-1'},    // Ana is evaluated by Admin
+    { id: 'assoc-5', appraiseeId: 'user-appraiser-2', appraiserId: 'user-admin-1'},    // Roberto is evaluated by Admin
+];
