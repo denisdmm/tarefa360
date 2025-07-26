@@ -12,29 +12,20 @@ import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { useRouter } from "next/navigation";
 
-// This is a shared component, so we need to know who is viewing it.
-// In a real app, this would come from an auth context.
-// For now, we'll hardcode it, assuming the appraisee is logged in.
-const FAKE_LOGGED_IN_USER_ID = 'user-appraisee-1';
 
 export default function ReportsPage() {
     const router = useRouter();
-    const { users, evaluationPeriods } = useDataContext();
-    const currentUser = users.find(u => u.id === FAKE_LOGGED_IN_USER_ID);
+    const { evaluationPeriods, loggedInUser } = useDataContext();
 
     const handleView = (periodId: string) => {
-        if (!currentUser) return;
+        if (!loggedInUser) return;
         
         let reportUrl = '';
 
-        if (currentUser.role === 'appraisee') {
-            // Appraisee views their own report
-            reportUrl = `/appraiser/appraisee/${currentUser.id}`;
+        if (loggedInUser.role === 'appraisee' || loggedInUser.role === 'appraiser') {
+            reportUrl = `/appraiser/appraisee/${loggedInUser.id}`;
         }
-        // Note: Appraiser logic is now handled in its own dedicated page.
         
-        // In a real app, we might pass the periodId to the report page
-        // so it can filter the activities for that specific period.
         if(reportUrl) {
             router.push(reportUrl);
         }
@@ -88,5 +79,3 @@ export default function ReportsPage() {
         </div>
     );
 }
-
-    

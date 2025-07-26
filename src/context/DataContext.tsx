@@ -20,6 +20,8 @@ interface DataContextProps {
     setEvaluationPeriods: React.Dispatch<React.SetStateAction<EvaluationPeriod[]>>;
     associations: Association[];
     setAssociations: React.Dispatch<React.SetStateAction<Association[]>>;
+    loggedInUser: User | null;
+    setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
@@ -67,6 +69,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [activities, setActivities] = React.useState<Activity[]>(() => initialActivities);
     const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(initializePeriods);
     const [associations, setAssociations] = React.useState<Association[]>(() => initialAssociations);
+    const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
     
     return (
         <DataContext.Provider value={{
@@ -78,6 +81,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             setEvaluationPeriods,
             associations,
             setAssociations,
+            loggedInUser,
+            setLoggedInUser,
         }}>
             {children}
         </DataContext.Provider>

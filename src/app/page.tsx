@@ -21,12 +21,13 @@ export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const { users } = useDataContext();
+  const { users, setLoggedInUser } = useDataContext();
 
   const handleLogin = () => {
     const user = users.find((u) => u.cpf === cpf);
 
     if (user) {
+      setLoggedInUser(user);
       router.push(`/${user.role}/dashboard`);
     } else {
       toast({

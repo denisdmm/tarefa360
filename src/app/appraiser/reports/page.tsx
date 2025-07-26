@@ -34,33 +34,26 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import type { User } from "@/lib/types";
 
-// In a real app, this would come from an auth context.
-const FAKE_LOGGED_IN_APPRAISER_ID = 'user-appraiser-1';
 
 export default function AppraiserReports() {
   const router = useRouter();
-  const { users, evaluationPeriods, associations } = useDataContext();
-  const [appraiser, setAppraiser] = React.useState<User | null>(null);
+  const { users, evaluationPeriods, associations, loggedInUser } = useDataContext();
   const [appraisees, setAppraisees] = React.useState<User[]>([]);
 
   React.useEffect(() => {
-    const foundAppraiser = users.find(u => u.id === FAKE_LOGGED_IN_APPRAISER_ID);
-    setAppraiser(foundAppraiser || null);
-
-    if (foundAppraiser) {
+    if (loggedInUser) {
         const myAppraiseeIds = associations
-            .filter(assoc => assoc.appraiserId === foundAppraiser.id)
+            .filter(assoc => assoc.appraiserId === loggedInUser.id)
             .map(assoc => assoc.appraiseeId);
         
         const foundAppraisees = users.filter(u => myAppraiseeIds.includes(u.id));
         setAppraisees(foundAppraisees);
     }
-  }, [users, associations]);
+  }, [users, associations, loggedInUser]);
   
   const handleViewOwnReport = () => {
-    // Appraiser views their own report, so they are the appraisee in this context
-    if(appraiser) {
-        router.push(`/appraiser/appraisee/${appraiser.id}`);
+    if(loggedInUser) {
+        router.push(`/appraiser/appraisee/${loggedInUser.id}`);
     }
   };
 

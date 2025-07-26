@@ -129,9 +129,9 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, setActivities, evaluationPeriods } = useDataContext();
-  const currentUserId = 'user-appraisee-1'; // Hardcoded for now
-  const userActivities = activities.filter(a => a.userId === currentUserId);
+  const { activities, setActivities, evaluationPeriods, loggedInUser } = useDataContext();
+  
+  const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
@@ -177,6 +177,10 @@ export default function AppraiseeDashboard() {
     setActivities(prevActivities => prevActivities.filter(a => a.id !== activityId));
     toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
+
+  if (!loggedInUser) {
+    return <div>Carregando...</div>
+  }
 
   const inProgressActivities = userActivities.filter(a => getLatestProgress(a) < 100);
   const completedActivities = userActivities.filter(a => getLatestProgress(a) === 100);
@@ -295,7 +299,7 @@ export default function AppraiseeDashboard() {
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
-              currentUserId={currentUserId}
+              currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
               activePeriod={activePeriod}
             />

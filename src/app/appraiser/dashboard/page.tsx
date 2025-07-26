@@ -26,14 +26,14 @@ import type { User } from "@/lib/types";
 
 
 export default function AppraiserDashboard() {
-  const { users, associations } = useDataContext();
-  const appraiserId = 'user-appraiser-1'; // Avaliador logado mockado
+  const { users, associations, loggedInUser } = useDataContext();
   const [appraisees, setAppraisees] = React.useState<User[]>([]);
 
   React.useEffect(() => {
+      if (!loggedInUser) return;
       // Find associations for the current appraiser
       const myAppraiseeIds = associations
-          .filter(assoc => assoc.appraiserId === appraiserId)
+          .filter(assoc => assoc.appraiserId === loggedInUser.id)
           .map(assoc => assoc.appraiseeId);
 
       // Find the user objects for those appraisee IDs
@@ -41,8 +41,11 @@ export default function AppraiserDashboard() {
       
       setAppraisees(foundAppraisees);
 
-  }, [users, associations, appraiserId]);
+  }, [users, associations, loggedInUser]);
 
+  if (!loggedInUser) {
+    return <div>Carregando...</div>
+  }
 
   return (
      <div className="flex flex-col h-full">

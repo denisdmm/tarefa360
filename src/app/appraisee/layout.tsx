@@ -27,8 +27,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 const AppraiseeSidebarContent = () => {
     const pathname = usePathname();
     const isActive = (path: string) => pathname === path;
-    const { users } = useDataContext();
-    const appraisee = users.find(u => u.role === 'appraisee');
+    const { loggedInUser } = useDataContext();
     const { state: sidebarState } = useSidebar();
 
     return (
@@ -70,13 +69,13 @@ const AppraiseeSidebarContent = () => {
             <SidebarFooter>
                 <div className="flex items-center gap-3 p-2 border-t">
                 <Avatar className="h-10 w-10">
-                    <AvatarImage src={appraisee?.avatarUrl} alt={appraisee?.name} />
-                    <AvatarFallback>{appraisee?.name.charAt(0)}</AvatarFallback>
+                    <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
+                    <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {sidebarState === 'expanded' && (
                     <div className="flex flex-col overflow-hidden">
-                    <span className="text-sm font-semibold truncate">{appraisee?.name}</span>
-                    <span className="text-xs text-muted-foreground truncate">{appraisee?.email}</span>
+                    <span className="text-sm font-semibold truncate">{loggedInUser?.name}</span>
+                    <span className="text-xs text-muted-foreground truncate">{loggedInUser?.email}</span>
                     </div>
                 )}
                 </div>

@@ -26,8 +26,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 const AdminSidebarContent = () => {
   const pathname = usePathname();
   const isActive = (path: string) => pathname === path;
-  const { users } = useDataContext();
-  const adminUser = users.find(u => u.role === 'admin');
+  const { loggedInUser } = useDataContext();
   const { state: sidebarState } = useSidebar();
 
   return (
@@ -61,13 +60,13 @@ const AdminSidebarContent = () => {
       <SidebarFooter>
         <div className="flex items-center gap-3 p-2 border-t">
            <Avatar className="h-10 w-10">
-            <AvatarImage src={adminUser?.avatarUrl} alt={adminUser?.name} />
-            <AvatarFallback>{adminUser?.name.charAt(0)}</AvatarFallback>
+            <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
+            <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
           </Avatar>
           {sidebarState === 'expanded' && (
             <div className="flex flex-col overflow-hidden">
-                <span className="text-sm font-semibold truncate">{adminUser?.name}</span>
-                <span className="text-xs text-muted-foreground truncate">{adminUser?.email}</span>
+                <span className="text-sm font-semibold truncate">{loggedInUser?.name}</span>
+                <span className="text-xs text-muted-foreground truncate">{loggedInUser?.email}</span>
             </div>
           )}
         </div>
