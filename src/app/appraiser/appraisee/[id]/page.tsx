@@ -46,6 +46,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+  const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === params.id) || null;
@@ -57,7 +58,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
-        // Ensure there is a 0% progress entry for the start date if no other entry exists for that month
         const startYear = getYear(activity.startDate);
         const startMonth = getMonth(activity.startDate) + 1;
         
@@ -80,11 +80,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
             if (!monthlyData[monthYearKey]) {
                 monthlyData[monthYearKey] = [];
             }
-             // Avoid duplicating activity if multiple progress points are in the same month (take latest)
             const existingActivityIndex = monthlyData[monthYearKey].findIndex(a => a.id === activity.id);
             if (existingActivityIndex > -1) {
-                // Replace if current progress is more recent (e.g. user edits)
-                // This scenario is less likely with one entry per month, but good practice
                 monthlyData[monthYearKey][existingActivityIndex].progressForMonth = progress;
             } else {
                  monthlyData[monthYearKey].push({
@@ -96,8 +93,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     });
     return monthlyData;
   }, [activities, params.id]);
-
-  const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
 
   React.useEffect(() => {
       setMonthlyActivities(getActivitiesByMonth());
@@ -111,13 +106,43 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     return allKeys.filter(key => key === monthFilter);
   }, [monthlyActivities, monthFilter]);
   
+  const allMonthsOptions = React.useMemo(() => {
+      return Object.keys(monthlyActivities).map(key => {
+        const [year, month] = key.split('-').map(Number);
+        return {
+            value: key,
+            label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
+        };
+      }).sort((a,b) => b.value.localeCompare(a.value)); // Descending for the dropdown
+  }, [monthlyActivities]);
+
+
+  const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
+
+  const pdfMonths = React.useMemo(() => {
+    if (!activePeriod) return [];
+    
+    const monthsInPeriod = eachMonthOfInterval({
+        start: startOfMonth(activePeriod.startDate),
+        end: startOfMonth(activePeriod.endDate)
+    });
+    
+    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM'));
+
+    if (monthFilter === 'all') {
+      return monthKeys; 
+    }
+    
+    return monthKeys.filter(key => key === monthFilter);
+  }, [activePeriod, monthFilter]);
+
+
   const handleDownloadPdf = async () => {
     const reportElement = document.getElementById('print-content');
     if (!reportElement) return;
 
     setIsGeneratingPdf(true);
 
-    // Temporarily display the element to be captured
     reportElement.style.display = 'block';
 
     const canvas = await html2canvas(reportElement, {
@@ -125,7 +150,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
       useCORS: true,
     });
 
-    // Hide the element again after capture
     reportElement.style.display = 'none';
 
     const imgData = canvas.toDataURL('image/png');
@@ -147,36 +171,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     return <div className="p-6">Avaliado não encontrado.</div>;
   }
   
-  const allMonthsOptions = Object.keys(monthlyActivities).map(key => {
-    const [year, month] = key.split('-').map(Number);
-    return {
-        value: key,
-        label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
-    };
-  }).sort((a,b) => b.value.localeCompare(a.value)); // Descending for the dropdown
-
-
-  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
-
-  // For the PDF, we want ascending chronological order for all months in the period
-  const pdfMonths = React.useMemo(() => {
-    if (!activePeriod) return [];
-    
-    const monthsInPeriod = eachMonthOfInterval({
-        start: startOfMonth(activePeriod.startDate),
-        end: startOfMonth(activePeriod.endDate)
-    });
-    
-    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM'));
-
-    if (monthFilter === 'all') {
-      return monthKeys; // Already sorted chronologically by eachMonthOfInterval
-    }
-    
-    // If a filter is applied, only show that month if it's within the period
-    return monthKeys.filter(key => key === monthFilter);
-  }, [activePeriod, monthFilter]);
-
   return (
     <>
       <div className="print:hidden flex flex-col h-full">
