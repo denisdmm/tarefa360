@@ -43,7 +43,8 @@ interface UserFormModalProps {
 export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
-  const [socialName, setSocialName] = React.useState('');
+  const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
+  const [postoGrad, setPostoGrad] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [sector, setSector] = React.useState('');
   const [jobTitle, setJobTitle] = React.useState('');
@@ -61,7 +62,8 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
   React.useEffect(() => {
     if (mode === 'edit' && user) {
         setName(user.name || '');
-        setSocialName(user.socialName || '');
+        setNomeDeGuerra(user.nomeDeGuerra || '');
+        setPostoGrad(user.postoGrad || '');
         setEmail(user.email || '');
         setCpf(user.cpf || '');
         setSector(user.sector || '');
@@ -70,7 +72,8 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     } else {
         // Reset for create mode
         setName('');
-        setSocialName('');
+        setNomeDeGuerra('');
+        setPostoGrad('');
         setEmail('');
         setCpf('');
         setSector('');
@@ -94,7 +97,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
 
   const handleSave = () => {
     // --- Validation ---
-    if (!name || !socialName || !cpf || !email || !sector || !jobTitle) {
+    if (!name || !nomeDeGuerra || !postoGrad || !cpf || !email || !sector || !jobTitle) {
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
@@ -137,7 +140,8 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
       data: {
         cpf,
         name,
-        socialName,
+        nomeDeGuerra,
+        postoGrad,
         email,
         sector,
         jobTitle,
@@ -167,10 +171,16 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
           <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-          <Label htmlFor="socialName" className="md:text-right">
-            Nome Social
+          <Label htmlFor="nomeDeGuerra" className="md:text-right">
+            Nome de Guerra
           </Label>
-          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-1 md:col-span-3" />
+          <Input id="nomeDeGuerra" value={nomeDeGuerra} onChange={e => setNomeDeGuerra(e.target.value)} className="col-span-1 md:col-span-3" />
+        </div>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="postoGrad" className="md:text-right">
+            Posto/Grad.
+          </Label>
+          <Input id="postoGrad" value={postoGrad} onChange={e => setPostoGrad(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
           <Label htmlFor="cpf" className="md:text-right">

@@ -4,7 +4,8 @@ export type Role = "admin" | "appraisee" | "appraiser";
 export interface User {
   id: string;
   name: string;
-  socialName: string;
+  nomeDeGuerra: string;
+  postoGrad: string;
   email: string;
   role: Role;
   jobTitle: string;

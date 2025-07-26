@@ -23,7 +23,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [name, setName] = React.useState('');
-  const [socialName, setSocialName] = React.useState('');
+  const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
   const [email, setEmail] = React.useState('');
   const [avatarPreview, setAvatarPreview] = React.useState<string | null>(null);
   const fileInputRef = React.useRef<HTMLInputElement>(null);
@@ -37,7 +37,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     if (user) {
       setCurrentUser(user);
       setName(user.name);
-      setSocialName(user.socialName);
+      setNomeDeGuerra(user.nomeDeGuerra);
       setEmail(user.email);
       setAvatarPreview(user.avatarUrl); // Initialize preview with current avatar
     }
@@ -78,7 +78,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     
     const updatedUsers = users.map(u => 
       u.id === currentUser.id 
-        ? { ...u, name, socialName, email, avatarUrl: avatarPreview || u.avatarUrl }
+        ? { ...u, name, nomeDeGuerra, email, avatarUrl: avatarPreview || u.avatarUrl }
         : u
     );
     setUsers(updatedUsers);
@@ -172,13 +172,19 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                           <Input id="role" value={translateRole(currentUser.role)} disabled  />
                         </div>
                     </div>
+                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="space-y-2">
+                            <Label htmlFor="postoGrad">Posto/Grad.</Label>
+                            <Input id="postoGrad" value={currentUser.postoGrad} disabled />
+                        </div>
+                        <div className="space-y-2">
+                            <Label htmlFor="nomeDeGuerra">Nome de Guerra</Label>
+                            <Input id="nomeDeGuerra" value={nomeDeGuerra} onChange={(e) => setNomeDeGuerra(e.target.value)} />
+                        </div>
+                    </div>
                     <div className="space-y-2">
                       <Label htmlFor="name">Nome Completo</Label>
                       <Input id="name" value={name} onChange={(e) => setName(e.target.value)} />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="socialName">Nome Social</Label>
-                      <Input id="socialName" value={socialName} onChange={(e) => setSocialName(e.target.value)} />
                     </div>
                     <div className="space-y-2">
                       <Label htmlFor="email">Email</Label>

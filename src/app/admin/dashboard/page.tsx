@@ -426,7 +426,7 @@ export default function AdminDashboard() {
                   <Table>
                     <TableHeader>
                       <TableRow>
-                        <TableHead>Nome Social</TableHead>
+                        <TableHead>Nome de Guerra</TableHead>
                         <TableHead className="hidden md:table-cell">CPF</TableHead>
                         <TableHead className="hidden md:table-cell">Setor</TableHead>
                         <TableHead className="hidden lg:table-cell">Função</TableHead>
@@ -437,7 +437,7 @@ export default function AdminDashboard() {
                     <TableBody>
                       {users.map((user) => (
                         <TableRow key={user.id}>
-                          <TableCell>{user.socialName}</TableCell>
+                          <TableCell>{user.nomeDeGuerra}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.cpf}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.sector}</TableCell>
                           <TableCell className="hidden lg:table-cell">{user.jobTitle}</TableCell>

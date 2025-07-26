@@ -209,7 +209,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                   <AvatarImage src={appraisee.avatarUrl} />
                   <AvatarFallback>{appraisee.name.charAt(0)}</AvatarFallback>
                 </Avatar>
-                <p className="text-muted-foreground font-medium">{appraisee.name}</p>
+                <p className="text-muted-foreground font-medium">{appraisee.postoGrad} {appraisee.name}</p>
               </div>
             </div>
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
@@ -301,7 +301,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                       <td className="border border-black p-2 font-bold text-center">CARGO/FUNÇÃO</td>
                   </tr>
                   <tr>
-                      <td className="border border-black p-2 text-center">{appraisee.name}</td>
+                      <td className="border border-black p-2 text-center">{appraisee.postoGrad} {appraisee.name}</td>
                       <td className="border border-black p-2 text-center">{appraisee.jobTitle}</td>
                   </tr>
               </tbody>
