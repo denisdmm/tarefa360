@@ -14,6 +14,7 @@ export interface User {
   cpf: string;
   password?: string;
   status?: 'Ativo' | 'Inativo';
+  forcePasswordChange?: boolean;
 }
 
 export interface ProgressEntry {

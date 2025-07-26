@@ -29,7 +29,16 @@ export default function LoginPage() {
 
     if (user && user.password === password) {
       setLoggedInUser(user);
-      router.push(`/${user.role}/dashboard`);
+      if (user.forcePasswordChange) {
+        toast({
+          variant: "destructive",
+          title: "Alteração de Senha Obrigatória",
+          description: "Este é seu primeiro login. Por favor, altere sua senha.",
+        });
+        router.push(`/${user.role}/profile`);
+      } else {
+        router.push(`/${user.role}/dashboard`);
+      }
     } else {
       toast({
         variant: "destructive",

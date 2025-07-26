@@ -16,10 +16,15 @@ import { useDataContext } from "@/context/DataContext";
 import { useToast } from "@/hooks/use-toast";
 import type { User } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Terminal } from "lucide-react";
+import { useRouter } from "next/navigation";
+
 
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
   const { users, setUsers } = useDataContext();
   const { toast } = useToast();
+  const router = useRouter();
   
   const [currentUser, setCurrentUser] = React.useState<User | null>(null);
   const [name, setName] = React.useState('');
@@ -90,6 +95,18 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   };
 
   const handleUpdatePassword = () => {
+    if (!currentUser) return;
+
+    // Check if the current password matches (only if it's not the first login)
+    if (!currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
+       toast({
+        variant: "destructive",
+        title: "Senha Atual Incorreta",
+        description: "A senha atual informada não confere.",
+      });
+      return;
+    }
+    
     if (!newPassword || newPassword !== confirmPassword) {
       toast({
         variant: "destructive",
@@ -107,13 +124,17 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         });
         return;
     }
-
-    // In a real app, you would make an API call here to securely update the password.
-    // For this mock, we'll just show a success message.
+    
+    const updatedUsers = users.map(u => 
+      u.id === currentUser.id 
+        ? { ...u, password: newPassword, forcePasswordChange: false }
+        : u
+    );
+    setUsers(updatedUsers);
     
     toast({
       title: "Senha Atualizada",
-      description: "Sua senha foi alterada com sucesso.",
+      description: "Sua senha foi alterada com sucesso. Agora você pode ir para o painel.",
     });
     
     // Clear password fields
@@ -125,6 +146,11 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   if (!currentUser) {
     return <div className="p-6">Usuário não encontrado.</div>;
   }
+  
+  const handleGoToDashboard = () => {
+    router.push(`/${currentUser.role}/dashboard`);
+  }
+
 
   return (
     <div className="flex flex-col h-full">
@@ -135,6 +161,22 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         </p>
       </header>
       <main className="flex-1 p-2 md:p-6 overflow-auto space-y-6">
+        {currentUser.forcePasswordChange && (
+            <Alert variant="destructive">
+                <Terminal className="h-4 w-4" />
+                <AlertTitle>Ação Necessária: Altere sua Senha</AlertTitle>
+                <AlertDescription>
+                    Este é seu primeiro acesso. Por favor, cadastre uma nova senha abaixo para continuar. Sua senha atual é o seu CPF.
+                </AlertDescription>
+            </Alert>
+        )}
+
+        {!currentUser.forcePasswordChange && (
+             <div className="flex justify-end">
+                <Button onClick={handleGoToDashboard}>Ir para o Painel</Button>
+            </div>
+        )}
+
         <Card>
           <CardHeader>
             <CardTitle>Informações Pessoais</CardTitle>
@@ -213,6 +255,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder={currentUser.forcePasswordChange ? "Digite seu CPF" : "Digite sua senha atual"}
               />
             </div>
             <div className="space-y-2">
