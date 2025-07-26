@@ -195,10 +195,10 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
       </Dialog>
       
       <div className="print:hidden flex flex-col h-full">
-        <header className="bg-card border-b p-4">
-          <div className="flex justify-between items-center">
+        <main className="flex-1 p-4 md:p-6 overflow-auto space-y-6">
+          <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
             <div>
-              <Button variant="ghost" asChild className="mb-2">
+              <Button variant="ghost" asChild className="mb-2 -ml-4">
                  <Link href="/appraiser/dashboard">
                     <ArrowLeft className="mr-2 h-4 w-4" /> Voltar ao Painel
                  </Link>
@@ -212,11 +212,11 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                 <p className="text-muted-foreground font-medium">{appraisee.name}</p>
               </div>
             </div>
-            <div className="flex gap-2">
-              <div className="flex items-center gap-2">
+            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+              <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-[200px]">
+                  <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrar por mês" />
                   </SelectTrigger>
                   <SelectContent>
@@ -225,15 +225,13 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
+              <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="w-full sm:w-auto">
                 <Printer className="mr-2 h-4 w-4" />
                 {isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
               </Button>
             </div>
-          </div>
-        </header>
+          </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto space-y-6">
           {filteredMonths.length > 0 ? filteredMonths.map(monthKey => {
             const [year, month] = monthKey.split('-').map(Number);
              return (
@@ -249,7 +247,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                         <TableHeader>
                         <TableRow>
                             <TableHead className="w-[40%]">Título</TableHead>
-                            <TableHead className="w-[40%]">Comentário do Mês</TableHead>
+                            <TableHead className="w-[40%] hidden sm:table-cell">Comentário do Mês</TableHead>
                             <TableHead>Progresso no Mês</TableHead>
                         </TableRow>
                         </TableHeader>
@@ -264,11 +262,11 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                                     {activity.title}
                                 </button>
                             </TableCell>
-                            <TableCell className="text-muted-foreground italic">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
+                            <TableCell className="text-muted-foreground italic hidden sm:table-cell">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                <Progress value={activity.progressForMonth.percentage} className="w-[80%]" />
-                                <span>{activity.progressForMonth.percentage}%</span>
+                                <Progress value={activity.progressForMonth.percentage} className="w-[60%] md:w-[80%]" />
+                                <span className="text-xs md:text-sm">{activity.progressForMonth.percentage}%</span>
                                 </div>
                             </TableCell>
                             </TableRow>
@@ -315,7 +313,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
               </div>
               {activePeriod && (
                   <div className="text-center p-1 border-b border-black font-bold">
-                      <span>{format(activePeriod.startDate, 'yyyy')}</span>-<span>{format(activePeriod.endDate, 'yyyy')}</span>
+                      <span>{format(activePeriod.startDate, 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(activePeriod.endDate, 'MMM yyyy', {locale: ptBR})}</span>
                   </div>
               )}
 

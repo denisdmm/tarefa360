@@ -127,48 +127,48 @@ const UserFormModal = ({ user, onSave }: { user: User | null; onSave: (user: Use
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="name" className="text-right">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="name" className="md:text-right">
             Nome Completo
           </Label>
-          <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-3" />
+          <Input id="name" value={name} onChange={e => setName(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="socialName" className="text-right">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="socialName" className="md:text-right">
             Nome Social
           </Label>
-          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-3" />
+          <Input id="socialName" value={socialName} onChange={e => setSocialName(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="cpf" className="text-right">
+         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="cpf" className="md:text-right">
             CPF (Login)
           </Label>
-          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-3" placeholder="Apenas números" maxLength={11} />
+          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Apenas números" maxLength={11} />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="email" className="text-right">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="email" className="md:text-right">
             Email
           </Label>
-          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-3" />
+          <Input id="email" type="email" value={email} onChange={e => setEmail(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-         <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="sector" className="text-right">
+         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="sector" className="md:text-right">
             Sigla do Setor
           </Label>
-          <Input id="sector" value={sector} onChange={e => setSector(e.target.value)} className="col-span-3" />
+          <Input id="sector" value={sector} onChange={e => setSector(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="jobTitle" className="text-right">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="jobTitle" className="md:text-right">
             Função
           </Label>
-          <Input id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="col-span-3" />
+          <Input id="jobTitle" value={jobTitle} onChange={e => setJobTitle(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="role" className="text-right">
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="role" className="md:text-right">
             Perfil
           </Label>
           <Select value={role} onValueChange={value => setRole(value as User['role'])}>
-            <SelectTrigger className="col-span-3">
+            <SelectTrigger className="col-span-1 md:col-span-3">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -262,22 +262,22 @@ const PeriodFormModal = ({
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="period-name" className="text-right">Nome</Label>
-          <Input id="period-name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-3" />
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="period-name" className="md:text-right">Nome</Label>
+          <Input id="period-name" value={name} onChange={(e) => setName(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="start-date" className="text-right">Data de Início</Label>
-          <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="col-span-3" />
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="start-date" className="md:text-right">Data de Início</Label>
+          <Input id="start-date" type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="end-date" className="text-right">Data de Fim</Label>
-          <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="col-span-3" />
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="end-date" className="md:text-right">Data de Fim</Label>
+          <Input id="end-date" type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className="col-span-1 md:col-span-3" />
         </div>
-        <div className="grid grid-cols-4 items-center gap-4">
-          <Label htmlFor="status" className="text-right">Status</Label>
+        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+          <Label htmlFor="status" className="md:text-right">Status</Label>
           <Select value={status} onValueChange={(value: 'Ativo' | 'Inativo') => setStatus(value)}>
-            <SelectTrigger className="col-span-3">
+            <SelectTrigger className="col-span-1 md:col-span-3">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -436,38 +436,35 @@ export default function AdminDashboard() {
       </Dialog>
       
       <div className="flex flex-col h-full">
-        <header className="bg-card border-b p-4">
-          <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
-          <p className="text-muted-foreground">Gerencie todo o ecossistema de avaliação.</p>
-        </header>
-
         <main className="flex-1 p-4 md:p-6 overflow-auto">
+          <div className="mb-6">
+            <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
+            <p className="text-muted-foreground">Gerencie todo o ecossistema de avaliação.</p>
+          </div>
           <Tabs defaultValue="accounts">
-            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6">
-              <TabsTrigger value="accounts"><Users className="mr-2" /> Contas</TabsTrigger>
-              <TabsTrigger value="periods"><Calendar className="mr-2" /> Períodos de Avaliação</TabsTrigger>
-              <TabsTrigger value="associations"><Link2 className="mr-2" /> Associações</TabsTrigger>
+            <TabsList className="grid w-full grid-cols-1 md:grid-cols-3 mb-6 h-auto">
+              <TabsTrigger value="accounts" className="py-2"><Users className="mr-2" /> Contas</TabsTrigger>
+              <TabsTrigger value="periods" className="py-2"><Calendar className="mr-2" /> Períodos de Avaliação</TabsTrigger>
+              <TabsTrigger value="associations" className="py-2"><Link2 className="mr-2" /> Associações</TabsTrigger>
             </TabsList>
             
             <TabsContent value="accounts">
               <Card>
-                <CardHeader>
-                  <div className="flex justify-between items-start">
-                    <div>
-                      <CardTitle>Contas de Usuário</CardTitle>
-                      <CardDescription>Crie, visualize e gerencie todas as contas de usuário.</CardDescription>
-                    </div>
-                    <Button><PlusCircle className="mr-2 h-4 w-4" />Criar Conta</Button>
+                <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                  <div>
+                    <CardTitle>Contas de Usuário</CardTitle>
+                    <CardDescription>Crie, visualize e gerencie todas as contas de usuário.</CardDescription>
                   </div>
+                  <Button><PlusCircle className="mr-2 h-4 w-4" />Criar Conta</Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome Social</TableHead>
-                        <TableHead>CPF</TableHead>
-                        <TableHead>Setor</TableHead>
-                        <TableHead>Função</TableHead>
+                        <TableHead className="hidden md:table-cell">CPF</TableHead>
+                        <TableHead className="hidden md:table-cell">Setor</TableHead>
+                        <TableHead className="hidden lg:table-cell">Função</TableHead>
                         <TableHead>Perfil</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -476,9 +473,9 @@ export default function AdminDashboard() {
                       {users.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.socialName}</TableCell>
-                          <TableCell>{user.cpf}</TableCell>
-                          <TableCell>{user.sector}</TableCell>
-                          <TableCell>{user.jobTitle}</TableCell>
+                          <TableCell className="hidden md:table-cell">{user.cpf}</TableCell>
+                          <TableCell className="hidden md:table-cell">{user.sector}</TableCell>
+                          <TableCell className="hidden lg:table-cell">{user.jobTitle}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
                           <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user)}>
@@ -496,22 +493,20 @@ export default function AdminDashboard() {
 
             <TabsContent value="periods">
               <Card>
-                <CardHeader>
-                   <div className="flex justify-between items-start">
-                      <div>
-                        <CardTitle>Períodos de Avaliação</CardTitle>
-                        <CardDescription>Defina e gerencie os ciclos de avaliação.</CardDescription>
-                      </div>
-                      <Button onClick={() => openPeriodModal(null)}><PlusCircle className="mr-2 h-4 w-4" />Novo Período</Button>
+                <CardHeader className="flex flex-col md:flex-row md:items-start md:justify-between gap-4">
+                   <div>
+                     <CardTitle>Períodos de Avaliação</CardTitle>
+                     <CardDescription>Defina e gerencie os ciclos de avaliação.</CardDescription>
                    </div>
+                   <Button onClick={() => openPeriodModal(null)}><PlusCircle className="mr-2 h-4 w-4" />Novo Período</Button>
                 </CardHeader>
                 <CardContent>
                   <Table>
                     <TableHeader>
                       <TableRow>
                         <TableHead>Nome do Período</TableHead>
-                        <TableHead>Data de Início</TableHead>
-                        <TableHead>Data de Fim</TableHead>
+                        <TableHead className="hidden sm:table-cell">Data de Início</TableHead>
+                        <TableHead className="hidden sm:table-cell">Data de Fim</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -520,8 +515,8 @@ export default function AdminDashboard() {
                       {evaluationPeriods.map((period) => (
                         <TableRow key={period.id}>
                           <TableCell>{period.name}</TableCell>
-                          <TableCell>{format(period.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
-                          <TableCell>{format(period.endDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{format(period.startDate, "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{format(period.endDate, "dd/MM/yyyy")}</TableCell>
                           <TableCell>
                             <Button 
                               variant={period.status === 'Ativo' ? 'default' : 'outline'}
@@ -608,5 +603,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    

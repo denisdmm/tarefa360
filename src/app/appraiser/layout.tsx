@@ -84,6 +84,9 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
         </SidebarFooter>
       </Sidebar>
       <SidebarInset>
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-end gap-4 border-b bg-card p-4 md:justify-end">
+            <SidebarTrigger className="md:hidden" />
+        </header>
         {children}
       </SidebarInset>
     </SidebarProvider>

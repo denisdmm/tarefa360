@@ -46,12 +46,11 @@ export default function AppraiserDashboard() {
 
   return (
      <div className="flex flex-col h-full">
-      <header className="bg-card border-b p-4">
-        <h1 className="text-3xl font-bold font-headline">Painel do Avaliador</h1>
-        <p className="text-muted-foreground">Revise e monitore o progresso de seus avaliados.</p>
-      </header>
-
       <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <div className="mb-6">
+            <h1 className="text-3xl font-bold font-headline">Painel do Avaliador</h1>
+            <p className="text-muted-foreground">Revise e monitore o progresso de seus avaliados.</p>
+        </div>
         <Card>
           <CardHeader>
             <CardTitle>Meus Avaliados</CardTitle>
@@ -64,8 +63,8 @@ export default function AppraiserDashboard() {
               <TableHeader>
                 <TableRow>
                   <TableHead>Funcionário</TableHead>
-                  <TableHead>Função</TableHead>
-                  <TableHead>Setor</TableHead>
+                  <TableHead className="hidden md:table-cell">Função</TableHead>
+                  <TableHead className="hidden lg:table-cell">Setor</TableHead>
                   <TableHead className="text-right">Ações</TableHead>
                 </TableRow>
               </TableHeader>
@@ -83,14 +82,14 @@ export default function AppraiserDashboard() {
                           </Avatar>
                           <div className="flex flex-col">
                               <span className="font-medium">{appraisee.name}</span>
-                              <span className="text-sm text-muted-foreground">{appraisee.email}</span>
+                              <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">{appraisee.email}</span>
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell>{appraisee.jobTitle}</TableCell>
-                      <TableCell>{appraisee.sector}</TableCell>
+                      <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
+                      <TableCell className="hidden lg:table-cell">{appraisee.sector}</TableCell>
                       <TableCell className="text-right">
-                        <Button asChild>
+                        <Button asChild size="sm">
                           <Link href={`/appraiser/appraisee/${appraisee.id}`}>
                             <FileText className="mr-2 h-4 w-4" />
                             Ver Atividades

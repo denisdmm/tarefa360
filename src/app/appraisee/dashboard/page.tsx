@@ -184,20 +184,18 @@ export default function AppraiseeDashboard() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <header className="bg-card border-b p-4">
-          <div className="flex justify-between items-center">
+        <main className="flex-1 p-4 md:p-6 overflow-auto">
+          <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <div>
               <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>
               <p className="text-muted-foreground">Gerencie suas tarefas e progressos em andamento.</p>
             </div>
-            <Button onClick={() => handleOpenActivityForm(null)}>
+            <Button onClick={() => handleOpenActivityForm(null)} className="w-full md:w-auto">
               <PlusCircle className="mr-2 h-4 w-4" />
               Registrar Atividade
             </Button>
           </div>
-        </header>
 
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
           <Tabs defaultValue="in-progress">
             <TabsList className="mb-4">
               <TabsTrigger value="in-progress"><ListTodo className="mr-2" />Em Andamento</TabsTrigger>
@@ -234,7 +232,7 @@ export default function AppraiseeDashboard() {
                     <TableHeader>
                       <TableRow>
                         <TableHead>Título</TableHead>
-                        <TableHead>Início</TableHead>
+                        <TableHead className="hidden md:table-cell">Início</TableHead>
                         <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
@@ -244,8 +242,8 @@ export default function AppraiseeDashboard() {
                         completedActivities.map(activity => (
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
-                            <TableCell>
-                              {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'N/A'}
+                            <TableCell className="hidden md:table-cell">
+                              {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>

@@ -202,17 +202,17 @@ export const ActivityForm = ({
         {/* Activity Details */}
         <div className="space-y-4">
             <h3 className="font-semibold text-lg">Detalhes da Atividade</h3>
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="title" className="text-right">Título</Label>
-                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-3" readOnly={isReadOnly} />
+            <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                <Label htmlFor="title" className="md:text-right">Título</Label>
+                <Input id="title" value={title} onChange={(e) => setTitle(e.target.value)} className="col-span-1 md:col-span-3" readOnly={isReadOnly} />
             </div>
-            <div className="grid grid-cols-4 items-center gap-4">
-                <Label htmlFor="description" className="text-right">Descrição</Label>
-                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-3" readOnly={isReadOnly} />
+            <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                <Label htmlFor="description" className="md:text-right mt-2">Descrição</Label>
+                <Textarea id="description" value={description} onChange={(e) => setDescription(e.target.value)} className="col-span-1 md:col-span-3" readOnly={isReadOnly} />
             </div>
-             <div className="grid grid-cols-4 items-start gap-4">
-                <Label htmlFor="start-date" className="text-right pt-2">Data de Início</Label>
-                <div className="col-span-3">
+             <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                <Label htmlFor="start-date" className="md:text-right pt-2">Data de Início</Label>
+                <div className="col-span-1 md:col-span-3">
                     <Input
                         id="start-date"
                         type="date"
@@ -235,7 +235,7 @@ export const ActivityForm = ({
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
                  {!isAddingProgress && !isReadOnly && (
                      <Button variant="outline" size="sm" onClick={handleStartAddNewProgress}>
-                        <Plus className="mr-2 h-4 w-4" /> Adicionar Novo Progresso
+                        <Plus className="mr-2 h-4 w-4" /> Adicionar
                      </Button>
                  )}
             </div>
@@ -247,35 +247,35 @@ export const ActivityForm = ({
                             <X className="h-4 w-4" />
                         </Button>
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-date" className="text-right">Data do Registro</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-progress-date" className="md:text-right">Data</Label>
                         <Input 
                             id="new-progress-date" 
                             type="date"
                             value={newProgress.date} 
                             onChange={e => setNewProgress({...newProgress, date: e.target.value})}
-                            className="col-span-3" 
+                            className="col-span-1 md:col-span-3" 
                         />
                     </div>
-                     <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-percentage" className="text-right">Conclusão (%)</Label>
+                     <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
                         <Input 
                             id="new-progress-percentage" 
                             type="number" 
                             min="0"
                             max="100"
                             value={newProgress.percentage} 
-                            onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value)})} 
-                            className="col-span-3" 
+                            onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value) || 0})} 
+                            className="col-span-1 md:col-span-3" 
                         />
                     </div>
-                    <div className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-comment" className="text-right">Comentário</Label>
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                        <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
                         <Textarea 
                             id="new-progress-comment"
                             value={newProgress.comment}
                             onChange={e => setNewProgress({...newProgress, comment: e.target.value})}
-                            className="col-span-3"
+                            className="col-span-1 md:col-span-3"
                         />
                     </div>
                     <div className="flex justify-end">
@@ -289,7 +289,7 @@ export const ActivityForm = ({
                         <TableRow>
                             <TableHead>Período</TableHead>
                             <TableHead>Progresso</TableHead>
-                            <TableHead>Comentário</TableHead>
+                            <TableHead className="hidden sm:table-cell">Comentário</TableHead>
                             {!isReadOnly && <TableHead className="text-right"></TableHead>}
                         </TableRow>
                     </TableHeader>
@@ -297,10 +297,10 @@ export const ActivityForm = ({
                         {sortedProgressHistory.length > 0 ? sortedProgressHistory.map(p => (
                             <TableRow key={`${p.year}-${p.month}`}>
                                 <TableCell className="font-medium">
-                                    {format(new Date(p.year, p.month - 1), "MMMM yyyy", { locale: ptBR })}
+                                    {format(new Date(p.year, p.month - 1), "MMM yyyy", { locale: ptBR })}
                                 </TableCell>
                                 <TableCell>{p.percentage}%</TableCell>
-                                <TableCell className="text-muted-foreground">{p.comment}</TableCell>
+                                <TableCell className="text-muted-foreground hidden sm:table-cell">{p.comment}</TableCell>
                                 {!isReadOnly && (
                                 <TableCell className="text-right">
                                     <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month)}>
@@ -326,4 +326,3 @@ export const ActivityForm = ({
     </DialogContent>
   );
 };
-
