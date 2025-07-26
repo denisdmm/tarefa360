@@ -29,7 +29,7 @@ import {
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, ProgressEntry } from "@/lib/types";
-import { ArrowLeft, Filter, Printer } from "lucide-react";
+import { ArrowLeft, Filter, Printer, Eye } from "lucide-react";
 import Link from 'next/link';
 import { format, eachMonthOfInterval, startOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
@@ -37,6 +37,7 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Dialog } from '@/components/ui/dialog';
 import { ActivityForm } from '@/app/shared/ActivityForm';
+import { cn } from '@/lib/utils';
 
 type MonthlyActivity = Activity & {
     progressForMonth: ProgressEntry;
@@ -49,6 +50,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
+  const [showPdfPreview, setShowPdfPreview] = React.useState(false);
   const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
   
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
@@ -140,14 +142,20 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
 
     setIsGeneratingPdf(true);
 
-    reportElement.style.display = 'block';
-
+    // Temporarily make it visible for capture if it was hidden
+    const wasHidden = reportElement.classList.contains('hidden');
+    if (wasHidden) {
+        reportElement.classList.remove('hidden');
+    }
+    
     const canvas = await html2canvas(reportElement, {
       scale: 2,
       useCORS: true,
     });
-
-    reportElement.style.display = 'none';
+    
+    if (wasHidden) {
+        reportElement.classList.add('hidden');
+    }
 
     const imgData = canvas.toDataURL('image/png');
     const pdf = new jsPDF({
@@ -225,6 +233,10 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                   </SelectContent>
                 </Select>
               </div>
+              <Button onClick={() => setShowPdfPreview(!showPdfPreview)} variant="outline" className="w-full sm:w-auto">
+                <Eye className="mr-2 h-4 w-4" />
+                {showPdfPreview ? 'Ocultar Mock' : 'Mostrar Mock do PDF'}
+              </Button>
               <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="w-full sm:w-auto">
                 <Printer className="mr-2 h-4 w-4" />
                 {isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
@@ -289,7 +301,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
       </div>
 
       {/* Content for PDF Generation */}
-      <div id="print-content" className="hidden print:block p-8 bg-white" style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
+      <div id="print-content" className={cn("print:block p-8 bg-white", !showPdfPreview && "hidden")} style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
           <div className="text-center mb-6">
               <h1 className="text-xl font-bold uppercase">Ficha de Registro de Trabalhos Realizados</h1>
           </div>
@@ -350,3 +362,5 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     </>
   );
 }
+
+    
