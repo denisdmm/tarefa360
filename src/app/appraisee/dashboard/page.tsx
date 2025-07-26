@@ -164,8 +164,12 @@ const ActivityForm = ({
   }
 
   const handleSaveNewProgress = () => {
-    if (!newProgress) return;
+    if (!newProgress?.date) {
+        toast({ variant: 'destructive', title: "Data Inválida", description: "Por favor, selecione uma data para o registro de progresso."});
+        return;
+    }
     
+    // Parse date directly from string to avoid timezone issues
     const parts = newProgress.date.split('-');
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
@@ -206,22 +210,6 @@ const ActivityForm = ({
     const month = parseInt(parts[1], 10) - 1;
     const day = parseInt(parts[2], 10);
     const dateWithOffset = new Date(year, month, day);
-
-    // This check is redundant if isSaveDisabled is working correctly, but good for safety
-    if (!activity && activePeriod) {
-        const checkDate = startOfDay(dateWithOffset);
-        const startDatePeriod = startOfDay(activePeriod.startDate);
-        const endDatePeriod = startOfDay(activePeriod.endDate);
-        if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
-             toast({
-                variant: "destructive",
-                title: "Data Inválida",
-                description: "A data deve estar dentro do período de avaliação ativo.",
-            });
-            return;
-        }
-    }
-
 
     const updatedActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
