@@ -61,6 +61,7 @@ import { format } from "date-fns";
 import { useDataContext } from "@/context/DataContext";
 import { UserFormModal, type UserFormData } from "./UserFormModal";
 import { NewAppraiserFormModal } from "./NewAppraiserFormModal";
+import { cn } from "@/lib/utils";
 
 
 const PeriodFormModal = ({
@@ -229,7 +230,7 @@ export default function AdminDashboard() {
         } else {
             toast({
                 title: "Usuário Criado",
-                description: "A nova conta de usuário foi criada com sucesso.",
+                description: `A nova conta de usuário foi criada com status ${newUser.status}.`,
             });
         }
       }
@@ -434,9 +435,8 @@ export default function AdminDashboard() {
                       <TableRow>
                         <TableHead>Posto/Grad. e Nome de Guerra</TableHead>
                         <TableHead className="hidden md:table-cell">CPF</TableHead>
-                        <TableHead className="hidden md:table-cell">Setor</TableHead>
-                        <TableHead className="hidden lg:table-cell">Função</TableHead>
                         <TableHead>Perfil</TableHead>
+                        <TableHead>Status</TableHead>
                         <TableHead className="text-right">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
@@ -444,10 +444,15 @@ export default function AdminDashboard() {
                       {users.map((user) => (
                         <TableRow key={user.id}>
                           <TableCell>{user.postoGrad} {user.nomeDeGuerra}</TableCell>
-                          <TableCell className="hidden md:table-cell">{user.cpf}</TableCell>
-                          <TableCell className="hidden md:table-cell">{user.sector}</TableCell>
-                          <TableCell className="hidden lg:table-cell">{user.jobTitle}</TableCell>
+                          <TableCell className="hidden md:table-cell">{user.cpf || 'N/A'}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
+                           <TableCell>
+                            <Badge className={cn(
+                                user.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
+                            )}>
+                                {user.status}
+                            </Badge>
+                          </TableCell>
                           <TableCell className="text-right">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
                                 <Edit className="h-4 w-4" />

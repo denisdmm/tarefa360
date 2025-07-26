@@ -12,6 +12,7 @@ export interface User {
   sector: string;
   avatarUrl: string;
   cpf: string;
+  status?: 'Ativo' | 'Inativo';
 }
 
 export interface ProgressEntry {

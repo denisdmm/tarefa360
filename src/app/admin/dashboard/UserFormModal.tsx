@@ -49,6 +49,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
   const [sector, setSector] = React.useState('');
   const [jobTitle, setJobTitle] = React.useState('');
   const [role, setRole] = React.useState<Role>('appraisee');
+  const [status, setStatus] = React.useState<'Ativo' | 'Inativo'>('Ativo');
   const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
 
   const { toast } = useToast();
@@ -69,6 +70,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         setSector(user.sector || '');
         setJobTitle(user.jobTitle || '');
         setRole(user.role || 'appraisee');
+        setStatus(user.status || 'Inativo');
     } else {
         // Reset for create mode
         setName('');
@@ -79,6 +81,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         setSector('');
         setJobTitle('');
         setRole('appraisee');
+        setStatus('Ativo');
         setSelectedAppraiser('');
     }
   }, [user, mode]);
@@ -97,33 +100,36 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
 
   const handleSave = () => {
     // --- Validation ---
-    if (!name || !nomeDeGuerra || !postoGrad || !cpf || !email || !sector || !jobTitle) {
+    if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
-            description: "Por favor, preencha todos os campos.",
+            description: "Por favor, preencha todos os campos, exceto o CPF que é opcional para contas inativas.",
         });
         return;
     }
     
-    if (!cpf || cpf.length !== 11) {
+    if (cpf && cpf.length !== 11) {
         toast({
             variant: "destructive",
             title: "Erro de Validação",
-            description: "O CPF deve conter 11 dígitos.",
+            description: "Se preenchido, o CPF deve conter 11 dígitos.",
         });
         return;
     }
 
-    const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user?.id);
-    if (isCpfTaken) {
-        toast({
-            variant: "destructive",
-            title: "CPF Duplicado",
-            description: "Este CPF já está sendo utilizado por outro usuário.",
-        });
-        return;
+    if(cpf) {
+        const isCpfTaken = users.some(u => u.cpf === cpf && u.id !== user?.id);
+        if (isCpfTaken) {
+            toast({
+                variant: "destructive",
+                title: "CPF Duplicado",
+                description: "Este CPF já está sendo utilizado por outro usuário.",
+            });
+            return;
+        }
     }
+
 
     if (role === 'appraisee' && mode === 'create' && !selectedAppraiser) {
        toast({
@@ -133,6 +139,8 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         });
         return;
     }
+
+    const finalStatus = cpf ? 'Ativo' : 'Inativo';
 
     const formData: UserFormData = {
       mode,
@@ -146,6 +154,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         sector,
         jobTitle,
         role,
+        status: finalStatus,
       },
       appraiserId: role === 'appraisee' ? selectedAppraiser : null,
     };
@@ -153,7 +162,9 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
   };
   
   const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
-  const description = mode === 'edit' ? 'Atualize os dados do usuário.' : 'Preencha os dados para uma nova conta de usuário.';
+  const description = mode === 'edit' 
+    ? 'Atualize os dados do usuário. Para ativar uma conta inativa, basta preencher o CPF.' 
+    : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa.';
 
   const appraisers = users.filter(u => u.role === 'appraiser');
 
@@ -186,7 +197,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
           <Label htmlFor="cpf" className="md:text-right">
             CPF (Login)
           </Label>
-          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Apenas números" maxLength={11} />
+          <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Opcional: Apenas números" maxLength={11} />
         </div>
         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
           <Label htmlFor="email" className="md:text-right">

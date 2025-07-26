@@ -51,7 +51,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
 
   const handleSave = () => {
     // --- Validation ---
-    if (!name || !nomeDeGuerra || !postoGrad || !cpf || !email || !sector || !jobTitle) {
+    if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
@@ -60,7 +60,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         return;
     }
     
-    if (!cpf || cpf.length !== 11) {
+    if (cpf && cpf.length !== 11) {
         toast({
             variant: "destructive",
             title: "Erro de Validação",
@@ -69,15 +69,18 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         return;
     }
 
-    const isCpfTaken = existingUsers.some(u => u.cpf === cpf);
-    if (isCpfTaken) {
-        toast({
-            variant: "destructive",
-            title: "CPF Duplicado",
-            description: "Este CPF já está sendo utilizado por outro usuário.",
-        });
-        return;
+    if (cpf) {
+        const isCpfTaken = existingUsers.some(u => u.cpf === cpf);
+        if (isCpfTaken) {
+            toast({
+                variant: "destructive",
+                title: "CPF Duplicado",
+                description: "Este CPF já está sendo utilizado por outro usuário.",
+            });
+            return;
+        }
     }
+
 
     const newUser: User = {
         id: `user-${Date.now()}`,
@@ -89,6 +92,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         sector,
         jobTitle,
         role: 'appraiser',
+        status: cpf ? 'Ativo' : 'Inativo',
         avatarUrl: 'https://placehold.co/100x100' // Default avatar
     };
     
@@ -127,7 +131,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
             <Label htmlFor="cpf" className="md:text-right">
                 CPF (Login)
             </Label>
-            <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Apenas números" maxLength={11} />
+            <Input id="cpf" value={cpf} onChange={handleCpfChange} className="col-span-1 md:col-span-3" placeholder="Opcional: Apenas números" maxLength={11} />
             </div>
             <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
             <Label htmlFor="email" className="md:text-right">
