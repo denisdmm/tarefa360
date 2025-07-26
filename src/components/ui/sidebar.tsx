@@ -511,7 +511,7 @@ const SidebarMenuButton = React.forwardRef<
           hidden={state !== "collapsed" || isMobile}
           {...tooltip}
         >
-         {tooltip}
+         {typeof tooltip === 'object' ? tooltip.children : tooltip}
         </TooltipContent>
       </Tooltip>
     )
