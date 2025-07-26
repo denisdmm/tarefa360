@@ -74,8 +74,8 @@ const AppraiserSidebarContent = () => {
                 </SidebarMenu>
             </SidebarContent>
             <SidebarFooter>
-                <div className="flex items-center gap-3 p-2 border-t">
-                <Avatar className="h-10 w-10">
+                <div className="flex items-center gap-2 p-2 border-t">
+                <Avatar className="h-9 w-9">
                     <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
                     <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
                 </Avatar>
