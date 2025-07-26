@@ -67,8 +67,8 @@ export default function ReportsPage() {
                                 {evaluationPeriods.map((period) => (
                                     <TableRow key={period.id}>
                                         <TableCell className="font-medium">{period.name}</TableCell>
-                                        <TableCell>{format(period.startDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
-                                        <TableCell>{format(period.endDate, "MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                                        <TableCell>{format(period.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
+                                        <TableCell>{format(period.endDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}</TableCell>
                                         <TableCell>
                                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                                         </TableCell>
@@ -88,3 +88,5 @@ export default function ReportsPage() {
         </div>
     );
 }
+
+    

@@ -300,3 +300,5 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
     </>
   );
 }
+
+    
