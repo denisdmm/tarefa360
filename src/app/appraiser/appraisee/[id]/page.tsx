@@ -49,7 +49,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
-  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(isGeneratingPdf);
+  const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showPdfPreview, setShowPdfPreview] = React.useState(false);
   const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
   
