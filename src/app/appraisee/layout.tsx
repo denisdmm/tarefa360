@@ -45,7 +45,7 @@ const AppraiseeSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Painel">
                     <Link href="/appraisee/dashboard">
                         <LayoutDashboard />
-                        <span className="truncate">Painel</span>
+                        {sidebarState === 'expanded' && <span className="truncate">Painel</span>}
                     </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -53,7 +53,7 @@ const AppraiseeSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraisee/reports")} tooltip="Relatórios">
                     <Link href="/appraisee/reports">
                         <FileText />
-                        <span className="truncate">Relatórios</span>
+                        {sidebarState === 'expanded' && <span className="truncate">Relatórios</span>}
                     </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -61,7 +61,7 @@ const AppraiseeSidebarContent = () => {
                     <SidebarMenuButton asChild isActive={isActive("/appraisee/profile")} tooltip="Meu Perfil">
                     <Link href="/appraisee/profile">
                         <User />
-                        <span className="truncate">Meu Perfil</span>
+                        {sidebarState === 'expanded' && <span className="truncate">Meu Perfil</span>}
                     </Link>
                     </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -85,7 +85,7 @@ const AppraiseeSidebarContent = () => {
                         <SidebarMenuButton asChild tooltip="Sair">
                             <Link href="/">
                             <LogOut />
-                            <span className="truncate">Sair</span>
+                            {sidebarState === 'expanded' && <span className="truncate">Sair</span>}
                             </Link>
                         </SidebarMenuButton>
                     </SidebarMenuItem>
