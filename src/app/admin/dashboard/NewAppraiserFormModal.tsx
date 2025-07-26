@@ -92,6 +92,8 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         sector,
         jobTitle,
         role: 'appraiser',
+        password: nomeDeGuerra, // Default password is the 'nome de guerra'
+        forcePasswordChange: true,
         status: cpf ? 'Ativo' : 'Inativo',
         avatarUrl: 'https://placehold.co/100x100' // Default avatar
     };

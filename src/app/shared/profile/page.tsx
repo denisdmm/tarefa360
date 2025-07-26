@@ -107,6 +107,16 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       return;
     }
     
+    // On first login, the password is the `nomeDeGuerra`
+    if (currentUser.forcePasswordChange && currentPassword !== currentUser.nomeDeGuerra) {
+        toast({
+            variant: "destructive",
+            title: "Senha Temporária Incorreta",
+            description: "A senha temporária (seu Nome de Guerra) não confere.",
+        });
+        return;
+    }
+
     if (!newPassword || newPassword !== confirmPassword) {
       toast({
         variant: "destructive",
@@ -166,7 +176,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Ação Necessária: Altere sua Senha</AlertTitle>
                 <AlertDescription>
-                    Este é seu primeiro acesso. Por favor, cadastre uma nova senha abaixo para continuar. Sua senha atual é o seu CPF.
+                    Este é seu primeiro acesso. Sua senha temporária é o seu "Nome de Guerra". Por favor, cadastre uma nova senha abaixo para continuar.
                 </AlertDescription>
             </Alert>
         )}
@@ -255,7 +265,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder={currentUser.forcePasswordChange ? "Digite seu CPF" : "Digite sua senha atual"}
+                placeholder={currentUser.forcePasswordChange ? "Digite seu Nome de Guerra" : "Digite sua senha atual"}
               />
             </div>
             <div className="space-y-2">

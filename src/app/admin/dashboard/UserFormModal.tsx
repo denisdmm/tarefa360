@@ -27,7 +27,7 @@ import type { User, Role } from "@/lib/types";
 export interface UserFormData {
   mode: 'create' | 'edit';
   user?: User | null;
-  data: Omit<User, 'id' | 'avatarUrl'>;
+  data: Partial<Omit<User, 'id' | 'avatarUrl'>>;
   appraiserId?: string | null;
 }
 
@@ -141,23 +141,47 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     }
 
     const finalStatus = cpf ? 'Ativo' : 'Inativo';
+    
+    let formData: UserFormData;
 
-    const formData: UserFormData = {
-      mode,
-      user,
-      data: {
-        cpf,
-        name,
-        nomeDeGuerra,
-        postoGrad,
-        email,
-        sector,
-        jobTitle,
-        role,
-        status: finalStatus,
-      },
-      appraiserId: role === 'appraisee' ? selectedAppraiser : null,
-    };
+    if (mode === 'create') {
+        formData = {
+            mode,
+            user: null,
+            data: {
+                cpf,
+                name,
+                nomeDeGuerra,
+                postoGrad,
+                email,
+                sector,
+                jobTitle,
+                role,
+                status: finalStatus,
+                password: nomeDeGuerra, // Default password
+                forcePasswordChange: true
+            },
+            appraiserId: role === 'appraisee' ? selectedAppraiser : null,
+        }
+    } else {
+         formData = {
+            mode,
+            user,
+            data: {
+                cpf,
+                name,
+                nomeDeGuerra,
+                postoGrad,
+                email,
+                sector,
+                jobTitle,
+                role,
+                status: finalStatus,
+            },
+            appraiserId: role === 'appraisee' ? selectedAppraiser : null,
+        };
+    }
+    
     onSave(formData);
   };
   
