@@ -156,6 +156,10 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
   const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
+  const pdfMonths = React.useMemo(() => {
+    return [...filteredMonths].sort();
+  }, [filteredMonths]);
+
   return (
     <>
       <div className="print:hidden flex flex-col h-full">
@@ -272,7 +276,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   </div>
               )}
 
-              {filteredMonths.map(monthKey => {
+              {pdfMonths.map(monthKey => {
                 const [year, month] = monthKey.split('-').map(Number);
                 return (
                   <div key={monthKey}>
@@ -292,7 +296,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
                   </div>
                 )
               })}
-              {filteredMonths.length === 0 && (
+              {pdfMonths.length === 0 && (
                   <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
               )}
           </div>
