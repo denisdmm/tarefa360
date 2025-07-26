@@ -42,11 +42,11 @@ export default function ReportsPage() {
 
     return (
         <div className="flex flex-col h-full">
-            <header className="bg-card border-b p-4">
+            <header className="bg-card border-b p-2 md:p-4">
                 <h1 className="text-3xl font-bold font-headline">Relatórios Gerenciais</h1>
                 <p className="text-muted-foreground">Visualize ou imprima os relatórios de avaliação.</p>
             </header>
-            <main className="flex-1 p-4 md:p-6 overflow-auto">
+            <main className="flex-1 p-2 md:p-6 overflow-auto">
                 <Card>
                     <CardHeader>
                         <CardTitle>Meus Períodos de Avaliação</CardTitle>

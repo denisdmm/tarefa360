@@ -184,7 +184,7 @@ export default function AppraiseeDashboard() {
   return (
     <>
       <div className="flex flex-col h-full">
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-2 md:p-6 overflow-auto">
           <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-6 gap-4">
             <div>
               <h1 className="text-3xl font-bold font-headline">Minhas Atividades</h1>

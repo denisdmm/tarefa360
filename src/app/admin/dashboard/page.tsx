@@ -436,7 +436,7 @@ export default function AdminDashboard() {
       </Dialog>
       
       <div className="flex flex-col h-full">
-        <main className="flex-1 p-4 md:p-6 overflow-auto">
+        <main className="flex-1 p-2 md:p-6 overflow-auto">
           <div className="mb-6">
             <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
             <p className="text-muted-foreground">Gerencie todo o ecossistema de avaliação.</p>

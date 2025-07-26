@@ -110,7 +110,7 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
-        <header className="sticky top-0 z-10 flex h-16 items-center justify-start gap-4 border-b bg-card p-4 md:justify-start">
+        <header className="sticky top-0 z-10 flex h-16 items-center justify-start gap-4 border-b bg-card p-2 md:p-4 md:justify-start">
             <SidebarTrigger />
         </header>
         {children}

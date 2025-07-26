@@ -195,7 +195,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
       </Dialog>
       
       <div className="print:hidden flex flex-col h-full">
-        <main className="flex-1 p-4 md:p-6 overflow-auto space-y-6">
+        <main className="flex-1 p-2 md:p-6 overflow-auto space-y-6">
           <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
             <div>
               <Button variant="ghost" asChild className="mb-2 -ml-4">

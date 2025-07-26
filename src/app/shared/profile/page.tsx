@@ -128,13 +128,13 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
 
   return (
     <div className="flex flex-col h-full">
-      <header className="bg-card border-b p-4">
+      <header className="bg-card border-b p-2 md:p-4">
         <h1 className="text-3xl font-bold font-headline">Meu Perfil</h1>
         <p className="text-muted-foreground">
           Gerencie suas informações pessoais e de acesso.
         </p>
       </header>
-      <main className="flex-1 p-4 md:p-6 overflow-auto space-y-6">
+      <main className="flex-1 p-2 md:p-6 overflow-auto space-y-6">
         <Card>
           <CardHeader>
             <CardTitle>Informações Pessoais</CardTitle>
