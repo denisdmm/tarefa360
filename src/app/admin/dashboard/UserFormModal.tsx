@@ -243,7 +243,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
                 </SelectTrigger>
                 <SelectContent>
                   {appraisers.map(appraiser => (
-                    <SelectItem key={appraiser.id} value={appraiser.id}>{appraiser.name}</SelectItem>
+                    <SelectItem key={appraiser.id} value={appraiser.id}>{appraiser.postoGrad} {appraiser.nomeDeGuerra}</SelectItem>
                   ))}
                    <SelectItem value="new-appraiser" className="text-primary focus:text-primary-foreground focus:bg-primary">
                     Cadastrar Novo Avaliador...
