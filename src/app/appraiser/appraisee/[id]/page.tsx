@@ -31,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, ProgressEntry, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, getMonth, getYear, eachMonthOfInterval, startOfMonth } from 'date-fns';
+import { format, getMonth, getYear, eachMonthOfInterval, startOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
@@ -48,13 +48,21 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
 
+  const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
+
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === params.id) || null;
     setAppraisee(foundUser);
   }, [params.id, users]);
 
   const getActivitiesByMonth = React.useCallback(() => {
-    const userActivities = activities.filter(a => a.userId === params.id);
+    if (!activePeriod) return {};
+
+    const userActivities = activities.filter(a => 
+      a.userId === params.id &&
+      isWithinInterval(a.startDate, { start: activePeriod.startDate, end: activePeriod.endDate })
+    );
+
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
@@ -92,7 +100,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
         });
     });
     return monthlyData;
-  }, [activities, params.id]);
+  }, [activities, params.id, activePeriod]);
 
   React.useEffect(() => {
       setMonthlyActivities(getActivitiesByMonth());
@@ -117,8 +125,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   }, [monthlyActivities]);
 
 
-  const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
-
   const pdfMonths = React.useMemo(() => {
     if (!activePeriod) return [];
     
@@ -127,7 +133,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
         end: startOfMonth(activePeriod.endDate)
     });
     
-    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM'));
+    // Sort ascending for PDF
+    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM')).sort((a, b) => a.localeCompare(b));
 
     if (monthFilter === 'all') {
       return monthKeys; 
