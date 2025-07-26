@@ -74,7 +74,7 @@ export default function AppraiserLayout({ children }: { children: React.ReactNod
         </SidebarContent>
         <SidebarFooter>
           <div className="flex items-center gap-3 p-2 border-t">
-            <Avatar>
+            <Avatar className="h-10 w-10">
               <AvatarImage src={appraiser?.avatarUrl} alt={appraiser?.name} />
               <AvatarFallback>{appraiser?.name.charAt(0)}</AvatarFallback>
             </Avatar>

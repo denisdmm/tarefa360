@@ -58,7 +58,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
         </SidebarContent>
         <SidebarFooter>
           <div className="flex items-center gap-3 p-2 border-t">
-             <Avatar>
+             <Avatar className="h-10 w-10">
               <AvatarImage src={adminUser?.avatarUrl} alt={adminUser?.name} />
               <AvatarFallback>{adminUser?.name.charAt(0)}</AvatarFallback>
             </Avatar>
