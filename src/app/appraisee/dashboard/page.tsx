@@ -87,39 +87,51 @@ const ActivityForm = ({
   const { toast } = useToast();
   
   const validateStartDate = (dateString: string) => {
-    if (activity) { // No validation when editing
+    // No validation when editing an existing activity
+    if (activity) {
         setDateError(null);
         return;
     }
-
+  
     if (!dateString) {
         setDateError("A data de início é obrigatória.");
         return;
     }
 
-    const parsedDate = new Date(dateString);
+    // The input type="date" returns "YYYY-MM-DD".
+    // new Date() will parse it as UTC, which can cause off-by-one day errors
+    // depending on the user's timezone. We need to parse it as local time.
+    const parts = dateString.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
+    const day = parseInt(parts[2], 10);
+    const parsedDate = new Date(year, month, day);
+
     if (isNaN(parsedDate.getTime())) {
         setDateError("Formato de data inválido.");
         return;
     }
     
     if (activePeriod) {
-        const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
-        if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
-            setDateError("A data deve estar dentro do período de avaliação ativo.");
+        // Compare dates by creating UTC dates from local components to avoid timezone issues.
+        const checkDate = startOfDay(parsedDate);
+        const startDatePeriod = startOfDay(activePeriod.startDate);
+        const endDatePeriod = startOfDay(activePeriod.endDate);
+
+        if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
+             setDateError("A data deve estar dentro do período de avaliação ativo.");
         } else {
             setDateError(null);
         }
     } else {
-        setDateError(null); // No active period, no validation
+        setDateError(null); // No active period, no validation needed
     }
   };
 
+
   const isSaveDisabled = React.useMemo(() => {
     if (isReadOnly) return true;
-    if (!title.trim()) return true;
-    if (!startDate) return true;
-    if (dateError) return true;
+    if (!title.trim() || !startDate || dateError) return true;
     
     return false;
   }, [title, startDate, dateError, isReadOnly]);
@@ -174,6 +186,7 @@ const ActivityForm = ({
 
   const handleSubmit = () => {
     // Final validation before submitting
+    validateStartDate(startDate); // Re-validate on submit click
     if (isSaveDisabled) {
         toast({
             variant: "destructive",
@@ -183,12 +196,19 @@ const ActivityForm = ({
         return;
     }
     
-    const parsedDate = new Date(startDate);
-    const dateWithOffset = add(parsedDate, { minutes: parsedDate.getTimezoneOffset() });
+    const parts = startDate.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1;
+    const day = parseInt(parts[2], 10);
+    const dateWithOffset = new Date(year, month, day);
 
+    // This check is redundant if isSaveDisabled is working correctly, but good for safety
     if (!activity && activePeriod) {
-        if (!isWithinInterval(dateWithOffset, { start: activePeriod.startDate, end: activePeriod.endDate })) {
-            toast({
+        const checkDate = startOfDay(dateWithOffset);
+        const startDatePeriod = startOfDay(activePeriod.startDate);
+        const endDatePeriod = startOfDay(activePeriod.endDate);
+        if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
+             toast({
                 variant: "destructive",
                 title: "Data Inválida",
                 description: "A data deve estar dentro do período de avaliação ativo.",
@@ -249,7 +269,7 @@ const ActivityForm = ({
                         onChange={e => setStartDate(e.target.value)}
                         onBlur={e => validateStartDate(e.target.value)}
                         className={cn(dateError && "border-destructive")}
-                        readOnly={isReadOnly}
+                        readOnly={isReadOnly || !!activity}
                     />
                     {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
                 </div>
