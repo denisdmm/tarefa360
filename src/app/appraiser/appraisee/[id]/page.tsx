@@ -28,13 +28,15 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
-import type { Activity, User, ProgressEntry, EvaluationPeriod } from "@/lib/types";
+import type { Activity, User, ProgressEntry } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, getMonth, getYear, eachMonthOfInterval, startOfMonth, isWithinInterval } from 'date-fns';
+import { format, eachMonthOfInterval, startOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
+import { Dialog } from '@/components/ui/dialog';
+import { ActivityForm } from '@/app/shared/ActivityForm';
 
 type MonthlyActivity = Activity & {
     progressForMonth: ProgressEntry;
@@ -43,10 +45,14 @@ type MonthlyActivity = Activity & {
 export default function AppraiseeDetailView({ params: paramsProp }: { params: { id: string } }) {
   const params = React.use(paramsProp);
   const { users, activities, evaluationPeriods } = useDataContext();
+  
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
+  
+  const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
+  const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
 
@@ -56,36 +62,36 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
   }, [params.id, users]);
 
   const getActivitiesByMonth = React.useCallback(() => {
-    if (!activePeriod) return {};
+    if (!activePeriod || !appraisee) return {};
 
-    const userActivities = activities.filter(a => a.userId === params.id);
+    const userActivities = activities.filter(a => a.userId === appraisee.id);
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
+      let hasProgressInPeriod = false;
       activity.progressHistory.forEach(progress => {
         const progressDate = new Date(progress.year, progress.month - 1);
-        
-        // Include activity if its progress entry is within the active period
         if (isWithinInterval(progressDate, { start: activePeriod.startDate, end: activePeriod.endDate })) {
-            const monthYearKey = format(progressDate, 'yyyy-MM');
-            
-            if (!monthlyData[monthYearKey]) {
-                monthlyData[monthYearKey] = [];
-            }
+          hasProgressInPeriod = true;
+          const monthYearKey = format(progressDate, 'yyyy-MM');
+          
+          if (!monthlyData[monthYearKey]) {
+              monthlyData[monthYearKey] = [];
+          }
 
-            const existingActivity = monthlyData[monthYearKey].find(a => a.id === activity.id);
-            if (!existingActivity) {
-                monthlyData[monthYearKey].push({
-                    ...activity,
-                    progressForMonth: progress,
-                });
-            }
+          const existingActivity = monthlyData[monthYearKey].find(a => a.id === activity.id);
+          if (!existingActivity) {
+              monthlyData[monthYearKey].push({
+                  ...activity,
+                  progressForMonth: progress,
+              });
+          }
         }
       });
     });
 
     return monthlyData;
-  }, [activities, params.id, activePeriod]);
+  }, [activities, appraisee, activePeriod]);
 
 
   React.useEffect(() => {
@@ -160,12 +166,36 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     setIsGeneratingPdf(false);
   };
 
+  const handleOpenModal = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setIsModalOpen(true);
+  };
+  
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+    setSelectedActivity(null);
+  };
+
+
   if (!appraisee) {
     return <div className="p-6">Avaliado não encontrado.</div>;
   }
   
   return (
     <>
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        {isModalOpen && selectedActivity && appraisee && (
+            <ActivityForm
+              activity={selectedActivity}
+              onSave={() => {}} // No-op for read-only
+              onClose={handleCloseModal}
+              currentUserId={appraisee.id}
+              isReadOnly={true}
+              activePeriod={activePeriod}
+            />
+        )}
+      </Dialog>
+      
       <div className="print:hidden flex flex-col h-full">
         <header className="bg-card border-b p-4">
           <div className="flex justify-between items-center">
@@ -228,7 +258,14 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                         <TableBody>
                          {monthlyActivities[monthKey]?.map(activity => (
                             <TableRow key={`${activity.id}-${monthKey}`}>
-                            <TableCell className="font-medium">{activity.title}</TableCell>
+                            <TableCell className="font-medium">
+                                <button
+                                    className="text-left hover:underline"
+                                    onClick={() => handleOpenModal(activity)}
+                                >
+                                    {activity.title}
+                                </button>
+                            </TableCell>
                             <TableCell className="text-muted-foreground italic">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
