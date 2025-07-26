@@ -15,7 +15,7 @@ import {
   SidebarInset,
   SidebarTrigger,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard } from "lucide-react";
+import { LogOut, LayoutDashboard, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -43,6 +43,14 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
                 <Link href="/admin/dashboard">
                   <LayoutDashboard />
                   Painel
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild isActive={isActive("/admin/profile")}>
+                <Link href="/admin/profile">
+                  <User />
+                  Meu Perfil
                 </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
