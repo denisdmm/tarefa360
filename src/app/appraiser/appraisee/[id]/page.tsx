@@ -160,10 +160,11 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
   // For the PDF, we want ascending chronological order
   const pdfMonths = React.useMemo(() => {
     const allKeys = Object.keys(monthlyActivities);
+    const sortedKeys = allKeys.sort((a, b) => a.localeCompare(b)); // Sort ascending: '2024-01', '2024-02'
     if (monthFilter === 'all') {
-      return allKeys.sort(); // Sort ascending: '2024-01', '2024-02'
+      return sortedKeys;
     }
-    return allKeys.filter(key => key === monthFilter); // Will be a single month, order doesn't matter
+    return sortedKeys.filter(key => key === monthFilter); // Will be a single month, order doesn't matter
   }, [monthlyActivities, monthFilter]);
 
   return (
@@ -285,7 +286,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
               {pdfMonths.map(monthKey => {
                 const [year, month] = monthKey.split('-').map(Number);
                 return (
-                  <div key={monthKey}>
+                  <div key={`${monthKey}-pdf`}>
                     <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
                       {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR}).toUpperCase()}
                     </div>
