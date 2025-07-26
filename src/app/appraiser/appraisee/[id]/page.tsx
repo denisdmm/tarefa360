@@ -59,7 +59,6 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
         // Ensure there is a 0% progress entry for the start date if no other entry exists for that month
         const startYear = getYear(activity.startDate);
         const startMonth = getMonth(activity.startDate) + 1;
-        const startMonthKey = format(activity.startDate, 'yyyy-MM');
         
         const hasEntryForStartMonth = activity.progressHistory.some(p => p.year === startYear && p.month === startMonth);
         
@@ -104,7 +103,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
   }, [getActivitiesByMonth]);
 
   const filteredMonths = React.useMemo(() => {
-    const allKeys = Object.keys(monthlyActivities).sort().reverse(); // Sort descending
+    const allKeys = Object.keys(monthlyActivities).sort().reverse(); // Sort descending for on-screen view
     if (monthFilter === 'all') {
       return allKeys;
     }
@@ -117,6 +116,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
 
     setIsGeneratingPdf(true);
 
+    // Temporarily display the element to be captured
     reportElement.style.display = 'block';
 
     const canvas = await html2canvas(reportElement, {
@@ -124,6 +124,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
       useCORS: true,
     });
 
+    // Hide the element again after capture
     reportElement.style.display = 'none';
 
     const imgData = canvas.toDataURL('image/png');
@@ -151,14 +152,19 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
         value: key,
         label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
     };
-  }).sort((a,b) => b.value.localeCompare(a.value));
+  }).sort((a,b) => b.value.localeCompare(a.value)); // Descending for the dropdown
 
 
   const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
+  // For the PDF, we want ascending chronological order
   const pdfMonths = React.useMemo(() => {
-    return [...filteredMonths].sort();
-  }, [filteredMonths]);
+    const allKeys = Object.keys(monthlyActivities);
+    if (monthFilter === 'all') {
+      return allKeys.sort(); // Sort ascending: '2024-01', '2024-02'
+    }
+    return allKeys.filter(key => key === monthFilter); // Will be a single month, order doesn't matter
+  }, [monthlyActivities, monthFilter]);
 
   return (
     <>
@@ -184,7 +190,7 @@ export default function AppraiseeDetailView({ params }: { params: { id: string }
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-[180px]">
+                  <SelectTrigger className="w-[200px]">
                     <SelectValue placeholder="Filtrar por mês" />
                   </SelectTrigger>
                   <SelectContent>
