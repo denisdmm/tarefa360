@@ -316,51 +316,6 @@ export default function AdminDashboard() {
 
   const { toast } = useToast();
 
-  React.useEffect(() => {
-    const today = new Date();
-    const currentYear = getYear(today);
-    const currentMonth = getMonth(today); // 0-11 (Jan is 0, Nov is 10)
-  
-    // The evaluation period runs from Nov 1 of the previous year to Oct 31 of the current year.
-    // If the current month is between Jan (0) and Oct (9), the evaluation year is the current year.
-    // If the current month is Nov (10) or Dec (11), the new evaluation cycle has started for the *next* year.
-    let startYear, endYear;
-    if (currentMonth >= 10) { // In November or December
-        startYear = currentYear;
-        endYear = currentYear + 1;
-    } else { // In January to October
-        startYear = currentYear - 1;
-        endYear = currentYear;
-    }
-
-    const periodName = `Avaliação ${startYear}/${endYear}`;
-    const periodExists = evaluationPeriods.some(p => p.name === periodName);
-  
-    if (!periodExists) {
-      const newPeriod: EvaluationPeriod = {
-        id: `period-${Date.now()}`,
-        name: periodName,
-        // Start date is always Nov 1st of the calculated start year
-        startDate: new Date(startYear, 10, 1, 12, 0, 0),
-        // End date is always Oct 31st of the calculated end year
-        endDate: new Date(endYear, 9, 31, 12, 0, 0), 
-        status: 'Ativo',
-      };
-      
-      // Deactivate all other periods before adding the new one
-      const updatedPeriods = evaluationPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
-      
-      setEvaluationPeriods([newPeriod, ...updatedPeriods]);
-  
-      toast({
-        title: "Período Automático Criado",
-        description: `O período "${periodName}" foi criado e definido como ativo.`,
-      });
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []); // Runs only once on component mount
-
-
   const handleSaveUser = (updatedUser: User) => {
     setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
     toast({
