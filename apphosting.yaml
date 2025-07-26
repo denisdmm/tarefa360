@@ -5,3 +5,13 @@ runConfig:
   # Increase this value if you'd like to automatically spin up
   # more instances in response to increased traffic.
   maxInstances: 1
+# This is a sample of a static asset configuration.
+# App Hosting uses this configuration to optimize your static assets in our CDN.
+staticAssets:
+  - /_next/static/**
+  - /favicon.ico
+  - /icon.svg
+run:
+  # This is a sample of a run command.
+  # App Hosting uses this command to start your web server.
+  command: npm run start
