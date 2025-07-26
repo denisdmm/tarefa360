@@ -68,11 +68,9 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     const monthlyData: Record<string, MonthlyActivity[]> = {};
 
     userActivities.forEach(activity => {
-      let hasProgressInPeriod = false;
       activity.progressHistory.forEach(progress => {
         const progressDate = new Date(progress.year, progress.month - 1);
         if (isWithinInterval(progressDate, { start: activePeriod.startDate, end: activePeriod.endDate })) {
-          hasProgressInPeriod = true;
           const monthYearKey = format(progressDate, 'yyyy-MM');
           
           if (!monthlyData[monthYearKey]) {
@@ -322,31 +320,31 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
               )}
 
               {pdfMonths.map(monthKey => {
-                const [year, month] = monthKey.split('-').map(Number);
                 const activitiesForMonth = monthlyActivities[monthKey];
+                if (!activitiesForMonth || activitiesForMonth.length === 0) {
+                    return null; // Omit month if no activities
+                }
+
+                const [year, month] = monthKey.split('-').map(Number);
                 return (
                   <div key={`${monthKey}-pdf`}>
                     <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
                       {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR}).toUpperCase()}
                     </div>
-                    {activitiesForMonth && activitiesForMonth.length > 0 ? (
-                       <table className="w-full" style={{borderCollapse: 'collapse'}}>
-                        <tbody>
-                        {activitiesForMonth.map(activity => (
-                          <tr key={`${activity.id}-${monthKey}-pdf`}>
-                            <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
-                            <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
-                          </tr>
-                        ))}
-                        </tbody>
-                      </table>
-                    ) : (
-                        <div className="p-2 border-b border-black text-center italic">Nenhuma atividade registrada para este mês.</div>
-                    )}
+                    <table className="w-full" style={{borderCollapse: 'collapse'}}>
+                    <tbody>
+                    {activitiesForMonth.map(activity => (
+                        <tr key={`${activity.id}-${monthKey}-pdf`}>
+                        <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
+                        <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        </tr>
+                    ))}
+                    </tbody>
+                    </table>
                   </div>
                 )
               })}
-              {pdfMonths.length === 0 && (
+              {pdfMonths.every(monthKey => !monthlyActivities[monthKey] || monthlyActivities[monthKey].length === 0) && (
                   <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
               )}
           </div>
