@@ -464,10 +464,18 @@ const SidebarMenuButton = React.forwardRef<
     const Comp = asChild ? Slot : "button"
     const { isMobile, state } = useSidebar()
     
+    const childrenArray = React.Children.toArray(children);
+    const icon = childrenArray.find(
+      (c) => React.isValidElement(c) && (c.type as any).displayName?.includes("lucide")
+    );
+    const textSpan = childrenArray.find(
+      (c) => React.isValidElement(c) && c.type === "span"
+    );
+
     const buttonContent = (
       <div className="flex items-center gap-3">
-        {(children as React.ReactNode[]).find(c => (c as React.ReactElement)?.type?.displayName?.includes("lucide"))}
-        {state === 'expanded' && <span className="truncate">{(children as React.ReactNode[]).find(c => (c as React.ReactElement).type === 'span')}</span>}
+        {icon}
+        {state === 'expanded' && <span className="truncate">{ (textSpan as React.ReactElement)?.props.children }</span>}
       </div>
     );
     
