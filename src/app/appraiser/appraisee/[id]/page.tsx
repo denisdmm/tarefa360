@@ -291,28 +291,28 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
       {/* Content for PDF Generation */}
       <div id="print-content" className="hidden print:block p-8 bg-white" style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
           <div className="text-center mb-6">
-              <h1 className="text-xl font-bold">FICHA DE REGISTRO DE TRABALHOS REALIZADOS</h1>
+              <h1 className="text-xl font-bold uppercase">Ficha de Registro de Trabalhos Realizados</h1>
           </div>
           
           <table className="w-full border-collapse border border-black mb-6">
               <tbody>
                   <tr>
-                      <td className="border border-black p-2 font-bold text-center">POSTO/GRAD. E NOME DO AVALIADO</td>
-                      <td className="border border-black p-2 font-bold text-center">CARGO/FUNÇÃO</td>
+                      <td className="border border-black p-2 font-bold text-center uppercase">Posto/Grad. e Nome do Avaliado</td>
+                      <td className="border border-black p-2 font-bold text-center uppercase">Cargo/Função</td>
                   </tr>
                   <tr>
-                      <td className="border border-black p-2 text-center">{appraisee.postoGrad} {appraisee.name}</td>
-                      <td className="border border-black p-2 text-center">{appraisee.jobTitle}</td>
+                      <td className="border border-black p-2 text-center uppercase">{appraisee.postoGrad} {appraisee.name}</td>
+                      <td className="border border-black p-2 text-center uppercase">{appraisee.jobTitle}</td>
                   </tr>
               </tbody>
           </table>
 
           <div className="border border-black">
               <div className="text-center p-2 border-b border-black">
-                  <p className="font-bold">PRINCIPAIS ATIVIDADES DESENVOLVIDAS NO PERÍODO DE AVALIAÇÃO</p>
+                  <p className="font-bold uppercase">Principais Atividades Desenvolvidas no Período de Avaliação</p>
               </div>
               {activePeriod && (
-                  <div className="text-center p-1 border-b border-black font-bold">
+                  <div className="text-center p-1 border-b border-black font-bold uppercase">
                       <span>{format(activePeriod.startDate, 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(activePeriod.endDate, 'MMM yyyy', {locale: ptBR})}</span>
                   </div>
               )}
@@ -326,15 +326,15 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                 const [year, month] = monthKey.split('-').map(Number);
                 return (
                   <div key={`${monthKey}-pdf`}>
-                    <div className="text-center p-1 border-b border-black font-bold bg-gray-200">
-                      {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR}).toUpperCase()}
+                    <div className="text-center p-1 border-b border-black font-bold bg-gray-200 uppercase">
+                      {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})}
                     </div>
                     <table className="w-full" style={{borderCollapse: 'collapse'}}>
                     <tbody>
                     {activitiesForMonth.map(activity => (
                         <tr key={`${activity.id}-${monthKey}-pdf`}>
-                        <td className="w-[15%] p-2 border border-black text-center">{activity.progressForMonth.percentage}%</td>
-                        <td className="p-2 border border-black text-left">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        <td className="w-[15%] p-2 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
+                        <td className="p-2 border border-black text-center uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
                         </tr>
                     ))}
                     </tbody>
@@ -343,7 +343,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                 )
               })}
               {pdfMonths.every(monthKey => !monthlyActivities[monthKey] || monthlyActivities[monthKey].length === 0) && (
-                  <div className="text-center p-4">Nenhuma atividade registrada para o período.</div>
+                  <div className="text-center p-4 uppercase">Nenhuma atividade registrada para o período.</div>
               )}
           </div>
       </div>
