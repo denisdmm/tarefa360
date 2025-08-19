@@ -6,8 +6,6 @@ import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types'
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { users as mockUsers, activities as mockActivities, evaluationPeriods as mockEvaluationPeriods, associations as mockAssociations } from '@/lib/mock-data';
-
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -65,56 +63,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(false);
     const { toast } = useToast();
 
-    const seedDatabase = async () => {
-        console.log("Firestore is empty, seeding database with mock data...");
-        const batch = writeBatch(db);
-
-        // Seed Users
-        mockUsers.forEach(user => {
-            const { id, ...userData } = user;
-            const docRef = doc(db, "users", id);
-            // Ensure password is included when seeding
-            batch.set(docRef, { ...userData, password: user.password });
-        });
-        
-        // Seed Activities
-        mockActivities.forEach(activity => {
-             const { id, ...activityData } = activity;
-            const docRef = doc(db, "activities", id);
-            batch.set(docRef, activityData);
-        });
-        
-        // Seed Associations
-        mockAssociations.forEach(association => {
-             const { id, ...assocData } = association;
-            const docRef = doc(db, "associations", id);
-            batch.set(docRef, assocData);
-        });
-
-        // Seed Evaluation Periods
-        mockEvaluationPeriods.forEach(period => {
-            const { id, ...periodData } = period;
-            const docRef = doc(db, "evaluationPeriods", id);
-            batch.set(docRef, periodData);
-        });
-
-        await batch.commit();
-        console.log("Database seeded successfully.");
-        toast({ title: "Banco de Dados Populado", description: "Os dados de exemplo foram carregados no Firestore." });
-    };
-
     const fetchData = async () => {
+        if (users.length > 0) return; // Don't fetch if data is already present
+        
         setLoading(true);
         try {
-            // Check if seeding is needed
-            const usersSnapshot = await getDocs(collection(db, "users"));
-            if (usersSnapshot.empty) {
-                await seedDatabase();
-            }
-
-            // Fetch all data again after potential seeding
             const [
-                refetchedUsersSnapshot, 
+                usersSnapshot, 
                 activitiesSnapshot, 
                 periodsSnapshot, 
                 associationsSnapshot
@@ -125,7 +80,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 getDocs(collection(db, "associations"))
             ]);
             
-            const usersList = refetchedUsersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
+            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
             setUsersState(usersList);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
@@ -137,19 +92,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
 
-        } catch (error: any) {
-            console.error("Error fetching or seeding data from Firestore: ", error);
-            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar ou popular os dados." });
+        } catch (error) {
+            console.error("Error fetching data from Firestore: ", error);
+            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados do Firestore." });
         } finally {
             setLoading(false);
         }
     };
 
     React.useEffect(() => {
-        // Fetch data only if users list is empty
-        if (users.length === 0) {
-            fetchData();
-        }
+        fetchData();
     }, []);
     
     // --- USERS ---
@@ -229,8 +181,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         users,
         setUsers: async (users: User[]) => { 
             setUsersState(users);
-            // This function is now more for optimistic UI updates.
-            // The individual functions below handle Firestore writes.
         },
         addUser, updateUser, deleteUser,
         
