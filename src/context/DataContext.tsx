@@ -112,19 +112,21 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     const seedEvaluationPeriods = async (existingPeriods: EvaluationPeriod[]) => {
         const currentYear = new Date().getFullYear();
-        const periodName = `Avaliação Anual ${currentYear}`;
+        const periodName = `FAG+${currentYear}`;
 
         const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
 
         if (!currentPeriodExists) {
-            console.log(`Evaluation period for ${currentYear} not found. Seeding...`);
+            console.log(`Evaluation period for ${periodName} not found. Seeding...`);
             try {
                 const batch = writeBatch(db);
 
                 // Deactivate all existing periods
                 existingPeriods.forEach(p => {
-                    const periodRef = doc(db, 'evaluationPeriods', p.id);
-                    batch.update(periodRef, { status: 'Inativo' });
+                    if (p.status === 'Ativo') {
+                        const periodRef = doc(db, 'evaluationPeriods', p.id);
+                        batch.update(periodRef, { status: 'Inativo' });
+                    }
                 });
 
                 // Create the new active period
@@ -197,6 +199,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Error fetching data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Algumas funcionalidades podem estar indisponíveis." });
             setConnectionError(true);
+            // Fallback to local admin user if connection fails
             setUsersState([defaultAdminUser]);
         } finally {
             setLoading(false);
@@ -212,22 +215,32 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setUsersState(newUsers); 
         try {
             const batch = writeBatch(db);
-            newUsers.forEach(user => {
+            const existingUserIds = new Set(users.map(u => u.id));
+
+            for (const user of newUsers) {
                 const { id, ...data } = user;
-                if (id !== 'user-admin-local' && !id.startsWith('user-')) { 
-                    const docRef = doc(db, 'users', id);
-                    batch.set(docRef, data, { merge: true });
+                let docRef;
+
+                if (id && (id.startsWith('user-') && id !== 'user-admin-local')) {
+                     // It's a new user, create a new doc ref
+                    docRef = doc(collection(db, 'users'));
+                } else if (id !== 'user-admin-local') {
+                    // It's an existing user
+                    docRef = doc(db, 'users', id);
+                } else {
+                    continue; // Skip local admin user
+                }
+
+                batch.set(docRef, data, { merge: true });
+                existingUserIds.delete(id);
+            }
+
+             // Delete users that are no longer in the list
+            existingUserIds.forEach(idToDelete => {
+                if (idToDelete !== 'user-admin-local') {
+                    batch.delete(doc(db, 'users', idToDelete));
                 }
             });
-            const newDbUsers = newUsers.filter(u => !users.some(ou => ou.id === u.id));
-            for(const newUser of newDbUsers) {
-                const { id, ...data } = newUser;
-                await addDoc(collection(db, 'users'), data);
-            }
-            const deletedUserIds = users.filter(u => !newUsers.some(nu => nu.id === u.id)).map(u => u.id);
-            for(const userId of deletedUserIds) {
-                batch.delete(doc(db, 'users', userId));
-            }
 
             await batch.commit();
             await fetchData(); 
@@ -242,15 +255,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setActivitiesState(newActivities);
         try {
             const batch = writeBatch(db);
+            const existingActivityIds = new Set(activities.map(a => a.id));
+
             for(const activity of newActivities) {
                 const { id, ...data } = activity;
-                const docRef = doc(db, 'activities', id.startsWith('act-') ? doc(collection(db, 'activities')).id : id);
+                const docRef = id.startsWith('act-') ? doc(collection(db, 'activities')) : doc(db, 'activities', id);
                 batch.set(docRef, data, { merge: true });
+                existingActivityIds.delete(id);
             }
-            const deletedActivityIds = activities.filter(a => !newActivities.some(na => na.id === a.id)).map(a => a.id);
-            for(const activityId of deletedActivityIds) {
-                batch.delete(doc(db, 'activities', activityId));
-            }
+
+            existingActivityIds.forEach(idToDelete => {
+                 batch.delete(doc(db, 'activities', idToDelete));
+            });
+
             await batch.commit();
             await fetchData();
         } catch (error) {
@@ -264,15 +281,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setEvaluationPeriodsState(newPeriods);
          try {
             const batch = writeBatch(db);
+            const existingPeriodIds = new Set(evaluationPeriods.map(p => p.id));
+
             for(const period of newPeriods) {
                 const { id, ...data } = period;
-                const docRef = doc(db, 'evaluationPeriods', id.startsWith('period-') ? doc(collection(db, 'evaluationPeriods')).id : id);
+                const docRef = id.startsWith('period-') ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
                 batch.set(docRef, data, { merge: true });
+                existingPeriodIds.delete(id);
             }
-            const deletedPeriodIds = evaluationPeriods.filter(p => !newPeriods.some(np => np.id === p.id)).map(p => p.id);
-            for(const periodId of deletedPeriodIds) {
-                batch.delete(doc(db, 'evaluationPeriods', periodId));
-            }
+
+            existingPeriodIds.forEach(idToDelete => {
+                 batch.delete(doc(db, 'evaluationPeriods', idToDelete));
+            });
+
             await batch.commit();
             await fetchData();
         } catch (error) {
@@ -286,15 +307,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setAssociationsState(newAssociations);
          try {
             const batch = writeBatch(db);
+            const existingAssocIds = new Set(associations.map(a => a.id));
+
             for(const assoc of newAssociations) {
                 const { id, ...data } = assoc;
-                const docRef = doc(db, 'associations', id.startsWith('assoc-') ? doc(collection(db, 'associations')).id : id);
+                const docRef = id.startsWith('assoc-') ? doc(collection(db, 'associations')) : doc(db, 'associations', id);
                 batch.set(docRef, data, { merge: true });
+                existingAssocIds.delete(id);
             }
-            const deletedAssocIds = associations.filter(a => !newAssociations.some(na => na.id === a.id)).map(a => a.id);
-            for(const assocId of deletedAssocIds) {
-                batch.delete(doc(db, 'associations', assocId));
-            }
+
+            existingAssocIds.forEach(idToDelete => {
+                 batch.delete(doc(db, 'associations', idToDelete));
+            });
+
             await batch.commit();
             await fetchData();
         } catch (error) {
@@ -338,5 +363,3 @@ export const useDataContext = () => {
     }
     return context;
 };
-
-    
