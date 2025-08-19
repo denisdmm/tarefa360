@@ -58,7 +58,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [evaluationPeriods, setEvaluationPeriodsState] = React.useState<EvaluationPeriod[]>([]);
     const [associations, setAssociationsState] = React.useState<Association[]>([]);
     const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
-    const [loading, setLoading] = React.useState(true);
+    const [loading, setLoading] = React.useState(false); // Start as false
     const { toast } = useToast();
 
     const seedDatabase = async () => {
@@ -85,6 +85,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
              const { id, ...assocData } = association;
             const docRef = doc(db, "associations", id);
             batch.set(docRef, assocData);
+        });
+
+        // Seed Evaluation Periods
+        mockEvaluationPeriods.forEach(period => {
+            const { id, ...periodData } = period;
+            const docRef = doc(db, "evaluationPeriods", id);
+            batch.set(docRef, periodData);
         });
 
         await batch.commit();
@@ -135,7 +142,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     React.useEffect(() => {
-        fetchData();
+        // Fetch data only if users list is empty
+        if (users.length === 0) {
+            fetchData();
+        }
     }, []);
     
     // --- USERS ---
