@@ -158,7 +158,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         if(users.length === 0) {
             fetchData();
         }
-    }, []);
+    }, [users.length]);
     
     // --- USERS ---
     const addUser = async (userData: Omit<User, 'id'>) => {
@@ -271,3 +271,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
