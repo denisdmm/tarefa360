@@ -69,7 +69,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         mockUsers.forEach(user => {
             const { id, ...userData } = user;
             const docRef = doc(db, "users", id);
-            batch.set(docRef, userData);
+            // Ensure password is included when seeding
+            batch.set(docRef, { ...userData, password: user.password });
         });
         
         // Seed Activities
@@ -125,7 +126,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
 
-        } catch (error) {
+        } catch (error: any) {
             console.error("Error fetching or seeding data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar ou popular os dados." });
         } finally {
@@ -212,7 +213,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const contextValue = {
         users,
-        setUsers: async (users: User[]) => { setUsersState(users); },
+        setUsers: async (users: User[]) => { 
+            setUsersState(users);
+            // This function is now more for optimistic UI updates.
+            // The individual functions below handle Firestore writes.
+        },
         addUser, updateUser, deleteUser,
         
         activities,
