@@ -115,16 +115,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const periodName = `FAG+${currentYear}`;
         
         const periodsRef = collection(db, "evaluationPeriods");
-        const q = query(periodsRef, where("name", "==", periodName));
-        const currentPeriodSnapshot = await getDocs(q);
+        const allPeriodsSnapshot = await getDocs(periodsRef);
+        const existingPeriods = allPeriodsSnapshot.docs.map(d => d.data() as EvaluationPeriod);
 
-        if (currentPeriodSnapshot.empty) {
+        const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
+
+        if (!currentPeriodExists) {
             console.log(`Evaluation period for ${periodName} not found. Seeding...`);
             try {
                 const batch = writeBatch(db);
 
                 // Deactivate all existing periods
-                const allPeriodsSnapshot = await getDocs(periodsRef);
                 allPeriodsSnapshot.forEach(pDoc => {
                     const periodData = pDoc.data();
                     if (periodData.status === 'Ativo') {
@@ -150,7 +151,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 });
                 
                 // Force a refetch to get the latest data including the new period
-                await fetchData();
+                return true; // Indicate that a change was made
 
             } catch (error) {
                 console.error("Error seeding evaluation periods:", error);
@@ -160,9 +161,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                     description: "Não foi possível criar o período de avaliação automaticamente."
                 });
             }
-        } else {
-            console.log(`Evaluation period '${periodName}' already exists.`);
         }
+        return false; // No change was made
     };
 
     const fetchData = async () => {
@@ -170,7 +170,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setConnectionError(false);
         try {
             await seedAdminUser(); 
-            await seedEvaluationPeriods();
+            const wasPeriodCreated = await seedEvaluationPeriods();
+            
+            // If a new period was created, we must refetch to get the updated list
+            if (wasPeriodCreated) {
+                await fetchData();
+                return; // Exit current execution to avoid race conditions
+            }
+
 
             const [
                 usersSnapshot, 
@@ -376,3 +383,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
