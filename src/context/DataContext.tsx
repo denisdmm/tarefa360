@@ -62,35 +62,43 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(false);
     const { toast } = useToast();
 
-    // Helper function to create the admin user if it doesn't exist
+    // Helper function to create or update the admin user to ensure correct password
     const seedAdminUser = async () => {
         const adminCpf = '00000000000';
         const usersRef = collection(db, 'users');
         const q = query(usersRef, where('cpf', '==', adminCpf));
         const adminSnapshot = await getDocs(q);
 
+        const adminData: Omit<User, 'id'> = {
+            name: 'Usuário Admin',
+            nomeDeGuerra: 'Admin',
+            email: 'admin@tarefa360.com',
+            role: 'admin',
+            jobTitle: 'Administrador do Sistema',
+            sector: 'TI',
+            avatarUrl: 'https://placehold.co/100x100',
+            cpf: adminCpf,
+            postoGrad: 'Cel',
+            status: 'Ativo',
+            password: '1234',
+            forcePasswordChange: false,
+        };
+
         if (adminSnapshot.empty) {
             console.log('Admin user not found, seeding...');
-            const adminData = {
-                name: 'Usuário Admin',
-                nomeDeGuerra: 'Admin',
-                email: 'admin@tarefa360.com',
-                role: 'admin' as const,
-                jobTitle: 'Administrador do Sistema',
-                sector: 'TI',
-                avatarUrl: 'https://placehold.co/100x100',
-                cpf: adminCpf,
-                postoGrad: 'Cel',
-                status: 'Ativo' as const,
-                password: '1234',
-                forcePasswordChange: false,
-            };
             try {
-                // Ensure the password is included in the data being added
                 await addDoc(usersRef, adminData);
-                toast({ title: 'Administrador Padrão Criado', description: 'A conta de administrador foi configurada com a senha padrão.' });
             } catch (error) {
                 console.error("Error seeding admin user:", error);
+            }
+        } else {
+            console.log('Admin user found, ensuring password is correct...');
+            try {
+                const adminDoc = adminSnapshot.docs[0];
+                // Force update password to ensure it's correct
+                await setDoc(doc(db, 'users', adminDoc.id), adminData, { merge: true });
+            } catch (error) {
+                 console.error("Error updating admin user password:", error);
             }
         }
     };
@@ -101,7 +109,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         
         setLoading(true);
         try {
-            await seedAdminUser(); // Ensure admin exists
+            await seedAdminUser(); // Ensure admin exists and password is correct
 
             const [
                 usersSnapshot, 
