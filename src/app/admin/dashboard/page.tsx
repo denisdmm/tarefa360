@@ -42,7 +42,8 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
-import { Calendar, Edit, Link2, PlusCircle, Trash2, Users } from "lucide-react";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Calendar, Edit, Link2, PlusCircle, Trash2, Users, AlertTriangle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { User, EvaluationPeriod, Role, Association } from "@/lib/types";
@@ -179,6 +180,7 @@ export default function AdminDashboard() {
     setEvaluationPeriods,
     associations,
     setAssociations,
+    connectionError,
    } = useDataContext();
 
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -407,6 +409,16 @@ export default function AdminDashboard() {
       
       <div className="flex flex-col h-full">
         <main className="flex-1 p-2 md:p-6 overflow-auto">
+          {connectionError && (
+             <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Falha na Conexão com o Banco de Dados</AlertTitle>
+                <AlertDescription>
+                   Não foi possível carregar os dados mais recentes do Firestore. As informações exibidas podem estar desatualizadas ou incompletas. Verifique sua conexão com a internet.
+                </AlertDescription>
+            </Alert>
+          )}
+
           <div className="mb-6">
             <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
             <p className="text-muted-foreground">Gerencie todo o ecossistema de avaliação.</p>

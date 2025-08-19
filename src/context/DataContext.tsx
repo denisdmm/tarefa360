@@ -22,6 +22,23 @@ const convertTimestamps = (data: any) => {
     return newData;
 };
 
+const defaultAdminUser: User = {
+    id: 'user-admin-local',
+    name: 'Usuário Admin',
+    nomeDeGuerra: 'Admin',
+    email: 'admin@tarefa360.com',
+    role: 'admin',
+    jobTitle: 'Administrador do Sistema',
+    sector: 'TI',
+    avatarUrl: 'https://placehold.co/100x100',
+    cpf: '00000000000',
+    postoGrad: 'Cel',
+    status: 'Ativo',
+    password: '1234',
+    forcePasswordChange: false,
+};
+
+
 interface DataContextProps {
     users: User[];
     setUsers: (users: User[]) => Promise<void>; // Simplified for optimistic updates
@@ -49,17 +66,19 @@ interface DataContextProps {
     loggedInUser: User | null;
     setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
     loading: boolean;
+    connectionError: boolean;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
-    const [users, setUsersState] = React.useState<User[]>([]);
+    const [users, setUsersState] = React.useState<User[]>([defaultAdminUser]);
     const [activities, setActivitiesState] = React.useState<Activity[]>([]);
     const [evaluationPeriods, setEvaluationPeriodsState] = React.useState<EvaluationPeriod[]>([]);
     const [associations, setAssociationsState] = React.useState<Association[]>([]);
     const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
     const [loading, setLoading] = React.useState(false);
+    const [connectionError, setConnectionError] = React.useState(false);
     const { toast } = useToast();
 
     // Helper function to create or update the admin user to ensure correct password
@@ -69,7 +88,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const q = query(usersRef, where('cpf', '==', adminCpf));
         const adminSnapshot = await getDocs(q);
 
-        const adminData: Omit<User, 'id'> = {
+        const adminData: Omit<User, 'id'> & {password: string} = {
             name: 'Usuário Admin',
             nomeDeGuerra: 'Admin',
             email: 'admin@tarefa360.com',
@@ -104,10 +123,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     const fetchData = async () => {
-        // Avoid fetching if data is already present
-        if (users.length > 0) return; 
-        
         setLoading(true);
+        setConnectionError(false);
         try {
             await seedAdminUser(); // Ensure admin exists and password is correct
 
@@ -135,7 +152,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  }
                  return user;
             });
-            setUsersState(usersList);
+            // Merge with local admin, preventing duplicates
+            const filteredRemoteUsers = usersList.filter(u => u.cpf !== defaultAdminUser.cpf);
+            setUsersState([ ...filteredRemoteUsers, ...usersList.filter(u => u.cpf === defaultAdminUser.cpf)]);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
             setActivitiesState(activitiesList);
@@ -148,17 +167,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
-            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados do Firestore." });
+            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Algumas funcionalidades podem estar indisponíveis." });
+            setConnectionError(true);
         } finally {
             setLoading(false);
         }
     };
 
     React.useEffect(() => {
-        if(users.length === 0) {
-            fetchData();
-        }
-    }, [users.length]);
+        fetchData();
+    }, []);
     
     // --- USERS ---
     const addUser = async (userData: Omit<User, 'id'>) => {
@@ -255,6 +273,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         loggedInUser,
         setLoggedInUser,
         loading,
+        connectionError,
     };
     
     return (
@@ -271,5 +290,3 @@ export const useDataContext = () => {
     }
     return context;
 };
-
-    
