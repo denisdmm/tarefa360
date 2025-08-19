@@ -53,7 +53,7 @@ export default function LoginPage() {
     setCpf(onlyNumbers);
   };
 
-  const isLoginDisabled = loading || cpf.length !== 11 || password.length === 0;
+  const isLoginDisabled = cpf.length !== 11 || password.length === 0;
   
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoginDisabled) {
