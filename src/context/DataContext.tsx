@@ -110,21 +110,25 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const seedEvaluationPeriods = async (existingPeriods: EvaluationPeriod[]) => {
+    const seedEvaluationPeriods = async () => {
         const currentYear = new Date().getFullYear();
         const periodName = `FAG+${currentYear}`;
+        
+        const periodsRef = collection(db, "evaluationPeriods");
+        const q = query(periodsRef, where("name", "==", periodName));
+        const currentPeriodSnapshot = await getDocs(q);
 
-        const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
-
-        if (!currentPeriodExists) {
+        if (currentPeriodSnapshot.empty) {
             console.log(`Evaluation period for ${periodName} not found. Seeding...`);
             try {
                 const batch = writeBatch(db);
 
                 // Deactivate all existing periods
-                existingPeriods.forEach(p => {
-                    if (p.status === 'Ativo') {
-                        const periodRef = doc(db, 'evaluationPeriods', p.id);
+                const allPeriodsSnapshot = await getDocs(periodsRef);
+                allPeriodsSnapshot.forEach(pDoc => {
+                    const periodData = pDoc.data();
+                    if (periodData.status === 'Ativo') {
+                        const periodRef = doc(db, 'evaluationPeriods', pDoc.id);
                         batch.update(periodRef, { status: 'Inativo' });
                     }
                 });
@@ -140,14 +144,24 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 batch.set(newPeriodRef, newPeriodData);
                 
                 await batch.commit();
-                console.log(`Default evaluation period '${periodName}' seeded and activated.`);
+                toast({
+                    title: "Período de Avaliação Criado",
+                    description: `O período '${periodName}' foi criado e ativado para o ano corrente.`,
+                });
                 
                 // Force a refetch to get the latest data including the new period
                 await fetchData();
 
             } catch (error) {
                 console.error("Error seeding evaluation periods:", error);
+                toast({
+                    variant: "destructive",
+                    title: "Falha ao Criar Período",
+                    description: "Não foi possível criar o período de avaliação automaticamente."
+                });
             }
+        } else {
+            console.log(`Evaluation period '${periodName}' already exists.`);
         }
     };
 
@@ -156,6 +170,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setConnectionError(false);
         try {
             await seedAdminUser(); 
+            await seedEvaluationPeriods();
 
             const [
                 usersSnapshot, 
@@ -189,8 +204,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
             const periodsList = periodsSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as EvaluationPeriod));
             setEvaluationPeriodsState(periodsList);
-            
-            await seedEvaluationPeriods(periodsList);
             
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);

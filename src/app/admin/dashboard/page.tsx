@@ -198,6 +198,8 @@ export default function AdminDashboard() {
 
   const { toast } = useToast();
 
+  const hasActivePeriod = React.useMemo(() => evaluationPeriods.some(p => p.status === 'Ativo'), [evaluationPeriods]);
+
   const handleSaveUser = (formData: UserFormData) => {
       if (formData.mode === 'edit' && formData.user) {
         const updatedUser: User = {
@@ -418,6 +420,17 @@ export default function AdminDashboard() {
                 </AlertDescription>
             </Alert>
           )}
+
+          {!hasActivePeriod && !connectionError && (
+             <Alert variant="destructive" className="mb-6">
+                <AlertTriangle className="h-4 w-4" />
+                <AlertTitle>Nenhum Período de Avaliação Ativo</AlertTitle>
+                <AlertDescription>
+                   Não há um período de avaliação ativo para o ano corrente. Algumas funcionalidades, como o registro de novas atividades, podem estar desabilitadas. Por favor, crie ou ative um período na aba 'Períodos de Avaliação'.
+                </AlertDescription>
+            </Alert>
+          )}
+
 
           <div className="mb-6">
             <h1 className="text-3xl font-bold font-headline">Painel do Administrador</h1>
