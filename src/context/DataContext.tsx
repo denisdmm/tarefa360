@@ -86,6 +86,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 forcePasswordChange: false,
             };
             try {
+                // Ensure the password is included in the data being added
                 await addDoc(usersRef, adminData);
                 toast({ title: 'Administrador Padrão Criado', description: 'A conta de administrador foi configurada com a senha padrão.' });
             } catch (error) {
@@ -114,7 +115,18 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 getDocs(collection(db, "associations"))
             ]);
             
-            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...(convertTimestamps(doc.data()) as Omit<User, 'id'>) } as User));
+            const usersList = usersSnapshot.docs.map(doc => {
+                 const data = doc.data();
+                 const user: User = { 
+                     id: doc.id, 
+                     ...(convertTimestamps(data) as Omit<User, 'id'>) 
+                 };
+                 // Explicitly include password if it exists in the source data
+                 if (data.password) {
+                    user.password = data.password;
+                 }
+                 return user;
+            });
             setUsersState(usersList);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
@@ -135,7 +147,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     React.useEffect(() => {
-        fetchData();
+        if(users.length === 0) {
+            fetchData();
+        }
     }, []);
     
     // --- USERS ---
@@ -249,5 +263,3 @@ export const useDataContext = () => {
     }
     return context;
 };
-
-    
