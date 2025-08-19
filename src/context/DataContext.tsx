@@ -4,8 +4,10 @@
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { users as mockUsers, activities as mockActivities, evaluationPeriods as mockEvaluationPeriods, associations as mockAssociations } from '@/lib/mock-data';
+
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -59,32 +61,73 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(true);
     const { toast } = useToast();
 
+    const seedDatabase = async () => {
+        console.log("Firestore is empty, seeding database with mock data...");
+        const batch = writeBatch(db);
+
+        // Seed Users
+        mockUsers.forEach(user => {
+            const { id, ...userData } = user;
+            const docRef = doc(db, "users", id);
+            batch.set(docRef, userData);
+        });
+        
+        // Seed Activities
+        mockActivities.forEach(activity => {
+             const { id, ...activityData } = activity;
+            const docRef = doc(db, "activities", id);
+            batch.set(docRef, activityData);
+        });
+        
+        // Seed Associations
+        mockAssociations.forEach(association => {
+             const { id, ...assocData } = association;
+            const docRef = doc(db, "associations", id);
+            batch.set(docRef, assocData);
+        });
+
+        await batch.commit();
+        console.log("Database seeded successfully.");
+        toast({ title: "Banco de Dados Populado", description: "Os dados de exemplo foram carregados no Firestore." });
+    };
+
     const fetchData = async () => {
         setLoading(true);
         try {
-            // Fetch Users
+            // Check if seeding is needed
             const usersSnapshot = await getDocs(collection(db, "users"));
-            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
+            if (usersSnapshot.empty) {
+                await seedDatabase();
+            }
+
+            // Fetch all data again after potential seeding
+            const [
+                refetchedUsersSnapshot, 
+                activitiesSnapshot, 
+                periodsSnapshot, 
+                associationsSnapshot
+            ] = await Promise.all([
+                getDocs(collection(db, "users")),
+                getDocs(collection(db, "activities")),
+                getDocs(collection(db, "evaluationPeriods")),
+                getDocs(collection(db, "associations"))
+            ]);
+            
+            const usersList = refetchedUsersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
             setUsersState(usersList);
             
-            // Fetch Activities
-            const activitiesSnapshot = await getDocs(collection(db, "activities"));
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
             setActivitiesState(activitiesList);
 
-            // Fetch Evaluation Periods
-            const periodsSnapshot = await getDocs(collection(db, "evaluationPeriods"));
             const periodsList = periodsSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as EvaluationPeriod));
             setEvaluationPeriodsState(periodsList);
             
-            // Fetch Associations
-            const associationsSnapshot = await getDocs(collection(db, "associations"));
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
 
         } catch (error) {
-            console.error("Error fetching data from Firestore: ", error);
-            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados do banco de dados." });
+            console.error("Error fetching or seeding data from Firestore: ", error);
+            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar ou popular os dados." });
         } finally {
             setLoading(false);
         }
