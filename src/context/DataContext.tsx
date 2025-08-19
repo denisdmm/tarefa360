@@ -140,6 +140,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 };
                 await addDoc(periodsRef, newPeriod);
                 console.log(`Default evaluation period '${periodName}' seeded.`);
+                // Force refetch after seeding to get the new data reflected in the UI
+                await fetchData();
             } catch (error) {
                 console.error("Error seeding evaluation periods:", error);
             }
@@ -196,6 +198,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Error fetching data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Algumas funcionalidades podem estar indisponíveis." });
             setConnectionError(true);
+            // Even if connection fails, ensure local admin is available
+            setUsersState([defaultAdminUser]);
         } finally {
             setLoading(false);
         }
@@ -215,7 +219,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             newUsers.forEach(user => {
                 const { id, ...data } = user;
                 // Ensure local-only users are not written to DB without a proper ID
-                if (id !== 'user-admin-local') { 
+                if (id !== 'user-admin-local' && !id.startsWith('user-')) { 
                     const docRef = doc(db, 'users', id);
                     batch.set(docRef, data, { merge: true });
                 }
@@ -235,6 +239,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
 
             await batch.commit();
+            await fetchData(); // Refetch to ensure consistency
         } catch (error) {
             console.error("Error batch updating users:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Usuários" });
@@ -249,7 +254,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             // Updates and creations
             for(const activity of newActivities) {
                 const { id, ...data } = activity;
-                const docRef = doc(db, 'activities', id.startsWith('act-') ? id : doc(collection(db, 'activities')).id);
+                const docRef = doc(db, 'activities', id.startsWith('act-') ? doc(collection(db, 'activities')).id : id);
                 batch.set(docRef, data, { merge: true });
             }
              // Handle deletions
@@ -258,6 +263,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 batch.delete(doc(db, 'activities', activityId));
             }
             await batch.commit();
+            await fetchData();
         } catch (error) {
             console.error("Error batch updating activities:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Atividades" });
@@ -272,7 +278,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             // Updates and creations
             for(const period of newPeriods) {
                 const { id, ...data } = period;
-                const docRef = doc(db, 'evaluationPeriods', id.startsWith('period-') ? id : doc(collection(db, 'evaluationPeriods')).id);
+                const docRef = doc(db, 'evaluationPeriods', id.startsWith('period-') ? doc(collection(db, 'evaluationPeriods')).id : id);
                 batch.set(docRef, data, { merge: true });
             }
              // Handle deletions
@@ -281,6 +287,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 batch.delete(doc(db, 'evaluationPeriods', periodId));
             }
             await batch.commit();
+            await fetchData();
         } catch (error) {
             console.error("Error batch updating periods:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Períodos" });
@@ -295,7 +302,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             // Updates and creations
             for(const assoc of newAssociations) {
                 const { id, ...data } = assoc;
-                const docRef = doc(db, 'associations', id.startsWith('assoc-') ? id : doc(collection(db, 'associations')).id);
+                const docRef = doc(db, 'associations', id.startsWith('assoc-') ? doc(collection(db, 'associations')).id : id);
                 batch.set(docRef, data, { merge: true });
             }
              // Handle deletions
@@ -304,6 +311,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 batch.delete(doc(db, 'associations', assocId));
             }
             await batch.commit();
+            await fetchData();
         } catch (error) {
             console.error("Error batch updating associations:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Associações" });
