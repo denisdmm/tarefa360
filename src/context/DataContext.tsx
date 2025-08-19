@@ -77,7 +77,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [evaluationPeriods, setEvaluationPeriodsState] = React.useState<EvaluationPeriod[]>([]);
     const [associations, setAssociationsState] = React.useState<Association[]>([]);
     const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
-    const [loading, setLoading] = React.useState(false);
+    const [loading, setLoading] = React.useState(true);
     const [connectionError, setConnectionError] = React.useState(false);
     const { toast } = useToast();
 
@@ -124,20 +124,32 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     const seedEvaluationPeriods = async () => {
         const periodsRef = collection(db, 'evaluationPeriods');
-        const periodsSnapshot = await getDocs(periodsRef);
+        const currentYear = new Date().getFullYear();
+        const periodName = `Avaliação Anual ${currentYear}`;
+        
+        const q = query(periodsRef, where('name', '==', periodName));
+        const periodSnapshot = await getDocs(q);
 
-        if (periodsSnapshot.empty) {
-            console.log('Evaluation periods not found, seeding...');
+        if (periodSnapshot.empty) {
+            console.log(`Evaluation period for ${currentYear} not found, seeding...`);
             try {
-                const currentYear = new Date().getFullYear();
-                const defaultPeriod: Omit<EvaluationPeriod, 'id'> = {
-                    name: `Avaliação Anual ${currentYear}`,
-                    startDate: new Date(currentYear, 0, 1), // Jan 1st
-                    endDate: new Date(currentYear, 11, 31), // Dec 31st
+                // Deactivate all other periods before creating a new active one
+                const allPeriodsSnapshot = await getDocs(periodsRef);
+                const batch = writeBatch(db);
+                allPeriodsSnapshot.forEach(pDoc => {
+                    const periodDocRef = doc(db, 'evaluationPeriods', pDoc.id);
+                    batch.update(periodDocRef, { status: 'Inativo' });
+                });
+                await batch.commit();
+
+                const newPeriod: Omit<EvaluationPeriod, 'id'> = {
+                    name: periodName,
+                    startDate: new Date(currentYear - 1, 10, 1), // November 1st of previous year
+                    endDate: new Date(currentYear, 9, 31),     // October 31st of current year
                     status: 'Ativo',
                 };
-                await addDoc(periodsRef, defaultPeriod);
-                console.log('Default evaluation period seeded.');
+                await addDoc(periodsRef, newPeriod);
+                console.log(`Default evaluation period '${periodName}' seeded.`);
             } catch (error) {
                 console.error("Error seeding evaluation periods:", error);
             }
