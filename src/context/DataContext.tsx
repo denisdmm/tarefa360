@@ -41,27 +41,17 @@ const defaultAdminUser: User = {
 
 interface DataContextProps {
     users: User[];
-    setUsers: (users: User[]) => Promise<void>; // Simplified for optimistic updates
-    addUser: (user: Omit<User, 'id'>) => Promise<void>;
-    updateUser: (user: User) => Promise<void>;
-    deleteUser: (userId: string) => Promise<void>;
+    setUsers: (users: User[]) => Promise<void>; 
     
     activities: Activity[];
     setActivities: (activities: Activity[]) => Promise<void>;
-    addActivity: (activity: Omit<Activity, 'id'>) => Promise<void>;
-    updateActivity: (activity: Activity) => Promise<void>;
-    deleteActivity: (activityId: string) => Promise<void>;
 
     evaluationPeriods: EvaluationPeriod[];
     setEvaluationPeriods: (periods: EvaluationPeriod[]) => Promise<void>;
-    addEvaluationPeriod: (period: Omit<EvaluationPeriod, 'id'>) => Promise<void>;
-    updateEvaluationPeriod: (period: EvaluationPeriod) => Promise<void>;
 
 
     associations: Association[];
     setAssociations: (associations: Association[]) => Promise<void>;
-    addAssociation: (association: Omit<Association, 'id'>) => Promise<void>;
-    deleteAssociation: (associationId: string) => Promise<void>;
 
     loggedInUser: User | null;
     setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
@@ -215,131 +205,125 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchData();
     }, []);
     
-    // --- USERS ---
-    const addUser = async (userData: Omit<User, 'id'>) => {
+    
+    // BATCH UPDATE FUNCTIONS (For UI optimistic updates and eventual DB write)
+    
+    const handleSetUsers = async (newUsers: User[]) => {
+        setUsersState(newUsers); // Optimistic update
         try {
-            const docRef = await addDoc(collection(db, "users"), userData);
-            setUsersState(prev => [...prev, { id: docRef.id, ...userData }]);
-        } catch (e) { console.error("Error adding user: ", e); }
-    };
-    const updateUser = async (user: User) => {
-        const { id, ...userData } = user;
-        try {
-            await setDoc(doc(db, "users", id), userData, { merge: true });
-            setUsersState(prev => prev.map(u => u.id === id ? user : u));
-        } catch (e) { console.error("Error updating user: ", e); }
-    };
-    const deleteUser = async (userId: string) => {
-        try {
-            await deleteDoc(doc(db, "users", userId));
-            setUsersState(prev => prev.filter(u => u.id !== userId));
-        } catch(e) { console.error("Error deleting user: ", e); }
+            const batch = writeBatch(db);
+            newUsers.forEach(user => {
+                const { id, ...data } = user;
+                // Ensure local-only users are not written to DB without a proper ID
+                if (id !== 'user-admin-local') { 
+                    const docRef = doc(db, 'users', id);
+                    batch.set(docRef, data, { merge: true });
+                }
+            });
+            // Handle user creation
+            const newDbUsers = newUsers.filter(u => !users.some(ou => ou.id === u.id));
+            for(const newUser of newDbUsers) {
+                const { id, ...data } = newUser;
+                const docRef = await addDoc(collection(db, 'users'), data);
+                // We might need to update the local state with the new ID here
+                // but for now, a refetch might be simpler. Let's stick to batch for updates.
+            }
+             // Handle deletions
+            const deletedUserIds = users.filter(u => !newUsers.some(nu => nu.id === u.id)).map(u => u.id);
+            for(const userId of deletedUserIds) {
+                batch.delete(doc(db, 'users', userId));
+            }
+
+            await batch.commit();
+        } catch (error) {
+            console.error("Error batch updating users:", error);
+            toast({ variant: 'destructive', title: "Erro ao Salvar Usuários" });
+            fetchData(); // Refetch to get consistent state
+        }
     };
 
-    // --- ACTIVITIES ---
-     const addActivity = async (activityData: Omit<Activity, 'id'>) => {
+    const handleSetActivities = async (newActivities: Activity[]) => {
+        setActivitiesState(newActivities);
         try {
-            const docRef = await addDoc(collection(db, "activities"), activityData);
-            setActivitiesState(prev => [...prev, { id: docRef.id, ...activityData }]);
-        } catch (e) { console.error("Error adding activity: ", e); }
+            const batch = writeBatch(db);
+            // Updates and creations
+            for(const activity of newActivities) {
+                const { id, ...data } = activity;
+                const docRef = doc(db, 'activities', id.startsWith('act-') ? id : doc(collection(db, 'activities')).id);
+                batch.set(docRef, data, { merge: true });
+            }
+             // Handle deletions
+            const deletedActivityIds = activities.filter(a => !newActivities.some(na => na.id === a.id)).map(a => a.id);
+            for(const activityId of deletedActivityIds) {
+                batch.delete(doc(db, 'activities', activityId));
+            }
+            await batch.commit();
+        } catch (error) {
+            console.error("Error batch updating activities:", error);
+            toast({ variant: 'destructive', title: "Erro ao Salvar Atividades" });
+            fetchData();
+        }
     };
-    const updateActivity = async (activity: Activity) => {
-        const { id, ...activityData } = activity;
-        try {
-            await setDoc(doc(db, "activities", id), activityData, { merge: true });
-            setActivitiesState(prev => prev.map(a => a.id === id ? activity : a));
-        } catch (e) { console.error("Error updating activity: ", e); }
-    };
-    const deleteActivity = async (activityId: string) => {
+    
+    const handleSetEvaluationPeriods = async (newPeriods: EvaluationPeriod[]) => {
+        setEvaluationPeriodsState(newPeriods);
          try {
-            await deleteDoc(doc(db, "activities", activityId));
-            setActivitiesState(prev => prev.filter(a => a.id !== activityId));
-        } catch(e) { console.error("Error deleting activity: ", e); }
+            const batch = writeBatch(db);
+            // Updates and creations
+            for(const period of newPeriods) {
+                const { id, ...data } = period;
+                const docRef = doc(db, 'evaluationPeriods', id.startsWith('period-') ? id : doc(collection(db, 'evaluationPeriods')).id);
+                batch.set(docRef, data, { merge: true });
+            }
+             // Handle deletions
+            const deletedPeriodIds = evaluationPeriods.filter(p => !newPeriods.some(np => np.id === p.id)).map(p => p.id);
+            for(const periodId of deletedPeriodIds) {
+                batch.delete(doc(db, 'evaluationPeriods', periodId));
+            }
+            await batch.commit();
+        } catch (error) {
+            console.error("Error batch updating periods:", error);
+            toast({ variant: 'destructive', title: "Erro ao Salvar Períodos" });
+            fetchData();
+        }
     };
-
-
-    // --- EVALUATION PERIODS ---
-    const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>) => {
-        try {
-            const docRef = await addDoc(collection(db, "evaluationPeriods"), periodData);
-            setEvaluationPeriodsState(prev => [...prev, { id: docRef.id, ...periodData }]);
-        } catch (e) { console.error("Error adding period: ", e); }
-    };
-    const updateEvaluationPeriod = async (period: EvaluationPeriod) => {
-        const { id, ...periodData } = period;
-        try {
-            await setDoc(doc(db, "evaluationPeriods", id), periodData, { merge: true });
-            setEvaluationPeriodsState(prev => prev.map(p => p.id === id ? period : p));
-        } catch (e) { console.error("Error updating period: ", e); }
-    };
-
-    // --- ASSOCIATIONS ---
-    const addAssociation = async (associationData: Omit<Association, 'id'>) => {
+    
+    const handleSetAssociations = async (newAssociations: Association[]) => {
+        setAssociationsState(newAssociations);
          try {
-            const docRef = await addDoc(collection(db, "associations"), associationData);
-            setAssociationsState(prev => [...prev, { id: docRef.id, ...associationData }]);
-        } catch (e) { console.error("Error adding association: ", e); }
-    };
-     const deleteAssociation = async (associationId: string) => {
-         try {
-            await deleteDoc(doc(db, "associations", associationId));
-            setAssociationsState(prev => prev.filter(a => a.id !== associationId));
-        } catch(e) { console.error("Error deleting association: ", e); }
+            const batch = writeBatch(db);
+            // Updates and creations
+            for(const assoc of newAssociations) {
+                const { id, ...data } = assoc;
+                const docRef = doc(db, 'associations', id.startsWith('assoc-') ? id : doc(collection(db, 'associations')).id);
+                batch.set(docRef, data, { merge: true });
+            }
+             // Handle deletions
+            const deletedAssocIds = associations.filter(a => !newAssociations.some(na => na.id === a.id)).map(a => a.id);
+            for(const assocId of deletedAssocIds) {
+                batch.delete(doc(db, 'associations', assocId));
+            }
+            await batch.commit();
+        } catch (error) {
+            console.error("Error batch updating associations:", error);
+            toast({ variant: 'destructive', title: "Erro ao Salvar Associações" });
+            fetchData();
+        }
     };
 
 
     const contextValue = {
         users,
-        setUsers: async (users: User[]) => { 
-            const batch = writeBatch(db);
-            users.forEach(user => {
-                const { id, ...data } = user;
-                const docRef = doc(db, 'users', id);
-                batch.set(docRef, data, { merge: true });
-            });
-            await batch.commit();
-            setUsersState(users);
-        },
-        addUser, updateUser, deleteUser,
+        setUsers: handleSetUsers,
         
         activities,
-        setActivities: async (activities: Activity[]) => { 
-             const batch = writeBatch(db);
-            activities.forEach(activity => {
-                const { id, ...data } = activity;
-                const docRef = doc(db, 'activities', id);
-                batch.set(docRef, data, { merge: true });
-            });
-            await batch.commit();
-            setActivitiesState(activities);
-        },
-        addActivity, updateActivity, deleteActivity,
+        setActivities: handleSetActivities,
 
         evaluationPeriods,
-        setEvaluationPeriods: async (periods: EvaluationPeriod[]) => { 
-            const batch = writeBatch(db);
-            periods.forEach(period => {
-                const { id, ...data } = period;
-                const docRef = doc(db, 'evaluationPeriods', id);
-                batch.set(docRef, data, { merge: true });
-            });
-            await batch.commit();
-            setEvaluationPeriodsState(periods);
-        },
-        addEvaluationPeriod, updateEvaluationPeriod,
+        setEvaluationPeriods: handleSetEvaluationPeriods,
         
         associations,
-        setAssociations: async (associations: Association[]) => { 
-            const batch = writeBatch(db);
-            associations.forEach(assoc => {
-                const { id, ...data } = assoc;
-                const docRef = doc(db, 'associations', id);
-                batch.set(docRef, data, { merge: true });
-            });
-            await batch.commit();
-            setAssociationsState(associations);
-        },
-        addAssociation, deleteAssociation,
+        setAssociations: handleSetAssociations,
 
         loggedInUser,
         setLoggedInUser,
