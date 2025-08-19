@@ -1,4 +1,6 @@
 
+import { Timestamp } from "firebase/firestore";
+
 export type Role = "admin" | "appraisee" | "appraiser";
 
 export interface User {
@@ -28,7 +30,7 @@ export interface Activity {
   id: string;
   title: string;
   description: string;
-  startDate: Date;
+  startDate: Date | Timestamp;
   progressHistory: ProgressEntry[];
   userId: string;
 }
@@ -36,8 +38,8 @@ export interface Activity {
 export interface EvaluationPeriod {
   id:string;
   name: string;
-  startDate: Date;
-  endDate: Date;
+  startDate: Date | Timestamp;
+  endDate: Date | Timestamp;
   status: 'Ativo' | 'Inativo';
 }
 

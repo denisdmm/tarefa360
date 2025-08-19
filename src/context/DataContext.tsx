@@ -3,87 +3,194 @@
 
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
-import { 
-    users as initialUsers, 
-    activities as initialActivities, 
-    evaluationPeriods as initialPeriods, 
-    associations as initialAssociations 
-} from '@/lib/mock-data';
-import { getMonth, getYear } from 'date-fns';
+import { db } from '@/lib/firebase';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp } from 'firebase/firestore';
+import { useToast } from '@/hooks/use-toast';
+
+// Helper function to convert Firestore Timestamps to Dates
+const convertTimestamps = (data: any) => {
+    const newData = { ...data };
+    for (const key in newData) {
+        if (newData[key] instanceof Timestamp) {
+            newData[key] = newData[key].toDate();
+        }
+    }
+    return newData;
+};
+
 
 interface DataContextProps {
     users: User[];
-    setUsers: React.Dispatch<React.SetStateAction<User[]>>;
+    setUsers: (users: User[]) => Promise<void>; // Simplified for optimistic updates
+    addUser: (user: Omit<User, 'id'>) => Promise<void>;
+    updateUser: (user: User) => Promise<void>;
+    deleteUser: (userId: string) => Promise<void>;
+    
     activities: Activity[];
-    setActivities: React.Dispatch<React.SetStateAction<Activity[]>>;
+    setActivities: (activities: Activity[]) => Promise<void>;
+    addActivity: (activity: Omit<Activity, 'id'>) => Promise<void>;
+    updateActivity: (activity: Activity) => Promise<void>;
+    deleteActivity: (activityId: string) => Promise<void>;
+
     evaluationPeriods: EvaluationPeriod[];
-    setEvaluationPeriods: React.Dispatch<React.SetStateAction<EvaluationPeriod[]>>;
+    setEvaluationPeriods: (periods: EvaluationPeriod[]) => Promise<void>;
+    addEvaluationPeriod: (period: Omit<EvaluationPeriod, 'id'>) => Promise<void>;
+    updateEvaluationPeriod: (period: EvaluationPeriod) => Promise<void>;
+
+
     associations: Association[];
-    setAssociations: React.Dispatch<React.SetStateAction<Association[]>>;
+    setAssociations: (associations: Association[]) => Promise<void>;
+    addAssociation: (association: Omit<Association, 'id'>) => Promise<void>;
+    deleteAssociation: (associationId: string) => Promise<void>;
+
     loggedInUser: User | null;
     setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
+    loading: boolean;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
-const initializePeriods = (): EvaluationPeriod[] => {
-    // For the new mock data, we want the active period to be Nov 2024 - Oct 2025
-    const startYear = 2024;
-    const endYear = 2025;
-
-    const periodName = `Avaliação ${startYear}/${endYear}`;
-    const periodExists = initialPeriods.some(p => p.name === periodName);
-    
-    if (!periodExists) {
-        const newPeriod: EvaluationPeriod = {
-            id: `period-${Date.now()}`,
-            name: periodName,
-            startDate: new Date(startYear, 10, 1, 12, 0, 0), // Nov 1st, 2024
-            endDate: new Date(endYear, 9, 31, 12, 0, 0),   // Oct 31st, 2025
-            status: 'Ativo',
-        };
-        
-        // Add a previous period for historical data context
-        const previousPeriod: EvaluationPeriod = {
-             id: `period-prev-${Date.now()}`,
-             name: `Avaliação ${startYear - 1}/${endYear - 1}`,
-             startDate: new Date(startYear - 1, 10, 1, 12, 0, 0), // Nov 1st, 2023
-             endDate: new Date(endYear - 1, 9, 31, 12, 0, 0),   // Oct 31st, 2024
-             status: 'Inativo',
-        }
-
-        const updatedPeriods = initialPeriods.map(p => ({ ...p, status: 'Inativo' as 'Inativo' }));
-        return [newPeriod, previousPeriod, ...updatedPeriods];
-    }
-    
-    // Ensure the correct period is active if it already exists
-    return initialPeriods.map(p => ({
-        ...p,
-        status: p.name === periodName ? 'Ativo' : 'Inativo'
-    }));
-};
-
-
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
-    const [users, setUsers] = React.useState<User[]>(() => initialUsers);
-    const [activities, setActivities] = React.useState<Activity[]>(() => initialActivities);
-    const [evaluationPeriods, setEvaluationPeriods] = React.useState<EvaluationPeriod[]>(initializePeriods);
-    const [associations, setAssociations] = React.useState<Association[]>(() => initialAssociations);
+    const [users, setUsersState] = React.useState<User[]>([]);
+    const [activities, setActivitiesState] = React.useState<Activity[]>([]);
+    const [evaluationPeriods, setEvaluationPeriodsState] = React.useState<EvaluationPeriod[]>([]);
+    const [associations, setAssociationsState] = React.useState<Association[]>([]);
     const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
+    const [loading, setLoading] = React.useState(true);
+    const { toast } = useToast();
+
+    const fetchData = async () => {
+        setLoading(true);
+        try {
+            // Fetch Users
+            const usersSnapshot = await getDocs(collection(db, "users"));
+            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
+            setUsersState(usersList);
+            
+            // Fetch Activities
+            const activitiesSnapshot = await getDocs(collection(db, "activities"));
+            const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
+            setActivitiesState(activitiesList);
+
+            // Fetch Evaluation Periods
+            const periodsSnapshot = await getDocs(collection(db, "evaluationPeriods"));
+            const periodsList = periodsSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as EvaluationPeriod));
+            setEvaluationPeriodsState(periodsList);
+            
+            // Fetch Associations
+            const associationsSnapshot = await getDocs(collection(db, "associations"));
+            const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
+            setAssociationsState(associationsList);
+
+        } catch (error) {
+            console.error("Error fetching data from Firestore: ", error);
+            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados do banco de dados." });
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    React.useEffect(() => {
+        fetchData();
+    }, []);
+    
+    // --- USERS ---
+    const addUser = async (userData: Omit<User, 'id'>) => {
+        try {
+            const docRef = await addDoc(collection(db, "users"), userData);
+            setUsersState(prev => [...prev, { id: docRef.id, ...userData }]);
+        } catch (e) { console.error("Error adding user: ", e); }
+    };
+    const updateUser = async (user: User) => {
+        const { id, ...userData } = user;
+        try {
+            await setDoc(doc(db, "users", id), userData, { merge: true });
+            setUsersState(prev => prev.map(u => u.id === id ? user : u));
+        } catch (e) { console.error("Error updating user: ", e); }
+    };
+    const deleteUser = async (userId: string) => {
+        try {
+            await deleteDoc(doc(db, "users", userId));
+            setUsersState(prev => prev.filter(u => u.id !== userId));
+        } catch(e) { console.error("Error deleting user: ", e); }
+    };
+
+    // --- ACTIVITIES ---
+     const addActivity = async (activityData: Omit<Activity, 'id'>) => {
+        try {
+            const docRef = await addDoc(collection(db, "activities"), activityData);
+            setActivitiesState(prev => [...prev, { id: docRef.id, ...activityData }]);
+        } catch (e) { console.error("Error adding activity: ", e); }
+    };
+    const updateActivity = async (activity: Activity) => {
+        const { id, ...activityData } = activity;
+        try {
+            await setDoc(doc(db, "activities", id), activityData, { merge: true });
+            setActivitiesState(prev => prev.map(a => a.id === id ? activity : a));
+        } catch (e) { console.error("Error updating activity: ", e); }
+    };
+    const deleteActivity = async (activityId: string) => {
+         try {
+            await deleteDoc(doc(db, "activities", activityId));
+            setActivitiesState(prev => prev.filter(a => a.id !== activityId));
+        } catch(e) { console.error("Error deleting activity: ", e); }
+    };
+
+
+    // --- EVALUATION PERIODS ---
+    const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>) => {
+        try {
+            const docRef = await addDoc(collection(db, "evaluationPeriods"), periodData);
+            setEvaluationPeriodsState(prev => [...prev, { id: docRef.id, ...periodData }]);
+        } catch (e) { console.error("Error adding period: ", e); }
+    };
+    const updateEvaluationPeriod = async (period: EvaluationPeriod) => {
+        const { id, ...periodData } = period;
+        try {
+            await setDoc(doc(db, "evaluationPeriods", id), periodData, { merge: true });
+            setEvaluationPeriodsState(prev => prev.map(p => p.id === id ? period : p));
+        } catch (e) { console.error("Error updating period: ", e); }
+    };
+
+    // --- ASSOCIATIONS ---
+    const addAssociation = async (associationData: Omit<Association, 'id'>) => {
+         try {
+            const docRef = await addDoc(collection(db, "associations"), associationData);
+            setAssociationsState(prev => [...prev, { id: docRef.id, ...associationData }]);
+        } catch (e) { console.error("Error adding association: ", e); }
+    };
+     const deleteAssociation = async (associationId: string) => {
+         try {
+            await deleteDoc(doc(db, "associations", associationId));
+            setAssociationsState(prev => prev.filter(a => a.id !== associationId));
+        } catch(e) { console.error("Error deleting association: ", e); }
+    };
+
+
+    const contextValue = {
+        users,
+        setUsers: async (users: User[]) => { setUsersState(users); },
+        addUser, updateUser, deleteUser,
+        
+        activities,
+        setActivities: async (activities: Activity[]) => { setActivitiesState(activities); },
+        addActivity, updateActivity, deleteActivity,
+
+        evaluationPeriods,
+        setEvaluationPeriods: async (periods: EvaluationPeriod[]) => { setEvaluationPeriodsState(periods); },
+        addEvaluationPeriod, updateEvaluationPeriod,
+        
+        associations,
+        setAssociations: async (associations: Association[]) => { setAssociationsState(associations); },
+        addAssociation, deleteAssociation,
+
+        loggedInUser,
+        setLoggedInUser,
+        loading,
+    };
     
     return (
-        <DataContext.Provider value={{
-            users,
-            setUsers,
-            activities,
-            setActivities,
-            evaluationPeriods,
-            setEvaluationPeriods,
-            associations,
-            setAssociations,
-            loggedInUser,
-            setLoggedInUser,
-        }}>
+        <DataContext.Provider value={contextValue}>
             {children}
         </DataContext.Provider>
     );
