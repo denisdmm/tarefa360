@@ -22,7 +22,7 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const { users, setLoggedInUser, loading } = useDataContext();
+  const { users, setLoggedInUser } = useDataContext();
 
   const handleLogin = () => {
     const user = users.find((u) => u.cpf === cpf);
@@ -84,7 +84,6 @@ export default function LoginPage() {
                 onChange={handleCpfChange}
                 maxLength={11}
                 onKeyDown={handleKeyDown}
-                disabled={loading}
               />
             </div>
              <div className="space-y-2">
@@ -96,12 +95,11 @@ export default function LoginPage() {
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
-                disabled={loading}
               />
             </div>
             
             <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
-              {loading ? 'Carregando...' : 'Login'}
+              Login
             </Button>
           </div>
         </CardContent>
