@@ -110,13 +110,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const seedEvaluationPeriods = async () => {
+    const seedEvaluationPeriods = async (): Promise<boolean> => {
         const currentYear = new Date().getFullYear();
         const periodName = `FAG+${currentYear}`;
         
         const periodsRef = collection(db, "evaluationPeriods");
         const allPeriodsSnapshot = await getDocs(periodsRef);
-        const existingPeriods = allPeriodsSnapshot.docs.map(d => d.data() as EvaluationPeriod);
+        const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
 
         const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
 
@@ -126,9 +126,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 const batch = writeBatch(db);
 
                 // Deactivate all existing periods
-                allPeriodsSnapshot.forEach(pDoc => {
-                    const periodData = pDoc.data();
-                    if (periodData.status === 'Ativo') {
+                existingPeriods.forEach(pDoc => {
+                    if (pDoc.status === 'Ativo') {
                         const periodRef = doc(db, 'evaluationPeriods', pDoc.id);
                         batch.update(periodRef, { status: 'Inativo' });
                     }
@@ -150,8 +149,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                     description: `O período '${periodName}' foi criado e ativado para o ano corrente.`,
                 });
                 
-                // Force a refetch to get the latest data including the new period
-                return true; // Indicate that a change was made
+                return true; // Indicate that a change was made and a refetch is needed
 
             } catch (error) {
                 console.error("Error seeding evaluation periods:", error);
@@ -165,7 +163,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         return false; // No change was made
     };
 
-    const fetchData = async () => {
+    const fetchData = React.useCallback(async () => {
         setLoading(true);
         setConnectionError(false);
         try {
@@ -174,7 +172,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             
             // If a new period was created, we must refetch to get the updated list
             if (wasPeriodCreated) {
-                await fetchData();
+                await fetchData(); // Recurses to refetch all data
                 return; // Exit current execution to avoid race conditions
             }
 
@@ -224,11 +222,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    };
+    }, [toast]); // Added toast to dependency array for useCallback
 
     React.useEffect(() => {
         fetchData();
-    }, []);
+    }, [fetchData]); // Use the memoized fetchData function
     
     
     const handleSetUsers = async (newUsers: User[]) => {
