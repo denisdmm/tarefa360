@@ -145,6 +145,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     let formData: UserFormData;
 
     if (mode === 'create') {
+        const newPassword = cpf ? `${cpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
         formData = {
             mode,
             user: null,
@@ -158,7 +159,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
                 jobTitle,
                 role,
                 status: finalStatus,
-                password: nomeDeGuerra, // Default password
+                password: newPassword,
                 forcePasswordChange: true
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,

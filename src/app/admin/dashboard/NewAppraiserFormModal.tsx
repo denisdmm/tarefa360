@@ -81,7 +81,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         }
     }
 
-
+    const newPassword = cpf ? `${cpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
     const newUser: User = {
         id: `user-${Date.now()}`,
         cpf,
@@ -92,7 +92,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         sector,
         jobTitle,
         role: 'appraiser',
-        password: nomeDeGuerra, // Default password is the 'nome de guerra'
+        password: newPassword, 
         forcePasswordChange: true,
         status: cpf ? 'Ativo' : 'Inativo',
         avatarUrl: 'https://placehold.co/100x100' // Default avatar
