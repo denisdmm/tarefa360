@@ -11,11 +11,15 @@ import { users as mockUsers, activities as mockActivities, evaluationPeriods as 
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
-    const newData = { ...data };
+    const newData: Partial<User & Activity & EvaluationPeriod> = { ...data };
     for (const key in newData) {
-        if (newData[key] instanceof Timestamp) {
-            newData[key] = newData[key].toDate();
+        if (newData[key as keyof typeof newData] instanceof Timestamp) {
+            (newData as any)[key] = (newData[key as keyof typeof newData] as Timestamp).toDate();
         }
+    }
+    // Ensure password field is carried over if it exists
+    if(data.password) {
+        newData.password = data.password;
     }
     return newData;
 };
