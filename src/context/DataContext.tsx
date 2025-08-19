@@ -4,12 +4,12 @@
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, writeBatch, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
-    const newData: Partial<User & Activity & EvaluationPeriod> = { ...data };
+    const newData: Partial<User & Activity & EvaluationPeriod & { password?: string }> = { ...data };
     for (const key in newData) {
         if (newData[key as keyof typeof newData] instanceof Timestamp) {
             (newData as any)[key] = (newData[key as keyof typeof newData] as Timestamp).toDate();
@@ -21,7 +21,6 @@ const convertTimestamps = (data: any) => {
     }
     return newData;
 };
-
 
 interface DataContextProps {
     users: User[];
@@ -63,11 +62,46 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(false);
     const { toast } = useToast();
 
+    // Helper function to create the admin user if it doesn't exist
+    const seedAdminUser = async () => {
+        const adminCpf = '00000000000';
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('cpf', '==', adminCpf));
+        const adminSnapshot = await getDocs(q);
+
+        if (adminSnapshot.empty) {
+            console.log('Admin user not found, seeding...');
+            const adminData = {
+                name: 'Usuário Admin',
+                nomeDeGuerra: 'Admin',
+                email: 'admin@tarefa360.com',
+                role: 'admin' as const,
+                jobTitle: 'Administrador do Sistema',
+                sector: 'TI',
+                avatarUrl: 'https://placehold.co/100x100',
+                cpf: adminCpf,
+                postoGrad: 'Cel',
+                status: 'Ativo' as const,
+                password: '1234',
+                forcePasswordChange: false,
+            };
+            try {
+                await addDoc(usersRef, adminData);
+                toast({ title: 'Administrador Padrão Criado', description: 'A conta de administrador foi configurada com a senha padrão.' });
+            } catch (error) {
+                console.error("Error seeding admin user:", error);
+            }
+        }
+    };
+
     const fetchData = async () => {
-        if (users.length > 0) return; // Don't fetch if data is already present
+        // Avoid fetching if data is already present
+        if (users.length > 0) return; 
         
         setLoading(true);
         try {
+            await seedAdminUser(); // Ensure admin exists
+
             const [
                 usersSnapshot, 
                 activitiesSnapshot, 
@@ -80,7 +114,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 getDocs(collection(db, "associations"))
             ]);
             
-            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as User));
+            const usersList = usersSnapshot.docs.map(doc => ({ id: doc.id, ...(convertTimestamps(doc.data()) as Omit<User, 'id'>) } as User));
             setUsersState(usersList);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
@@ -215,3 +249,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
