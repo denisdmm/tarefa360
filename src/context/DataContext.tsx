@@ -58,7 +58,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [evaluationPeriods, setEvaluationPeriodsState] = React.useState<EvaluationPeriod[]>([]);
     const [associations, setAssociationsState] = React.useState<Association[]>([]);
     const [loggedInUser, setLoggedInUser] = React.useState<User | null>(null);
-    const [loading, setLoading] = React.useState(false); // Start as false
+    const [loading, setLoading] = React.useState(false);
     const { toast } = useToast();
 
     const seedDatabase = async () => {
