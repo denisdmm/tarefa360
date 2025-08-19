@@ -121,12 +121,36 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
         }
     };
+    
+    const seedEvaluationPeriods = async () => {
+        const periodsRef = collection(db, 'evaluationPeriods');
+        const periodsSnapshot = await getDocs(periodsRef);
+
+        if (periodsSnapshot.empty) {
+            console.log('Evaluation periods not found, seeding...');
+            try {
+                const currentYear = new Date().getFullYear();
+                const defaultPeriod: Omit<EvaluationPeriod, 'id'> = {
+                    name: `Avaliação Anual ${currentYear}`,
+                    startDate: new Date(currentYear, 0, 1), // Jan 1st
+                    endDate: new Date(currentYear, 11, 31), // Dec 31st
+                    status: 'Ativo',
+                };
+                await addDoc(periodsRef, defaultPeriod);
+                console.log('Default evaluation period seeded.');
+            } catch (error) {
+                console.error("Error seeding evaluation periods:", error);
+            }
+        }
+    };
+
 
     const fetchData = async () => {
         setLoading(true);
         setConnectionError(false);
         try {
             await seedAdminUser(); // Ensure admin exists and password is correct
+            await seedEvaluationPeriods(); // Ensure default periods exist
 
             const [
                 usersSnapshot, 
@@ -153,8 +177,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  return user;
             });
             // Merge with local admin, preventing duplicates
-            const filteredRemoteUsers = usersList.filter(u => u.cpf !== defaultAdminUser.cpf);
-            setUsersState([ ...filteredRemoteUsers, ...usersList.filter(u => u.cpf === defaultAdminUser.cpf)]);
+            const remoteUsers = usersList.filter(u => u.cpf !== defaultAdminUser.cpf);
+            const adminUserFromDb = usersList.find(u => u.cpf === defaultAdminUser.cpf);
+            setUsersState([ ...remoteUsers, adminUserFromDb || defaultAdminUser ]);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
             setActivitiesState(activitiesList);
@@ -254,20 +279,54 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const contextValue = {
         users,
         setUsers: async (users: User[]) => { 
+            const batch = writeBatch(db);
+            users.forEach(user => {
+                const { id, ...data } = user;
+                const docRef = doc(db, 'users', id);
+                batch.set(docRef, data, { merge: true });
+            });
+            await batch.commit();
             setUsersState(users);
         },
         addUser, updateUser, deleteUser,
         
         activities,
-        setActivities: async (activities: Activity[]) => { setActivitiesState(activities); },
+        setActivities: async (activities: Activity[]) => { 
+             const batch = writeBatch(db);
+            activities.forEach(activity => {
+                const { id, ...data } = activity;
+                const docRef = doc(db, 'activities', id);
+                batch.set(docRef, data, { merge: true });
+            });
+            await batch.commit();
+            setActivitiesState(activities);
+        },
         addActivity, updateActivity, deleteActivity,
 
         evaluationPeriods,
-        setEvaluationPeriods: async (periods: EvaluationPeriod[]) => { setEvaluationPeriodsState(periods); },
+        setEvaluationPeriods: async (periods: EvaluationPeriod[]) => { 
+            const batch = writeBatch(db);
+            periods.forEach(period => {
+                const { id, ...data } = period;
+                const docRef = doc(db, 'evaluationPeriods', id);
+                batch.set(docRef, data, { merge: true });
+            });
+            await batch.commit();
+            setEvaluationPeriodsState(periods);
+        },
         addEvaluationPeriod, updateEvaluationPeriod,
         
         associations,
-        setAssociations: async (associations: Association[]) => { setAssociationsState(associations); },
+        setAssociations: async (associations: Association[]) => { 
+            const batch = writeBatch(db);
+            associations.forEach(assoc => {
+                const { id, ...data } = assoc;
+                const docRef = doc(db, 'associations', id);
+                batch.set(docRef, data, { merge: true });
+            });
+            await batch.commit();
+            setAssociationsState(associations);
+        },
         addAssociation, deleteAssociation,
 
         loggedInUser,
@@ -290,3 +349,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
