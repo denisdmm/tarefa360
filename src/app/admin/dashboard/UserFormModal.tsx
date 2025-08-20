@@ -59,6 +59,19 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
     setCpf(onlyNumbers);
   };
+  
+  const resetForm = () => {
+    setName('');
+    setNomeDeGuerra('');
+    setPostoGrad('');
+    setEmail('');
+    setCpf('');
+    setSector('');
+    setJobTitle('');
+    setRole('appraisee');
+    setStatus('Ativo');
+    setSelectedAppraiser('');
+  };
 
   React.useEffect(() => {
     if (mode === 'edit' && user) {
@@ -72,17 +85,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         setRole(user.role || 'appraisee');
         setStatus(user.status || 'Inativo');
     } else {
-        // Reset for create mode
-        setName('');
-        setNomeDeGuerra('');
-        setPostoGrad('');
-        setEmail('');
-        setCpf('');
-        setSector('');
-        setJobTitle('');
-        setRole('appraisee');
-        setStatus('Ativo');
-        setSelectedAppraiser('');
+        resetForm();
     }
   }, [user, mode]);
   
@@ -184,6 +187,9 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     }
     
     onSave(formData);
+    if (mode === 'create') {
+        resetForm();
+    }
   };
   
   const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
