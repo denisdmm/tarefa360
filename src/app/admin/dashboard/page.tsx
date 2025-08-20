@@ -108,7 +108,6 @@ const PeriodFormModal = ({
       return;
     }
     
-    // Validation: Only one active period allowed
     if (status === 'Ativo') {
         const hasOtherActivePeriod = evaluationPeriods.some(p => p.status === 'Ativo' && p.id !== period?.id);
         if (hasOtherActivePeriod) {
@@ -690,5 +689,7 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
 
     
