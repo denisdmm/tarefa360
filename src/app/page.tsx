@@ -16,7 +16,7 @@ import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useDataContext } from "@/context/DataContext";
-import type { EvaluationPeriod } from "@/lib/types";
+import type { User, EvaluationPeriod } from "@/lib/types";
 import { collection, getDocs, writeBatch, doc, addDoc, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { Eye, EyeOff } from "lucide-react";
@@ -28,11 +28,26 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { users, setLoggedInUser, fetchData } = useDataContext();
+  const { setLoggedInUser, fetchData } = useDataContext();
 
   const handleLogin = async () => {
     try {
-        const user = users.find((u) => u.cpf === cpf);
+        const usersRef = collection(db, 'users');
+        const q = query(usersRef, where('cpf', '==', cpf));
+        const userSnapshot = await getDocs(q);
+
+        if (userSnapshot.empty) {
+            toast({
+                variant: "destructive",
+                title: "Falha no Login",
+                description: "CPF ou senha inválidos. Verifique os dados e tente novamente.",
+            });
+            return;
+        }
+        
+        const userDoc = userSnapshot.docs[0];
+        const user = { id: userDoc.id, ...userDoc.data() } as User;
+
 
         if (user && user.password === password) {
             setLoggedInUser(user);
@@ -41,8 +56,8 @@ export default function LoginPage() {
             const evaluationPeriodsRef = collection(db, 'evaluationPeriods');
             const currentYear = new Date().getFullYear();
             const periodName = `FAG-${currentYear}`;
-            const q = query(evaluationPeriodsRef, where('name', '==', periodName));
-            const existingPeriodSnapshot = await getDocs(q);
+            const qPeriods = query(evaluationPeriodsRef, where('name', '==', periodName));
+            const existingPeriodSnapshot = await getDocs(qPeriods);
 
             if (existingPeriodSnapshot.empty) {
                 const batch = writeBatch(db);
