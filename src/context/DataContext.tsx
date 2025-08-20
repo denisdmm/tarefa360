@@ -70,6 +70,7 @@ interface DataContextProps {
     loading: boolean;
     connectionError: boolean;
     fetchData: () => Promise<void>;
+    checkAndCreatePeriod: () => Promise<boolean>;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
@@ -123,7 +124,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-
     const fetchData = React.useCallback(async () => {
         setLoading(true);
         setConnectionError(false);
@@ -174,7 +174,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast, users]);
+    }, [toast]);
 
     React.useEffect(() => {
         fetchData();
@@ -291,6 +291,53 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
+    const checkAndCreatePeriod = async (): Promise<boolean> => {
+        const currentYear = new Date().getFullYear();
+        const periodName = `FAG+${currentYear}`;
+        const periodsRef = collection(db, "evaluationPeriods");
+    
+        try {
+            const allPeriodsSnapshot = await getDocs(periodsRef);
+            const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
+            const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
+    
+            if (!currentPeriodExists) {
+                console.log(`Period ${periodName} not found. Creating...`);
+                const batch = writeBatch(db);
+    
+                existingPeriods.forEach(period => {
+                    const periodRef = doc(db, 'evaluationPeriods', period.id);
+                    batch.update(periodRef, { status: 'Inativo' });
+                });
+    
+                const newPeriodData: Omit<EvaluationPeriod, 'id'> = {
+                    name: periodName,
+                    startDate: new Date(currentYear - 1, 10, 1),
+                    endDate: new Date(currentYear, 9, 31),
+                    status: 'Ativo',
+                };
+                const newPeriodRef = doc(collection(db, 'evaluationPeriods'));
+                batch.set(newPeriodRef, sanitizeDataForFirestore(newPeriodData));
+                
+                await batch.commit();
+    
+                toast({
+                    title: "Período de Avaliação Criado",
+                    description: `O período '${periodName}' foi criado e ativado automaticamente.`,
+                });
+                return true; 
+            }
+        } catch (error) {
+            console.error("Error checking/creating evaluation period:", error);
+            toast({
+                variant: "destructive",
+                title: "Falha ao Verificar Período",
+                description: "Não foi possível criar o período de avaliação automaticamente."
+            });
+        }
+        return false;
+      };
+
 
     const contextValue = {
         users,
@@ -310,6 +357,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         connectionError,
         fetchData,
+        checkAndCreatePeriod,
     };
     
     return (
@@ -326,3 +374,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
