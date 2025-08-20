@@ -90,8 +90,8 @@ const PeriodFormModal = ({
   React.useEffect(() => {
     if (period) {
       setName(period.name);
-      setStartDate(format(period.startDate, 'yyyy-MM-dd'));
-      setEndDate(format(period.endDate, 'yyyy-MM-dd'));
+      setStartDate(format(new Date(period.startDate as any), 'yyyy-MM-dd'));
+      setEndDate(format(new Date(period.endDate as any), 'yyyy-MM-dd'));
       setStatus(period.status);
     } else {
       resetForm();
@@ -587,8 +587,8 @@ export default function AdminDashboard() {
                       {evaluationPeriods.map((period) => (
                         <TableRow key={period.id}>
                           <TableCell>{period.name}</TableCell>
-                          <TableCell className="hidden sm:table-cell">{format(period.startDate, "dd/MM/yyyy")}</TableCell>
-                          <TableCell className="hidden sm:table-cell">{format(period.endDate, "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{format(new Date(period.startDate as any), "dd/MM/yyyy")}</TableCell>
+                          <TableCell className="hidden sm:table-cell">{format(new Date(period.endDate as any), "dd/MM/yyyy")}</TableCell>
                           <TableCell>
                             <Button 
                               variant={period.status === 'Ativo' ? 'default' : 'outline'}
@@ -690,3 +690,5 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
