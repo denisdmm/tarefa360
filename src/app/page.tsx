@@ -46,50 +46,20 @@ export default function LoginPage() {
         }
         
         const userDoc = userSnapshot.docs[0];
-        const user = { id: userDoc.id, ...userDoc.data() } as User;
+        const userData = userDoc.data();
+        
+        // Firestore Timestamps need to be converted to Date objects
+        const user = { 
+            id: userDoc.id, 
+            ...convertTimestamps(userData) 
+        } as User;
 
 
         if (user && user.password === password) {
             setLoggedInUser(user);
 
-            // This logic can be simplified if the check happens on a protected route or layout
-            const evaluationPeriodsRef = collection(db, 'evaluationPeriods');
-            const currentYear = new Date().getFullYear();
-            const periodName = `FAG-${currentYear}`;
-            const qPeriods = query(evaluationPeriodsRef, where('name', '==', periodName));
-            const existingPeriodSnapshot = await getDocs(qPeriods);
-
-            if (existingPeriodSnapshot.empty) {
-                const batch = writeBatch(db);
-
-                // Deactivate all other periods
-                const allPeriodsSnapshot = await getDocs(evaluationPeriodsRef);
-                allPeriodsSnapshot.forEach(periodDoc => {
-                    const periodData = periodDoc.data();
-                    if (periodData.status === 'Ativo') {
-                        batch.update(doc(db, 'evaluationPeriods', periodDoc.id), { status: 'Inativo' });
-                    }
-                });
-                
-                // Create the new active period
-                const newPeriodData = {
-                    name: periodName,
-                    startDate: new Date(currentYear, 0, 1), // Jan 1st
-                    endDate: new Date(currentYear, 11, 31), // Dec 31st
-                    status: 'Ativo'
-                };
-                const newPeriodRef = doc(collection(db, 'evaluationPeriods'));
-                batch.set(newPeriodRef, newPeriodData);
-                
-                await batch.commit();
-
-                toast({
-                    title: "Período de Avaliação Criado",
-                    description: `O período ${periodName} foi criado e ativado para o ano corrente.`,
-                });
-
-                await fetchData(); // Recarrega os dados para obter o novo período
-            }
+            // Fetch latest data after successful login to ensure context is up to date
+            await fetchData();
 
             if (user.forcePasswordChange) {
                 toast({
@@ -116,6 +86,16 @@ export default function LoginPage() {
             description: "Ocorreu um erro durante o login. Tente novamente.",
         });
     }
+  };
+
+  const convertTimestamps = (data: any) => {
+    const newData: { [key: string]: any } = { ...data };
+    for (const key in newData) {
+        if (newData[key] instanceof Timestamp) {
+            newData[key] = newData[key].toDate();
+        }
+    }
+    return newData;
   };
 
 

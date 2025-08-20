@@ -454,7 +454,7 @@ export default function AdminDashboard() {
                 <AlertTriangle className="h-4 w-4" />
                 <AlertTitle>Nenhum Período de Avaliação Ativo</AlertTitle>
                 <AlertDescription>
-                   Não há um período de avaliação ativo para o ano corrente. Algumas funcionalidades, como o registro de novas atividades, podem estar desabilitadas. Por favor, crie ou ative um período na aba 'Períodos de Avaliação'.
+                   Não há um período de avaliação ativo. Algumas funcionalidades, como o registro de novas atividades, podem estar desabilitadas. Por favor, crie ou ative um período na aba 'Períodos de Avaliação'.
                 </AlertDescription>
             </Alert>
           )}
