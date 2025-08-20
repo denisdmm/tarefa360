@@ -17,7 +17,7 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useDataContext } from "@/context/DataContext";
 import type { EvaluationPeriod } from "@/lib/types";
-import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc, addDoc, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 
 
@@ -28,8 +28,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { users, setLoggedInUser, fetchData } = useDataContext();
 
-
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const user = users.find((u) => u.cpf === cpf);
 
     if (user && user.password === password) {

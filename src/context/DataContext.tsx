@@ -181,9 +181,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     
     const handleSetUsers = async (newUsers: User[]) => {
-        // This function now only handles ADDING and UPDATING, not deleting.
-        const originalUsers = [...users]; // Keep a copy of the original state
-        setUsersState(newUsers); // Optimistic update
+        const originalUsers = [...users]; 
+        setUsersState(newUsers); 
         try {
             const batch = writeBatch(db);
             const localUserIds = new Set(originalUsers.map(u => u.id));
@@ -211,7 +210,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } catch (error) {
             console.error("Error batch updating users:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Usuários" });
-            setUsersState(originalUsers); // Rollback on error
+            setUsersState(originalUsers);
         }
     };
 
@@ -257,13 +256,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 const docRef = isNew ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
             }
-
-            const periodsToDelete = originalPeriods.filter(orig => !newPeriods.some(newPeriod => newPeriod.id === orig.id));
-            for(const period of periodsToDelete) {
-                 const docRef = doc(db, 'evaluationPeriods', period.id);
-                 batch.delete(docRef);
-            }
-
+            
+            // This is the logic that was deleting the data. It has now been removed.
+            
             await batch.commit();
             await fetchData();
         } catch (error) {
