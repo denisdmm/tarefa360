@@ -129,7 +129,7 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, setActivities, evaluationPeriods, loggedInUser } = useDataContext();
+  const { activities, evaluationPeriods, loggedInUser, addActivity, updateActivity, deleteActivity } = useDataContext();
   
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
@@ -149,13 +149,14 @@ export default function AppraiseeDashboard() {
     return sortedHistory[0].percentage;
   };
 
-  const handleSaveActivity = (activity: Activity) => {
-    const isEditing = activities.some(a => a.id === activity.id);
+  const handleSaveActivity = async (activityToSave: Activity) => {
+    const isEditing = activities.some(a => a.id === activityToSave.id);
     if (isEditing) {
-      setActivities(prevActivities => prevActivities.map(a => a.id === activity.id ? activity : a));
+      await updateActivity(activityToSave.id, activityToSave);
       toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
-      setActivities(prevActivities => [activity, ...prevActivities]);
+      const { id, ...newActivityData } = activityToSave;
+      await addActivity(newActivityData as Activity);
       toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
     handleCloseForms();
@@ -173,8 +174,8 @@ export default function AppraiseeDashboard() {
     setIsFormReadOnly(false);
   }
 
-  const handleDeleteActivity = (activityId: string) => {
-    setActivities(prevActivities => prevActivities.filter(a => a.id !== activityId));
+  const handleDeleteActivity = async (activityId: string) => {
+    await deleteActivity(activityId);
     toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
   };
 

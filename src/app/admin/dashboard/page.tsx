@@ -50,11 +50,6 @@ import type { User, EvaluationPeriod, Role, Association } from "@/lib/types";
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-  DialogFooter,
-  DialogClose,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -178,12 +173,16 @@ const PeriodFormModal = ({
 export default function AdminDashboard() {
   const { 
     users, 
-    setUsers, 
     evaluationPeriods, 
-    setEvaluationPeriods,
     associations,
-    setAssociations,
     connectionError,
+    addUser,
+    updateUser,
+    deleteUser,
+    addEvaluationPeriod,
+    updateEvaluationPeriod,
+    addAssociation,
+    deleteAssociation,
    } = useDataContext();
 
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -203,33 +202,34 @@ export default function AdminDashboard() {
 
   const hasActivePeriod = React.useMemo(() => evaluationPeriods.some(p => p.status === 'Ativo'), [evaluationPeriods]);
 
-  const handleSaveUser = (formData: UserFormData) => {
+  const handleSaveUser = async (formData: UserFormData) => {
       if (formData.mode === 'edit' && formData.user) {
-        const updatedUser: User = {
+        const updatedUserData: User = {
           ...formData.user,
           ...formData.data,
         };
-        setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+        await updateUser(updatedUserData.id, updatedUserData);
         toast({
             title: "Usuário Atualizado",
             description: "Os dados foram salvos com sucesso.",
         });
       } else {
         // Create mode
-        const newUser: User = {
-          id: `user-${Date.now()}`,
+        const newUser: Omit<User, 'id'> = {
           ...formData.data,
           avatarUrl: 'https://placehold.co/100x100' // Default avatar
         };
-        setUsers([...users, newUser]);
+
+        const newUserId = await addUser(newUser as User);
+        if(!newUserId) return;
+
 
         if (newUser.role === 'appraisee' && formData.appraiserId) {
-            const newAssociation: Association = {
-                id: `assoc-${Date.now()}`,
-                appraiseeId: newUser.id,
+            const newAssociation: Omit<Association, 'id'> = {
+                appraiseeId: newUserId,
                 appraiserId: formData.appraiserId,
             };
-            setAssociations([...associations, newAssociation]);
+            await addAssociation(newAssociation);
             toast({
                 title: "Usuário Criado e Associado",
                 description: "A nova conta foi criada e vinculada ao avaliador.",
@@ -244,10 +244,8 @@ export default function AdminDashboard() {
       setUserModalOpen(false);
   };
   
-    const handleDeleteUser = (userId: string) => {
-        setUsers(users.filter(u => u.id !== userId));
-        // Optional: Also remove any associations related to this user
-        setAssociations(associations.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));
+    const handleDeleteUser = async (userId: string) => {
+        await deleteUser(userId);
         toast({
             variant: "destructive",
             title: "Usuário Excluído",
@@ -255,7 +253,7 @@ export default function AdminDashboard() {
         });
     };
 
-    const handleResetPassword = (userToReset: User) => {
+    const handleResetPassword = async (userToReset: User) => {
         if (!userToReset.cpf || !userToReset.nomeDeGuerra) {
              toast({
                 variant: "destructive",
@@ -267,13 +265,12 @@ export default function AdminDashboard() {
 
         const newPassword = `${userToReset.cpf.substring(0, 4)}${userToReset.nomeDeGuerra}`;
         
-        const updatedUser: User = {
-            ...userToReset,
+        const updatedUserData: Partial<User> = {
             password: newPassword,
             forcePasswordChange: true,
         };
 
-        setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+        await updateUser(userToReset.id, updatedUserData);
 
         toast({
             title: "Senha Redefinida",
@@ -281,20 +278,20 @@ export default function AdminDashboard() {
         });
     };
 
-  const handleSavePeriod = (periodToSave: EvaluationPeriod) => {
+  const handleSavePeriod = async (periodToSave: EvaluationPeriod) => {
     const isEditing = evaluationPeriods.some(p => p.id === periodToSave.id);
     if (isEditing) {
-        setEvaluationPeriods(evaluationPeriods.map(p => p.id === periodToSave.id ? periodToSave : p));
+        await updateEvaluationPeriod(periodToSave.id, periodToSave);
         toast({ title: "Período Atualizado", description: "O período de avaliação foi atualizado." });
     } else {
-        setEvaluationPeriods([periodToSave, ...evaluationPeriods]);
+        await addEvaluationPeriod(periodToSave);
         toast({ title: "Período Criado", description: "O novo período de avaliação foi criado." });
     }
     setPeriodModalOpen(false);
     setSelectedPeriod(null);
   };
 
-  const handleCreateAssociation = () => {
+  const handleCreateAssociation = async () => {
     if (!selectedAppraisee || !selectedAppraiser) {
         toast({
             variant: "destructive",
@@ -318,13 +315,12 @@ export default function AdminDashboard() {
     }
 
 
-    const newAssociation: Association = {
-        id: `assoc-${Date.now()}`,
+    const newAssociation: Omit<Association, 'id'> = {
         appraiseeId: selectedAppraisee,
         appraiserId: selectedAppraiser,
     };
     
-    setAssociations([...associations, newAssociation]);
+    await addAssociation(newAssociation);
 
     toast({
         title: "Associação Criada",
@@ -336,7 +332,7 @@ export default function AdminDashboard() {
     setSelectedAppraiser('');
   };
 
-  const handleTogglePeriodStatus = (periodId: string) => {
+  const handleTogglePeriodStatus = async (periodId: string) => {
     const periodToToggle = evaluationPeriods.find(p => p.id === periodId);
     if (!periodToToggle) return;
 
@@ -356,11 +352,7 @@ export default function AdminDashboard() {
       }
     }
 
-    setEvaluationPeriods(
-      evaluationPeriods.map(p =>
-        p.id === periodId ? { ...p, status: newStatus } : p
-      )
-    );
+    await updateEvaluationPeriod(periodId, { status: newStatus });
      toast({
       title: "Status Alterado",
       description: `O período "${periodToToggle.name}" agora está ${newStatus.toLowerCase()}.`,
@@ -379,9 +371,11 @@ export default function AdminDashboard() {
     setPeriodModalOpen(true);
   }
   
-  const handleSaveNewAppraiser = (newUser: User) => {
-    setUsers([...users, newUser]);
-    setNewlyCreatedAppraiserId(newUser.id); // Save ID to auto-select
+  const handleSaveNewAppraiser = async (newUser: User) => {
+    const newId = await addUser(newUser);
+    if (newId) {
+        setNewlyCreatedAppraiserId(newId);
+    }
     toast({
       title: "Avaliador Criado",
       description: `O usuário ${newUser.name} foi criado com sucesso.`,
@@ -657,7 +651,23 @@ export default function AdminDashboard() {
                           <TableCell>{getUserDisplayById(assoc.appraiseeId)}</TableCell>
                           <TableCell>{getUserDisplayById(assoc.appraiserId)}</TableCell>
                           <TableCell className="text-center">
-                            <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                            <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Tem certeza que deseja excluir esta associação?
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => deleteAssociation(assoc.id)}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
@@ -672,5 +682,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    
