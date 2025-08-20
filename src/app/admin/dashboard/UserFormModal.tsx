@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useDataContext } from "@/context/DataContext";
 import type { User, Role } from "@/lib/types";
 
 export interface UserFormData {
@@ -34,13 +33,14 @@ export interface UserFormData {
 interface UserFormModalProps {
   mode: 'create' | 'edit';
   user: User | null;
+  users: User[];
   onSave: (formData: UserFormData) => void;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
   onAppraiserCreated: (newAppraiserId: string) => void;
 }
 
-export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -53,14 +53,13 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
   const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
 
   const { toast } = useToast();
-  const { users } = useDataContext();
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
     setCpf(onlyNumbers);
   };
   
-  const resetForm = () => {
+  const resetForm = React.useCallback(() => {
     setName('');
     setNomeDeGuerra('');
     setPostoGrad('');
@@ -71,7 +70,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     setRole('appraisee');
     setStatus('Ativo');
     setSelectedAppraiser('');
-  };
+  }, []);
 
   React.useEffect(() => {
     if (mode === 'edit' && user) {
@@ -87,11 +86,13 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     } else {
         resetForm();
     }
-  }, [user, mode]);
+  }, [user, mode, resetForm]);
   
   React.useEffect(() => {
-    onAppraiserCreated(selectedAppraiser);
-  }, [selectedAppraiser, onAppraiserCreated]);
+    if(newlyCreatedAppraiserId) {
+        setSelectedAppraiser(newlyCreatedAppraiserId);
+    }
+  }, [newlyCreatedAppraiserId]);
 
   const handleAppraiserChange = (value: string) => {
     if (value === 'new-appraiser') {
@@ -100,7 +101,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
       setSelectedAppraiser(value);
     }
   }
-
+  const newlyCreatedAppraiserId = '';
   const handleSave = () => {
     // --- Validation ---
     if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {

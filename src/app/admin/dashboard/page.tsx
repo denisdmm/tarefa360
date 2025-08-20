@@ -405,14 +405,11 @@ export default function AdminDashboard() {
         <UserFormModal 
           mode={userModalMode}
           user={selectedUser} 
+          users={users}
           onSave={handleSaveUser}
           onClose={() => setUserModalOpen(false)}
           onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}
-          onAppraiserCreated={(newId) => {
-            // This callback seems redundant with the state approach,
-            // but could be useful if we didn't use state.
-            // For now, we'll use the state `newlyCreatedAppraiserId`
-          }}
+          onAppraiserCreated={setNewlyCreatedAppraiserId}
         />
       </Dialog>
       <NewAppraiserFormModal 
