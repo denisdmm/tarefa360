@@ -166,7 +166,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     React.useEffect(() => {
         fetchData();
-    }, [fetchData]);
+    }, [fetchData, setLoggedInUser]);
     
     
     const handleSetUsers = async (newUsers: User[]) => {

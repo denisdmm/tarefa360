@@ -27,7 +27,7 @@ export default function LoginPage() {
   const { toast } = useToast();
   const { users, setLoggedInUser, fetchData } = useDataContext();
 
-  const checkAndCreatePeriod = async (): Promise<void> => {
+  const checkAndCreatePeriod = async (): Promise<boolean> => {
     const currentYear = new Date().getFullYear();
     const periodName = `FAG+${currentYear}`;
     const periodsRef = collection(db, "evaluationPeriods");
@@ -43,8 +43,8 @@ export default function LoginPage() {
             const batch = writeBatch(db);
 
             // Deactivate all existing periods
-            allPeriodsSnapshot.forEach(periodDoc => {
-                const periodRef = doc(db, 'evaluationPeriods', periodDoc.id);
+            existingPeriods.forEach(period => {
+                const periodRef = doc(db, 'evaluationPeriods', period.id);
                 batch.update(periodRef, { status: 'Inativo' });
             });
 
@@ -64,6 +64,7 @@ export default function LoginPage() {
                 title: "Período de Avaliação Criado",
                 description: `O período '${periodName}' foi criado e ativado automaticamente.`,
             });
+            return true;
         }
     } catch (error) {
         console.error("Error checking/creating evaluation period:", error);
@@ -73,6 +74,7 @@ export default function LoginPage() {
             description: "Não foi possível criar o período de avaliação automaticamente."
         });
     }
+    return false;
   };
 
 
@@ -83,10 +85,13 @@ export default function LoginPage() {
       setLoggedInUser(user);
 
       // Check and create evaluation period on login
-      await checkAndCreatePeriod();
+      const periodCreated = await checkAndCreatePeriod();
       
       // Refetch data to ensure the new period is loaded before redirecting
-      await fetchData();
+      // especially if a new one was just created.
+      if (periodCreated) {
+        await fetchData();
+      }
 
       if (user.forcePasswordChange) {
         toast({
@@ -166,3 +171,4 @@ export default function LoginPage() {
     </div>
   );
 }
+
