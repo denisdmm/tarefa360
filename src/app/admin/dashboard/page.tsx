@@ -242,6 +242,7 @@ export default function AdminDashboard() {
         }
       }
       setUserModalOpen(false);
+      setNewlyCreatedAppraiserId(''); // Reset after user is created/saved
   };
   
     const handleDeleteUser = async (userId: string) => {
@@ -363,6 +364,9 @@ export default function AdminDashboard() {
   const openUserModal = (user: User | null, mode: 'create' | 'edit') => {
     setUserModalMode(mode);
     setSelectedUser(user);
+    if(mode === 'create') {
+        setNewlyCreatedAppraiserId('');
+    }
     setUserModalOpen(true);
   }
 
@@ -412,7 +416,7 @@ export default function AdminDashboard() {
           onSave={handleSaveUser}
           onClose={() => setUserModalOpen(false)}
           onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}
-          onAppraiserCreated={setNewlyCreatedAppraiserId}
+          newlyCreatedAppraiserId={newlyCreatedAppraiserId}
         />
       </Dialog>
       <NewAppraiserFormModal 
@@ -682,5 +686,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    

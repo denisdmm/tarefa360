@@ -38,10 +38,10 @@ interface UserFormModalProps {
   onSave: (formData: UserFormData) => void;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
-  onAppraiserCreated: (newAppraiserId: string) => void;
+  newlyCreatedAppraiserId?: string;
 }
 
-export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -102,7 +102,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
       setSelectedAppraiser(value);
     }
   }
-  const newlyCreatedAppraiserId = '';
+
   const handleSave = () => {
     // --- Validation ---
     if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
@@ -291,5 +291,3 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     </DialogContent>
   );
 };
-
-    
