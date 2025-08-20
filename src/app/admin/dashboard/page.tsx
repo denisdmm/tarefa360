@@ -43,7 +43,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Calendar, Edit, Link2, PlusCircle, Trash2, Users, AlertTriangle, RefreshCw } from "lucide-react";
+import { Calendar, Edit, Link2, PlusCircle, Trash2, Users, AlertTriangle, KeyRound } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { User, EvaluationPeriod, Role, Association } from "@/lib/types";
@@ -511,7 +511,7 @@ export default function AdminDashboard() {
                               <AlertDialog>
                                   <AlertDialogTrigger asChild>
                                       <Button variant="ghost" size="icon">
-                                          <RefreshCw className="h-4 w-4" />
+                                          <KeyRound className="h-4 w-4" />
                                       </Button>
                                   </AlertDialogTrigger>
                                   <AlertDialogContent>
