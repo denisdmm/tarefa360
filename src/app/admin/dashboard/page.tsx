@@ -81,6 +81,13 @@ const PeriodFormModal = ({
   const { toast } = useToast();
   const { evaluationPeriods } = useDataContext();
 
+  const resetForm = React.useCallback(() => {
+      setName('');
+      setStartDate('');
+      setEndDate('');
+      setStatus('Inativo');
+  }, []);
+
   React.useEffect(() => {
     if (period) {
       setName(period.name);
@@ -88,13 +95,9 @@ const PeriodFormModal = ({
       setEndDate(format(period.endDate, 'yyyy-MM-dd'));
       setStatus(period.status);
     } else {
-      // Reset form for new period
-      setName('');
-      setStartDate('');
-      setEndDate('');
-      setStatus('Inativo');
+      resetForm();
     }
-  }, [period]);
+  }, [period, resetForm]);
 
   const handleSave = () => {
     if (!name || !startDate || !endDate) {
@@ -424,7 +427,12 @@ export default function AdminDashboard() {
         onSave={handleSaveNewAppraiser}
         existingUsers={users}
       />
-      <Dialog open={isPeriodModalOpen} onOpenChange={setPeriodModalOpen}>
+      <Dialog open={isPeriodModalOpen} onOpenChange={(isOpen) => {
+        if (!isOpen) {
+            setSelectedPeriod(null);
+        }
+        setPeriodModalOpen(isOpen);
+      }}>
         <PeriodFormModal 
             period={selectedPeriod} 
             onSave={handleSavePeriod} 
