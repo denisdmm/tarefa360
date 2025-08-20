@@ -74,28 +74,25 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         const q = query(usersRef, where('cpf', '==', adminCpf));
         const adminSnapshot = await getDocs(q);
 
-        const adminData: Omit<User, 'id' | 'password'> & { password?: string } = {
-            name: 'Usuário Admin',
-            nomeDeGuerra: 'Admin',
-            email: 'admin@tarefa360.com',
-            role: 'admin',
-            jobTitle: 'Administrador do Sistema',
-            sector: 'TI',
-            avatarUrl: 'https://placehold.co/100x100',
-            cpf: adminCpf,
-            postoGrad: 'Cel',
-            status: 'Ativo',
-            forcePasswordChange: false,
-        };
-        
         if (adminSnapshot.empty) {
             console.log('Admin user not found, seeding...');
-            adminData.password = '1234';
+            const adminData: Omit<User, 'id'> = {
+                name: 'Usuário Admin',
+                nomeDeGuerra: 'Admin',
+                email: 'admin@tarefa360.com',
+                role: 'admin',
+                jobTitle: 'Administrador do Sistema',
+                sector: 'TI',
+                avatarUrl: 'https://placehold.co/100x100',
+                cpf: adminCpf,
+                password: 'Admin1234', // Set a default password
+                postoGrad: 'Cel',
+                status: 'Ativo',
+                forcePasswordChange: false, // Admin does not need to change password on first login
+            };
             await addDoc(usersRef, sanitizeDataForFirestore(adminData));
         } else {
             console.log('Admin user found.');
-            // We don't reset the admin password on every load. 
-            // It can be reset via the profile page if needed.
         }
     };
     
@@ -136,6 +133,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [toast]);
 
     React.useEffect(() => {
@@ -312,3 +310,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
