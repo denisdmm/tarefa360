@@ -173,7 +173,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, users]);
 
     React.useEffect(() => {
         fetchData();
@@ -181,112 +181,124 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     
     const handleSetUsers = async (newUsers: User[]) => {
-        setUsersState(newUsers); 
+        // This function now only handles ADDING and UPDATING, not deleting.
+        const originalUsers = [...users]; // Keep a copy of the original state
+        setUsersState(newUsers); // Optimistic update
         try {
             const batch = writeBatch(db);
-            const existingUserIds = new Set(users.map(u => u.id));
+            const localUserIds = new Set(originalUsers.map(u => u.id));
 
             for (const user of newUsers) {
-                if (user.id === 'user-admin-local') continue; // Skip seeding user from local state
-
+                 if (user.id === 'user-admin-local') continue;
+                
                 const { id, ...data } = user;
-                const docRef = id.startsWith('user-') ? doc(collection(db, 'users')) : doc(db, 'users', id);
-
+                const isNewUser = !localUserIds.has(id) || id.startsWith('user-');
+                const docRef = isNewUser ? doc(collection(db, 'users')) : doc(db, 'users', id);
+                
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
-                existingUserIds.delete(id);
             }
 
-             // Delete users that are no longer in the list
-            existingUserIds.forEach(idToDelete => {
-                if (idToDelete !== 'user-admin-local') {
-                    batch.delete(doc(db, 'users', idToDelete));
-                }
-            });
+            // Deletion logic is now separate and should be handled by a dedicated function
+            const usersToDelete = originalUsers.filter(origUser => !newUsers.some(newUser => newUser.id === origUser.id));
+             for (const user of usersToDelete) {
+                if (user.id === 'user-admin-local') continue;
+                const docRef = doc(db, 'users', user.id);
+                batch.delete(docRef);
+            }
 
             await batch.commit();
             await fetchData(); 
         } catch (error) {
             console.error("Error batch updating users:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Usuários" });
-            fetchData();
+            setUsersState(originalUsers); // Rollback on error
         }
     };
 
     const handleSetActivities = async (newActivities: Activity[]) => {
+        const originalActivities = [...activities];
         setActivitiesState(newActivities);
         try {
             const batch = writeBatch(db);
-            const existingActivityIds = new Set(activities.map(a => a.id));
+            const localActivityIds = new Set(originalActivities.map(a => a.id));
 
             for(const activity of newActivities) {
                 const { id, ...data } = activity;
-                const docRef = id.startsWith('act-') ? doc(collection(db, 'activities')) : doc(db, 'activities', id);
+                const isNew = !localActivityIds.has(id) || id.startsWith('act-');
+                const docRef = isNew ? doc(collection(db, 'activities')) : doc(db, 'activities', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
-                existingActivityIds.delete(id);
             }
 
-            existingActivityIds.forEach(idToDelete => {
-                 batch.delete(doc(db, 'activities', idToDelete));
-            });
+            const activitiesToDelete = originalActivities.filter(orig => !newActivities.some(newAct => newAct.id === orig.id));
+            for(const activity of activitiesToDelete) {
+                 const docRef = doc(db, 'activities', activity.id);
+                 batch.delete(docRef);
+            }
 
             await batch.commit();
             await fetchData();
         } catch (error) {
             console.error("Error batch updating activities:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Atividades" });
-            fetchData();
+            setActivitiesState(originalActivities);
         }
     };
     
     const handleSetEvaluationPeriods = async (newPeriods: EvaluationPeriod[]) => {
+        const originalPeriods = [...evaluationPeriods];
         setEvaluationPeriodsState(newPeriods);
          try {
             const batch = writeBatch(db);
-            const existingPeriodIds = new Set(evaluationPeriods.map(p => p.id));
+            const localPeriodIds = new Set(originalPeriods.map(p => p.id));
 
             for(const period of newPeriods) {
                 const { id, ...data } = period;
-                const docRef = id.startsWith('period-') ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
+                const isNew = !localPeriodIds.has(id) || id.startsWith('period-');
+                const docRef = isNew ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
-                existingPeriodIds.delete(id);
             }
 
-            existingPeriodIds.forEach(idToDelete => {
-                 batch.delete(doc(db, 'evaluationPeriods', idToDelete));
-            });
+            const periodsToDelete = originalPeriods.filter(orig => !newPeriods.some(newPeriod => newPeriod.id === orig.id));
+            for(const period of periodsToDelete) {
+                 const docRef = doc(db, 'evaluationPeriods', period.id);
+                 batch.delete(docRef);
+            }
 
             await batch.commit();
             await fetchData();
         } catch (error) {
             console.error("Error batch updating periods:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Períodos" });
-            fetchData();
+            setEvaluationPeriodsState(originalPeriods);
         }
     };
     
     const handleSetAssociations = async (newAssociations: Association[]) => {
+        const originalAssociations = [...associations];
         setAssociationsState(newAssociations);
          try {
             const batch = writeBatch(db);
-            const existingAssocIds = new Set(associations.map(a => a.id));
+            const localAssocIds = new Set(originalAssociations.map(a => a.id));
 
             for(const assoc of newAssociations) {
                 const { id, ...data } = assoc;
-                const docRef = id.startsWith('assoc-') ? doc(collection(db, 'associations')) : doc(db, 'associations', id);
+                const isNew = !localAssocIds.has(id) || id.startsWith('assoc-');
+                const docRef = isNew ? doc(collection(db, 'associations')) : doc(db, 'associations', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
-                existingAssocIds.delete(id);
             }
 
-            existingAssocIds.forEach(idToDelete => {
-                 batch.delete(doc(db, 'associations', idToDelete));
-            });
+            const associationsToDelete = originalAssociations.filter(orig => !newAssociations.some(newAssoc => newAssoc.id === orig.id));
+            for(const assoc of associationsToDelete) {
+                 const docRef = doc(db, 'associations', assoc.id);
+                 batch.delete(docRef);
+            }
 
             await batch.commit();
             await fetchData();
         } catch (error) {
             console.error("Error batch updating associations:", error);
             toast({ variant: 'destructive', title: "Erro ao Salvar Associações" });
-            fetchData();
+            setAssociationsState(originalAssociations);
         }
     };
 
