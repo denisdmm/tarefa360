@@ -80,7 +80,7 @@ const ActivityCard = ({
       <CardHeader>
         <CardTitle>{activity.title}</CardTitle>
         <CardDescription>
-          Iniciada em {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
+          Iniciada em {activity.startDate ? format(add(new Date(activity.startDate as any), {minutes: new Date(activity.startDate as any).getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -248,7 +248,7 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell className="hidden md:table-cell">
-                              {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
+                              {activity.startDate ? format(add(new Date(activity.startDate as any), {minutes: new Date(activity.startDate as any).getTimezoneOffset()}), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>

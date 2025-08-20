@@ -51,9 +51,9 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
+  DialogFooter,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
@@ -78,7 +78,6 @@ const PeriodFormModal = ({
   const [endDate, setEndDate] = React.useState('');
   const [status, setStatus] = React.useState<'Ativo' | 'Inativo'>('Inativo');
   const { toast } = useToast();
-  const { evaluationPeriods } = useDataContext();
 
   const resetForm = React.useCallback(() => {
       setName('');
@@ -108,18 +107,6 @@ const PeriodFormModal = ({
       return;
     }
     
-    if (status === 'Ativo') {
-        const hasOtherActivePeriod = evaluationPeriods.some(p => p.status === 'Ativo' && p.id !== period?.id);
-        if (hasOtherActivePeriod) {
-            toast({
-                variant: "destructive",
-                title: "Validação Falhou",
-                description: "Já existe um período de avaliação ativo. Apenas um período pode estar ativo por vez.",
-            });
-            return;
-        }
-    }
-
     const savedPeriod: EvaluationPeriod = {
       id: period?.id || `period-${Date.now()}`,
       name,

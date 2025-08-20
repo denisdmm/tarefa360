@@ -112,12 +112,12 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       return;
     }
     
-    // On first login, the password is the `nomeDeGuerra`
-    if (currentUser.forcePasswordChange && currentPassword !== currentUser.nomeDeGuerra && currentPassword !== currentUser.password) {
+    // On first login, the password is the `nomeDeGuerra` or the default one set by admin
+    if (currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
         toast({
             variant: "destructive",
             title: "Senha Temporária Incorreta",
-            description: "A senha temporária (seu Nome de Guerra) não confere.",
+            description: "A senha temporária informada não confere.",
         });
         return;
     }
@@ -181,7 +181,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Ação Necessária: Altere sua Senha</AlertTitle>
                 <AlertDescription>
-                    Este é seu primeiro acesso. Por favor, cadastre uma nova senha abaixo para continuar. A sua senha temporária é o seu "Nome de Guerra" ou a senha padrão definida pelo administrador.
+                    Este é seu primeiro acesso ou sua senha foi redefinida. Por favor, cadastre uma nova senha abaixo para continuar. Sua senha temporária foi fornecida pelo administrador.
                 </AlertDescription>
             </Alert>
         )}

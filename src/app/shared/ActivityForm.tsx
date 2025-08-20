@@ -72,8 +72,8 @@ export const ActivityForm = ({
     if (activePeriod) {
         // Compare dates by creating UTC dates from local components to avoid timezone issues.
         const checkDate = startOfDay(parsedDate);
-        const startDatePeriod = startOfDay(activePeriod.startDate);
-        const endDatePeriod = startOfDay(activePeriod.endDate);
+        const startDatePeriod = startOfDay(new Date(activePeriod.startDate as any));
+        const endDatePeriod = startOfDay(new Date(activePeriod.endDate as any));
 
         if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
              setDateError("A data deve estar dentro do período de avaliação ativo.");
@@ -98,7 +98,7 @@ export const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      setStartDate(activity.startDate ? format(activity.startDate, 'yyyy-MM-dd') : '');
+      setStartDate(activity.startDate ? format(new Date(activity.startDate as any), 'yyyy-MM-dd') : '');
       setProgressHistory(activity.progressHistory || []);
     } else {
       // For new activities
