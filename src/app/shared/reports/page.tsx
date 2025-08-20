@@ -51,7 +51,7 @@ export default function ReportsPage() {
                                     <TableHead>Data de Início</TableHead>
                                     <TableHead>Data de Fim</TableHead>
                                     <TableHead>Status</TableHead>
-                                    <TableHead className="text-right">Ações</TableHead>
+                                    <TableHead className="text-center">Ações</TableHead>
                                 </TableRow>
                             </TableHeader>
                             <TableBody>
@@ -63,7 +63,7 @@ export default function ReportsPage() {
                                         <TableCell>
                                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                                         </TableCell>
-                                        <TableCell className="text-right">
+                                        <TableCell className="text-center">
                                             <Button onClick={() => handleView(period.id)}>
                                                 <Eye className="mr-2 h-4 w-4" />
                                                 Visualizar

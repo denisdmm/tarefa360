@@ -488,7 +488,7 @@ export default function AdminDashboard() {
                         <TableHead className="hidden md:table-cell">CPF</TableHead>
                         <TableHead>Perfil</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -504,7 +504,7 @@ export default function AdminDashboard() {
                                 {user.status}
                             </Badge>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
                                 <Edit className="h-4 w-4" />
                               </Button>
@@ -570,7 +570,7 @@ export default function AdminDashboard() {
                         <TableHead className="hidden sm:table-cell">Data de Início</TableHead>
                         <TableHead className="hidden sm:table-cell">Data de Fim</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -589,7 +589,7 @@ export default function AdminDashboard() {
                                 {period.status}
                             </Button>
                           </TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}>
                                   <Edit className="h-4 w-4" />
                               </Button>
@@ -640,7 +640,7 @@ export default function AdminDashboard() {
                       <TableRow>
                         <TableHead>Avaliado</TableHead>
                         <TableHead>Avaliador</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -648,7 +648,7 @@ export default function AdminDashboard() {
                         <TableRow key={assoc.id}>
                           <TableCell>{getUserDisplayById(assoc.appraiseeId)}</TableCell>
                           <TableCell>{getUserDisplayById(assoc.appraiserId)}</TableCell>
-                          <TableCell className="text-right">
+                          <TableCell className="text-center">
                             <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
                           </TableCell>
                         </TableRow>

@@ -238,7 +238,7 @@ export default function AppraiseeDashboard() {
                         <TableHead>Título</TableHead>
                         <TableHead className="hidden md:table-cell">Início</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -252,7 +252,7 @@ export default function AppraiseeDashboard() {
                             <TableCell>
                               <Badge>Concluído</Badge>
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
+                            <TableCell className="text-center space-x-2">
                               <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity, true)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
