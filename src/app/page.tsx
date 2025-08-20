@@ -19,39 +19,90 @@ import { useDataContext } from "@/context/DataContext";
 import type { EvaluationPeriod } from "@/lib/types";
 import { collection, getDocs, writeBatch, doc, addDoc, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { Eye, EyeOff } from "lucide-react";
 
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
   const [password, setPassword] = React.useState("");
+  const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
   const { users, setLoggedInUser, fetchData } = useDataContext();
 
   const handleLogin = async () => {
-    const user = users.find((u) => u.cpf === cpf);
+    try {
+        const user = users.find((u) => u.cpf === cpf);
 
-    if (user && user.password === password) {
-      setLoggedInUser(user);
-      
-      if (user.forcePasswordChange) {
+        if (user && user.password === password) {
+            setLoggedInUser(user);
+
+            // This logic can be simplified if the check happens on a protected route or layout
+            const evaluationPeriodsRef = collection(db, 'evaluationPeriods');
+            const currentYear = new Date().getFullYear();
+            const periodName = `FAG-${currentYear}`;
+            const q = query(evaluationPeriodsRef, where('name', '==', periodName));
+            const existingPeriodSnapshot = await getDocs(q);
+
+            if (existingPeriodSnapshot.empty) {
+                const batch = writeBatch(db);
+
+                // Deactivate all other periods
+                const allPeriodsSnapshot = await getDocs(evaluationPeriodsRef);
+                allPeriodsSnapshot.forEach(periodDoc => {
+                    const periodData = periodDoc.data();
+                    if (periodData.status === 'Ativo') {
+                        batch.update(doc(db, 'evaluationPeriods', periodDoc.id), { status: 'Inativo' });
+                    }
+                });
+                
+                // Create the new active period
+                const newPeriodData = {
+                    name: periodName,
+                    startDate: new Date(currentYear, 0, 1), // Jan 1st
+                    endDate: new Date(currentYear, 11, 31), // Dec 31st
+                    status: 'Ativo'
+                };
+                const newPeriodRef = doc(collection(db, 'evaluationPeriods'));
+                batch.set(newPeriodRef, newPeriodData);
+                
+                await batch.commit();
+
+                toast({
+                    title: "Período de Avaliação Criado",
+                    description: `O período ${periodName} foi criado e ativado para o ano corrente.`,
+                });
+
+                await fetchData(); // Recarrega os dados para obter o novo período
+            }
+
+            if (user.forcePasswordChange) {
+                toast({
+                    variant: "destructive",
+                    title: "Alteração de Senha Obrigatória",
+                    description: "Este é seu primeiro login. Por favor, altere sua senha.",
+                });
+                router.push(`/${user.role}/profile`);
+            } else {
+                router.push(`/${user.role}/dashboard`);
+            }
+        } else {
+            toast({
+                variant: "destructive",
+                title: "Falha no Login",
+                description: "CPF ou senha inválidos. Verifique os dados e tente novamente.",
+            });
+        }
+    } catch (error) {
+        console.error("Login error:", error);
         toast({
-          variant: "destructive",
-          title: "Alteração de Senha Obrigatória",
-          description: "Este é seu primeiro login. Por favor, altere sua senha.",
+            variant: "destructive",
+            title: "Erro Inesperado",
+            description: "Ocorreu um erro durante o login. Tente novamente.",
         });
-        router.push(`/${user.role}/profile`);
-      } else {
-        router.push(`/${user.role}/dashboard`);
-      }
-    } else {
-      toast({
-        variant: "destructive",
-        title: "Falha no Login",
-        description: "CPF ou senha inválidos. Verifique os dados e tente novamente.",
-      });
     }
   };
+
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
@@ -91,16 +142,27 @@ export default function LoginPage() {
                 onKeyDown={handleKeyDown}
               />
             </div>
-             <div className="space-y-2">
+             <div className="space-y-2 relative">
               <Label htmlFor="password">Senha</Label>
               <Input 
                 id="password" 
-                type="password"
+                type={showPassword ? "text" : "password"}
                 placeholder="Digite sua senha" 
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 onKeyDown={handleKeyDown}
+                className="pr-10"
               />
+               <Button
+                  type="button"
+                  variant="ghost"
+                  size="icon"
+                  className="absolute right-1 top-7 h-7 w-7 text-muted-foreground hover:bg-transparent"
+                  onClick={() => setShowPassword(prev => !prev)}
+                >
+                  {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  <span className="sr-only">{showPassword ? 'Ocultar senha' : 'Mostrar senha'}</span>
+                </Button>
             </div>
             
             <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
