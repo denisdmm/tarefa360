@@ -173,11 +173,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast, users]);
+    }, [toast]);
 
     React.useEffect(() => {
         fetchData();
-    }, [fetchData]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
     
     
     const handleSetUsers = async (newUsers: User[]) => {
@@ -185,19 +186,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setUsersState(newUsers); 
         try {
             const batch = writeBatch(db);
-            const localUserIds = new Set(originalUsers.map(u => u.id));
+            const originalUserIds = new Set(originalUsers.map(u => u.id));
 
             for (const user of newUsers) {
                  if (user.id === 'user-admin-local') continue;
                 
                 const { id, ...data } = user;
-                const isNewUser = !localUserIds.has(id) || id.startsWith('user-');
+                // Treat users with temporary IDs (like 'user-...') as new users
+                const isNewUser = !originalUserIds.has(id) || id.startsWith('user-');
                 const docRef = isNewUser ? doc(collection(db, 'users')) : doc(db, 'users', id);
                 
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
             }
 
-            // Deletion logic is now separate and should be handled by a dedicated function
             const usersToDelete = originalUsers.filter(origUser => !newUsers.some(newUser => newUser.id === origUser.id));
              for (const user of usersToDelete) {
                 if (user.id === 'user-admin-local') continue;
@@ -219,11 +220,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setActivitiesState(newActivities);
         try {
             const batch = writeBatch(db);
-            const localActivityIds = new Set(originalActivities.map(a => a.id));
+            const originalActivityIds = new Set(originalActivities.map(a => a.id));
 
             for(const activity of newActivities) {
                 const { id, ...data } = activity;
-                const isNew = !localActivityIds.has(id) || id.startsWith('act-');
+                const isNew = !originalActivityIds.has(id) || id.startsWith('act-');
                 const docRef = isNew ? doc(collection(db, 'activities')) : doc(db, 'activities', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
             }
@@ -248,16 +249,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setEvaluationPeriodsState(newPeriods);
          try {
             const batch = writeBatch(db);
-            const localPeriodIds = new Set(originalPeriods.map(p => p.id));
+            const originalPeriodIds = new Set(originalPeriods.map(p => p.id));
 
             for(const period of newPeriods) {
                 const { id, ...data } = period;
-                const isNew = !localPeriodIds.has(id) || id.startsWith('period-');
+                const isNew = !originalPeriodIds.has(id) || id.startsWith('period-');
                 const docRef = isNew ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
             }
             
-            // This is the logic that was deleting the data. It has now been removed.
+            const periodsToDelete = originalPeriods.filter(orig => !newPeriods.some(newPeriod => newPeriod.id === orig.id));
+            for(const period of periodsToDelete) {
+                const docRef = doc(db, 'evaluationPeriods', period.id);
+                batch.delete(docRef);
+            }
             
             await batch.commit();
             await fetchData();
@@ -273,11 +278,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setAssociationsState(newAssociations);
          try {
             const batch = writeBatch(db);
-            const localAssocIds = new Set(originalAssociations.map(a => a.id));
+            const originalAssocIds = new Set(originalAssociations.map(a => a.id));
 
             for(const assoc of newAssociations) {
                 const { id, ...data } = assoc;
-                const isNew = !localAssocIds.has(id) || id.startsWith('assoc-');
+                const isNew = !originalAssocIds.has(id) || id.startsWith('assoc-');
                 const docRef = isNew ? doc(collection(db, 'associations')) : doc(db, 'associations', id);
                 batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
             }
@@ -332,3 +337,5 @@ export const useDataContext = () => {
     }
     return context;
 };
+
+    
