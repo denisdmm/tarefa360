@@ -34,13 +34,14 @@ interface UserFormModalProps {
   mode: 'create' | 'edit';
   user: User | null;
   users: User[];
+  appraisers: User[];
   onSave: (formData: UserFormData) => void;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
   onAppraiserCreated: (newAppraiserId: string) => void;
 }
 
-export const UserFormModal = ({ mode, user, users, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -198,8 +199,6 @@ export const UserFormModal = ({ mode, user, users, onSave, onClose, onOpenNewApp
     ? 'Atualize os dados do usuário. Para ativar uma conta inativa, basta preencher o CPF.' 
     : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa.';
 
-  const appraisers = users.filter(u => u.role === 'appraiser');
-
   return (
     <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
@@ -292,3 +291,5 @@ export const UserFormModal = ({ mode, user, users, onSave, onClose, onOpenNewApp
     </DialogContent>
   );
 };
+
+    

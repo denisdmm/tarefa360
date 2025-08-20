@@ -398,6 +398,8 @@ export default function AdminDashboard() {
     };
     return roles[role] || role;
   }
+  
+  const appraisers = users.filter(u => u.role === 'appraiser');
 
   return (
     <>
@@ -406,6 +408,7 @@ export default function AdminDashboard() {
           mode={userModalMode}
           user={selectedUser} 
           users={users}
+          appraisers={appraisers}
           onSave={handleSaveUser}
           onClose={() => setUserModalOpen(false)}
           onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}
@@ -679,3 +682,5 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
