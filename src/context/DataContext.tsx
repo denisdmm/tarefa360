@@ -22,6 +22,18 @@ const convertTimestamps = (data: any) => {
     return newData;
 };
 
+// Helper to remove 'undefined' fields before saving to Firestore
+const sanitizeDataForFirestore = (data: any) => {
+    const sanitizedData: { [key: string]: any } = {};
+    for (const key in data) {
+        if (data[key] !== undefined) {
+            sanitizedData[key] = data[key];
+        }
+    }
+    return sanitizedData;
+};
+
+
 const defaultAdminUser: User = {
     id: 'user-admin-local',
     name: 'Usuário Admin',
@@ -96,7 +108,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         if (adminSnapshot.empty) {
             console.log('Admin user not found, seeding...');
             try {
-                await addDoc(usersRef, adminData);
+                await addDoc(usersRef, sanitizeDataForFirestore(adminData));
             } catch (error) {
                 console.error("Error seeding admin user:", error);
             }
@@ -104,7 +116,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             console.log('Admin user found, ensuring password is correct...');
             try {
                 const adminDoc = adminSnapshot.docs[0];
-                await setDoc(doc(db, 'users', adminDoc.id), adminData, { merge: true });
+                await setDoc(doc(db, 'users', adminDoc.id), sanitizeDataForFirestore(adminData), { merge: true });
             } catch (error) {
                  console.error("Error updating admin user password:", error);
             }
@@ -181,7 +193,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 const { id, ...data } = user;
                 const docRef = id.startsWith('user-') ? doc(collection(db, 'users')) : doc(db, 'users', id);
 
-                batch.set(docRef, data, { merge: true });
+                batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
                 existingUserIds.delete(id);
             }
 
@@ -210,7 +222,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             for(const activity of newActivities) {
                 const { id, ...data } = activity;
                 const docRef = id.startsWith('act-') ? doc(collection(db, 'activities')) : doc(db, 'activities', id);
-                batch.set(docRef, data, { merge: true });
+                batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
                 existingActivityIds.delete(id);
             }
 
@@ -236,7 +248,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             for(const period of newPeriods) {
                 const { id, ...data } = period;
                 const docRef = id.startsWith('period-') ? doc(collection(db, 'evaluationPeriods')) : doc(db, 'evaluationPeriods', id);
-                batch.set(docRef, data, { merge: true });
+                batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
                 existingPeriodIds.delete(id);
             }
 
@@ -262,7 +274,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             for(const assoc of newAssociations) {
                 const { id, ...data } = assoc;
                 const docRef = id.startsWith('assoc-') ? doc(collection(db, 'associations')) : doc(db, 'associations', id);
-                batch.set(docRef, data, { merge: true });
+                batch.set(docRef, sanitizeDataForFirestore(data), { merge: true });
                 existingAssocIds.delete(id);
             }
 
