@@ -18,7 +18,7 @@ import { useToast } from "@/hooks/use-toast";
 import { useDataContext } from "@/context/DataContext";
 import { db } from "@/lib/firebase";
 import type { EvaluationPeriod } from "@/lib/types";
-import { collection, getDocs, writeBatch, doc, addDoc } from "firebase/firestore";
+import { collection, getDocs, writeBatch, doc } from "firebase/firestore";
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");

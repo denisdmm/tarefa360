@@ -141,9 +141,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                  }
                  return user;
             });
-            const remoteUsers = usersList.filter(u => u.cpf !== defaultAdminUser.cpf);
-            const adminUserFromDb = usersList.find(u => u.cpf === defaultAdminUser.cpf);
-            setUsersState([ ...remoteUsers, adminUserFromDb || defaultAdminUser ]);
+            setUsersState(usersList);
             
             const activitiesList = activitiesSnapshot.docs.map(doc => ({ id: doc.id, ...convertTimestamps(doc.data()) } as Activity));
             setActivitiesState(activitiesList);
@@ -159,11 +157,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Algumas funcionalidades podem estar indisponíveis." });
             setConnectionError(true);
             // Fallback to local admin user if connection fails
-            setUsersState([defaultAdminUser]);
+            const localAdmin = users.find(u => u.cpf === defaultAdminUser.cpf) || defaultAdminUser;
+            setUsersState([localAdmin]);
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, users]);
 
     React.useEffect(() => {
         fetchData();
@@ -177,16 +176,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             const existingUserIds = new Set(users.map(u => u.id));
 
             for (const user of newUsers) {
-                const { id, ...data } = user;
-                let docRef;
+                if (user.id === 'user-admin-local') continue; // Skip seeding user from local state
 
-                if (id && (id.startsWith('user-') && id !== 'user-admin-local')) {
-                    docRef = doc(collection(db, 'users'));
-                } else if (id !== 'user-admin-local') {
-                    docRef = doc(db, 'users', id);
-                } else {
-                    continue; // Skip local admin user
-                }
+                const { id, ...data } = user;
+                const docRef = id.startsWith('user-') ? doc(collection(db, 'users')) : doc(db, 'users', id);
 
                 batch.set(docRef, data, { merge: true });
                 existingUserIds.delete(id);
