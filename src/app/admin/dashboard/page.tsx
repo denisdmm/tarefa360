@@ -43,7 +43,7 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Calendar, Edit, Link2, PlusCircle, Trash2, Users, AlertTriangle } from "lucide-react";
+import { Calendar, Edit, Link2, PlusCircle, Trash2, Users, AlertTriangle, RefreshCw } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
 import type { User, EvaluationPeriod, Role, Association } from "@/lib/types";
@@ -249,6 +249,32 @@ export default function AdminDashboard() {
             variant: "destructive",
             title: "Usuário Excluído",
             description: "A conta do usuário foi removida permanentemente.",
+        });
+    };
+
+    const handleResetPassword = (userToReset: User) => {
+        if (!userToReset.cpf || !userToReset.nomeDeGuerra) {
+             toast({
+                variant: "destructive",
+                title: "Redefinição Falhou",
+                description: "Não é possível redefinir a senha de um usuário sem CPF ou Nome de Guerra.",
+            });
+            return;
+        }
+
+        const newPassword = `${userToReset.cpf.substring(0, 4)}${userToReset.nomeDeGuerra}`;
+        
+        const updatedUser: User = {
+            ...userToReset,
+            password: newPassword,
+            forcePasswordChange: true,
+        };
+
+        setUsers(users.map(u => u.id === updatedUser.id ? updatedUser : u));
+
+        toast({
+            title: "Senha Redefinida",
+            description: `A senha de ${userToReset.name} foi redefinida. O usuário precisará alterá-la no próximo login.`,
         });
     };
 
@@ -482,6 +508,25 @@ export default function AdminDashboard() {
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
                                 <Edit className="h-4 w-4" />
                               </Button>
+                              <AlertDialog>
+                                  <AlertDialogTrigger asChild>
+                                      <Button variant="ghost" size="icon">
+                                          <RefreshCw className="h-4 w-4" />
+                                      </Button>
+                                  </AlertDialogTrigger>
+                                  <AlertDialogContent>
+                                      <AlertDialogHeader>
+                                          <AlertDialogTitle>Confirmar Redefinição de Senha</AlertDialogTitle>
+                                          <AlertDialogDescription>
+                                              Tem certeza que deseja redefinir a senha para o usuário "{user.name}"? A nova senha será o padrão (4 primeiros dígitos do CPF + Nome de Guerra) e o usuário será forçado a alterá-la no próximo login.
+                                          </AlertDialogDescription>
+                                      </AlertDialogHeader>
+                                      <AlertDialogFooter>
+                                          <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                          <AlertDialogAction onClick={() => handleResetPassword(user)}>Redefinir</AlertDialogAction>
+                                      </AlertDialogFooter>
+                                  </AlertDialogContent>
+                              </AlertDialog>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
