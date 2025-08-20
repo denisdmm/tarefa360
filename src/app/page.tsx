@@ -36,7 +36,7 @@ export default function LoginPage() {
       
       const checkAndCreatePeriod = async (): Promise<boolean> => {
         const currentYear = new Date().getFullYear();
-        const periodName = `FAG+${currentYear}`;
+        const periodName = `FAG${currentYear}`;
         const periodsRef = collection(db, "evaluationPeriods");
     
         try {
