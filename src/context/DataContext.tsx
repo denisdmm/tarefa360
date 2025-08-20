@@ -57,6 +57,8 @@ interface DataContextProps {
     setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
     loading: boolean;
     connectionError: boolean;
+    checkAndCreatePeriod: () => Promise<boolean>;
+    fetchData: () => Promise<void>;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
@@ -110,19 +112,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const seedEvaluationPeriods = async (): Promise<boolean> => {
+    const checkAndCreatePeriod = async (): Promise<boolean> => {
         const currentYear = new Date().getFullYear();
         const periodName = `FAG+${currentYear}`;
         
-        const periodsRef = collection(db, "evaluationPeriods");
-        const allPeriodsSnapshot = await getDocs(periodsRef);
-        const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
+        try {
+            const periodsRef = collection(db, "evaluationPeriods");
+            const allPeriodsSnapshot = await getDocs(periodsRef);
+            const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
 
-        const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
+            const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
 
-        if (!currentPeriodExists) {
-            console.log(`Evaluation period for ${periodName} not found. Seeding...`);
-            try {
+            if (!currentPeriodExists) {
+                console.log(`Evaluation period for ${periodName} not found. Seeding...`);
+                
                 const batch = writeBatch(db);
 
                 // Deactivate all existing periods
@@ -151,15 +154,16 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 
                 return true; // Indicate that a change was made and a refetch is needed
 
-            } catch (error) {
-                console.error("Error seeding evaluation periods:", error);
-                toast({
-                    variant: "destructive",
-                    title: "Falha ao Criar Período",
-                    description: "Não foi possível criar o período de avaliação automaticamente."
-                });
             }
+        } catch (error) {
+            console.error("Error checking/creating evaluation periods:", error);
+            toast({
+                variant: "destructive",
+                title: "Falha ao Verificar Período",
+                description: "Não foi possível criar ou verificar o período de avaliação automaticamente."
+            });
         }
+
         return false; // No change was made
     };
 
@@ -168,14 +172,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setConnectionError(false);
         try {
             await seedAdminUser(); 
-            const wasPeriodCreated = await seedEvaluationPeriods();
-            
-            // If a new period was created, we must refetch to get the updated list
-            if (wasPeriodCreated) {
-                await fetchData(); // Recurses to refetch all data
-                return; // Exit current execution to avoid race conditions
-            }
-
 
             const [
                 usersSnapshot, 
@@ -222,11 +218,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast]); // Added toast to dependency array for useCallback
+    }, [toast]);
 
     React.useEffect(() => {
         fetchData();
-    }, [fetchData]); // Use the memoized fetchData function
+    }, [fetchData]);
     
     
     const handleSetUsers = async (newUsers: User[]) => {
@@ -240,10 +236,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 let docRef;
 
                 if (id && (id.startsWith('user-') && id !== 'user-admin-local')) {
-                     // It's a new user, create a new doc ref
                     docRef = doc(collection(db, 'users'));
                 } else if (id !== 'user-admin-local') {
-                    // It's an existing user
                     docRef = doc(db, 'users', id);
                 } else {
                     continue; // Skip local admin user
@@ -365,6 +359,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setLoggedInUser,
         loading,
         connectionError,
+        checkAndCreatePeriod,
+        fetchData,
     };
     
     return (
@@ -381,5 +377,3 @@ export const useDataContext = () => {
     }
     return context;
 };
-
-    

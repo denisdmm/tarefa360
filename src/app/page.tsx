@@ -22,13 +22,21 @@ export default function LoginPage() {
   const [password, setPassword] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const { users, setLoggedInUser } = useDataContext();
+  const { users, setLoggedInUser, checkAndCreatePeriod, fetchData } = useDataContext();
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     const user = users.find((u) => u.cpf === cpf);
 
     if (user && user.password === password) {
       setLoggedInUser(user);
+
+      // Check and create evaluation period on login
+      const periodWasChanged = await checkAndCreatePeriod();
+      if (periodWasChanged) {
+        // Refetch data to ensure the new period is loaded before redirecting
+        await fetchData();
+      }
+
       if (user.forcePasswordChange) {
         toast({
           variant: "destructive",
