@@ -16,13 +16,65 @@ import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useDataContext } from "@/context/DataContext";
+import { db } from "@/lib/firebase";
+import type { EvaluationPeriod } from "@/lib/types";
+import { collection, getDocs, writeBatch, doc, addDoc } from "firebase/firestore";
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
   const [password, setPassword] = React.useState("");
   const router = useRouter();
   const { toast } = useToast();
-  const { users, setLoggedInUser, checkAndCreatePeriod, fetchData } = useDataContext();
+  const { users, setLoggedInUser, fetchData } = useDataContext();
+
+  const checkAndCreatePeriod = async (): Promise<void> => {
+    const currentYear = new Date().getFullYear();
+    const periodName = `FAG+${currentYear}`;
+    const periodsRef = collection(db, "evaluationPeriods");
+
+    try {
+        const allPeriodsSnapshot = await getDocs(periodsRef);
+        const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
+        
+        const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
+
+        if (!currentPeriodExists) {
+            console.log(`Period ${periodName} not found. Creating...`);
+            const batch = writeBatch(db);
+
+            // Deactivate all existing periods
+            allPeriodsSnapshot.forEach(periodDoc => {
+                const periodRef = doc(db, 'evaluationPeriods', periodDoc.id);
+                batch.update(periodRef, { status: 'Inativo' });
+            });
+
+            // Create the new active period
+            const newPeriodData: Omit<EvaluationPeriod, 'id'> = {
+                name: periodName,
+                startDate: new Date(currentYear - 1, 10, 1), // November 1st of previous year
+                endDate: new Date(currentYear, 9, 31),     // October 31st of current year
+                status: 'Ativo',
+            };
+            const newPeriodRef = doc(collection(db, 'evaluationPeriods'));
+            batch.set(newPeriodRef, newPeriodData);
+            
+            await batch.commit();
+
+            toast({
+                title: "Período de Avaliação Criado",
+                description: `O período '${periodName}' foi criado e ativado automaticamente.`,
+            });
+        }
+    } catch (error) {
+        console.error("Error checking/creating evaluation period:", error);
+        toast({
+            variant: "destructive",
+            title: "Falha ao Verificar Período",
+            description: "Não foi possível criar o período de avaliação automaticamente."
+        });
+    }
+  };
+
 
   const handleLogin = async () => {
     const user = users.find((u) => u.cpf === cpf);
@@ -31,11 +83,10 @@ export default function LoginPage() {
       setLoggedInUser(user);
 
       // Check and create evaluation period on login
-      const periodWasChanged = await checkAndCreatePeriod();
-      if (periodWasChanged) {
-        // Refetch data to ensure the new period is loaded before redirecting
-        await fetchData();
-      }
+      await checkAndCreatePeriod();
+      
+      // Refetch data to ensure the new period is loaded before redirecting
+      await fetchData();
 
       if (user.forcePasswordChange) {
         toast({

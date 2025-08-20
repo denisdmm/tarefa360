@@ -57,7 +57,6 @@ interface DataContextProps {
     setLoggedInUser: React.Dispatch<React.SetStateAction<User | null>>;
     loading: boolean;
     connectionError: boolean;
-    checkAndCreatePeriod: () => Promise<boolean>;
     fetchData: () => Promise<void>;
 }
 
@@ -112,60 +111,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const checkAndCreatePeriod = async (): Promise<boolean> => {
-        const currentYear = new Date().getFullYear();
-        const periodName = `FAG+${currentYear}`;
-        
-        try {
-            const periodsRef = collection(db, "evaluationPeriods");
-            const allPeriodsSnapshot = await getDocs(periodsRef);
-            const existingPeriods = allPeriodsSnapshot.docs.map(d => ({id: d.id, ...d.data()}) as EvaluationPeriod);
-
-            const currentPeriodExists = existingPeriods.some(p => p.name === periodName);
-
-            if (!currentPeriodExists) {
-                console.log(`Evaluation period for ${periodName} not found. Seeding...`);
-                
-                const batch = writeBatch(db);
-
-                // Deactivate all existing periods
-                existingPeriods.forEach(pDoc => {
-                    if (pDoc.status === 'Ativo') {
-                        const periodRef = doc(db, 'evaluationPeriods', pDoc.id);
-                        batch.update(periodRef, { status: 'Inativo' });
-                    }
-                });
-
-                // Create the new active period
-                const newPeriodData: Omit<EvaluationPeriod, 'id'> = {
-                    name: periodName,
-                    startDate: new Date(currentYear - 1, 10, 1), // November 1st of previous year
-                    endDate: new Date(currentYear, 9, 31),     // October 31st of current year
-                    status: 'Ativo',
-                };
-                const newPeriodRef = doc(collection(db, 'evaluationPeriods'));
-                batch.set(newPeriodRef, newPeriodData);
-                
-                await batch.commit();
-                toast({
-                    title: "Período de Avaliação Criado",
-                    description: `O período '${periodName}' foi criado e ativado para o ano corrente.`,
-                });
-                
-                return true; // Indicate that a change was made and a refetch is needed
-
-            }
-        } catch (error) {
-            console.error("Error checking/creating evaluation periods:", error);
-            toast({
-                variant: "destructive",
-                title: "Falha ao Verificar Período",
-                description: "Não foi possível criar ou verificar o período de avaliação automaticamente."
-            });
-        }
-
-        return false; // No change was made
-    };
 
     const fetchData = React.useCallback(async () => {
         setLoading(true);
@@ -359,7 +304,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         setLoggedInUser,
         loading,
         connectionError,
-        checkAndCreatePeriod,
         fetchData,
     };
     
