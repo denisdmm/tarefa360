@@ -122,11 +122,11 @@ export default function LoginPage() {
             title: "Sucesso!",
             description: "O banco de dados foi populado com dados de teste.",
         });
-    } catch (error) {
+    } catch (error: any) {
          toast({
             variant: "destructive",
             title: "Erro ao Popular Banco",
-            description: "Ocorreu um erro. Verifique o console para mais detalhes.",
+            description: `Ocorreu um erro. Verifique o console para mais detalhes. Erro: ${error.message}`,
         });
         console.error("Seeding error:", error);
     } finally {

@@ -101,35 +101,41 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }, [fetchData]);
 
     const seedDatabase = async () => {
+        console.log("Starting database seed...");
+        // 1. Clear existing data
         try {
-            // 1. Clear existing data
-            console.log("Starting database seed...");
+            console.log("Clearing existing data...");
             const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
             const deletePromises = collectionsToDelete.map(async (collName) => {
                 const snapshot = await getDocs(collection(db, collName));
                 const batch = writeBatch(db);
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-                console.log(`Collection ${collName} cleared.`);
             });
             await Promise.all(deletePromises);
             console.log("All collections cleared.");
+        } catch (error) {
+            console.error("Error clearing data:", error);
+            throw new Error("Failed to clear database.");
+        }
 
-            // 2. Add Users and create a map of CPF to their new Firestore ID
-            const cpfToIdMap: Record<string, string> = {};
+        // 2. Add new data
+        const cpfToIdMap: Record<string, string> = {};
+        try {
+            console.log("Seeding users...");
             for (const userData of mockUsers) {
                 const docRef = await addDoc(collection(db, "users"), userData);
                 cpfToIdMap[userData.cpf] = docRef.id;
             }
-            console.log("Users seeded and CPF map created:", cpfToIdMap);
-            
-            // 3. Add Evaluation Periods
+            console.log("Users seeded.");
+
+            console.log("Seeding evaluation periods...");
             for (const periodData of mockEvaluationPeriods) {
                 await addDoc(collection(db, "evaluationPeriods"), periodData);
             }
             console.log("Evaluation periods seeded.");
 
-            // 4. Add Activities using the new user IDs from the map
+            console.log("Seeding activities...");
             for (const { userCpf, activity } of mockActivitiesData) {
                 const userId = cpfToIdMap[userCpf];
                 if (userId) {
@@ -137,8 +143,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 }
             }
             console.log("Activities seeded.");
-
-            // 5. Add Associations using the new user IDs from the map
+            
+            console.log("Seeding associations...");
             for (const { appraiseeCpf, appraiserCpf } of mockAssociationsData) {
                 const appraiseeId = cpfToIdMap[appraiseeCpf];
                 const appraiserId = cpfToIdMap[appraiserCpf];
@@ -148,14 +154,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
             console.log("Associations seeded.");
 
-            // 6. Fetch the new data to update the UI
-            console.log("Seeding complete. Fetching new data...");
-            await fetchData();
-
-        } catch (error) {
-            console.error("Error seeding database: ", error);
-            throw error;
+        } catch(error) {
+            console.error("Error writing new data:", error);
+            throw new Error("Failed to write new data to the database.");
         }
+        
+        // 3. Fetch the new data to update the UI
+        console.log("Seeding complete. Fetching new data...");
+        await fetchData();
     };
 
 
