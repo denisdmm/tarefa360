@@ -28,7 +28,10 @@ export const ProgressFormModal = ({
   
   React.useEffect(() => {
     if (activity) {
-        const lastProgress = [...activity.progressHistory].sort((a, b) => b.year - a.year || b.month - a.month)[0];
+        const lastProgress = activity.progressHistory && activity.progressHistory.length > 0 
+            ? [...activity.progressHistory].sort((a, b) => b.year - a.year || b.month - a.month)[0]
+            : null;
+
         setNewProgress({
             date: format(new Date(), 'yyyy-MM-dd'),
             percentage: lastProgress?.percentage || 0,
