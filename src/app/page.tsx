@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -27,7 +28,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoggedInUser } = useDataContext();
+  const { setLoggedInUser, ensureCurrentEvaluationPeriodExists } = useDataContext();
 
   const handleLogin = async () => {
     try {
@@ -66,6 +67,7 @@ export default function LoginPage() {
 
         if (user && user.password === password) {
             setLoggedInUser(user);
+            await ensureCurrentEvaluationPeriodExists();
 
             if (user.forcePasswordChange) {
                 toast({
@@ -165,3 +167,5 @@ export default function LoginPage() {
     </div>
   );
 }
+
+    
