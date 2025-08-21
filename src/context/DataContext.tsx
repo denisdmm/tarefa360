@@ -106,12 +106,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
             if (!adminExists) {
                 console.log("Admin user not found, creating one...");
-                const adminData = mockUsers[0];
+                const adminData = mockUsers.find(u => u.cpf === adminCpf);
                 if (adminData) {
-                    const docRef = await addDoc(collection(db, "users"), adminData);
-                    const newAdmin = { id: docRef.id, ...adminData } as User;
-                    setUsersState(prev => [...prev, newAdmin]);
-                    console.log("Admin user created successfully.");
+                    await addUser(adminData);
                 }
             }
         } catch (error) {
@@ -124,15 +121,30 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast]);
 
+    const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>): Promise<string | null> => {
+        try {
+            const dataToSave = {
+                ...periodData,
+                startDate: Timestamp.fromDate(periodData.startDate as Date),
+                endDate: Timestamp.fromDate(periodData.endDate as Date),
+            };
+            const docRef = await addDoc(collection(db, 'evaluationPeriods'), dataToSave);
+            const newPeriod = { id: docRef.id, ...periodData } as EvaluationPeriod;
+            setEvaluationPeriodsState(prev => [...prev, newPeriod].sort((a,b) => new Date(b.startDate as any).getTime() - new Date(a.startDate as any).getTime()));
+            return docRef.id;
+        } catch (error) {
+            console.error("Error adding period:", error);
+            toast({ variant: 'destructive', title: "Erro ao adicionar período" });
+            return null;
+        }
+    };
+    
     const ensureCurrentEvaluationPeriodExists = React.useCallback(async () => {
         try {
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth(); // 0-11
 
-            // The evaluation period is from Nov of the previous year to Oct of the current year.
-            // If we are in Jan-Oct, the period belongs to the current year.
-            // If we are in Nov-Dec, the period has already shifted to the next year.
             const periodYear = (currentMonth >= 10) ? currentYear + 1 : currentYear; // >= 10 means Nov or Dec
 
             const startDate = new Date(periodYear - 1, 10, 1); // Nov 1st of previous year
@@ -267,24 +279,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
 
     // EVALUATION PERIODS
-    const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>): Promise<string | null> => {
-        try {
-            const dataToSave = {
-                ...periodData,
-                startDate: Timestamp.fromDate(periodData.startDate as Date),
-                endDate: Timestamp.fromDate(periodData.endDate as Date),
-            };
-            const docRef = await addDoc(collection(db, 'evaluationPeriods'), dataToSave);
-            const newPeriod = { id: docRef.id, ...periodData } as EvaluationPeriod;
-            setEvaluationPeriodsState(prev => [...prev, newPeriod].sort((a,b) => new Date(b.startDate as any).getTime() - new Date(a.startDate as any).getTime()));
-            return docRef.id;
-        } catch (error) {
-            console.error("Error adding period:", error);
-            toast({ variant: 'destructive', title: "Erro ao adicionar período" });
-            return null;
-        }
-    };
-
     const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
         try {
             const dataToUpdate: { [key: string]: any } = { ...periodData };
@@ -376,5 +370,3 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
-
-    
