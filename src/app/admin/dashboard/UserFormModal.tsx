@@ -35,7 +35,7 @@ interface UserFormModalProps {
   user: User | null;
   users: User[];
   appraisers: User[];
-  onSave: (formData: UserFormData) => void;
+  onSave: (formData: UserFormData) => Promise<void>;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
   newlyCreatedAppraiserId?: string;
@@ -103,7 +103,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // --- Validation ---
     if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
         toast({
@@ -188,7 +188,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
         };
     }
     
-    onSave(formData);
+    await onSave(formData);
     if (mode === 'create') {
         resetForm();
     }

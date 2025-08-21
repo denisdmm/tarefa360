@@ -26,7 +26,7 @@ export const ActivityForm = ({
   activePeriod,
 }: {
   activity?: Activity | null;
-  onSave: (activity: Activity) => void;
+  onSave: (activity: Activity) => Promise<void>;
   onClose: () => void;
   currentUserId: string;
   isReadOnly?: boolean;
@@ -153,7 +153,7 @@ export const ActivityForm = ({
   }
 
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     if (isSaveDisabled) {
         toast({
             variant: "destructive",
@@ -177,7 +177,7 @@ export const ActivityForm = ({
       progressHistory: progressHistory,
       userId: currentUserId,
     };
-    onSave(updatedActivity);
+    await onSave(updatedActivity);
     onClose();
   };
   

@@ -91,6 +91,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 forcePasswordChange: false, // Admin does not need to change password on first login
             };
             await addDoc(usersRef, sanitizeDataForFirestore(adminData));
+            console.log('Admin user seeded.');
         } else {
             console.log('Admin user found.');
         }
@@ -133,13 +134,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [toast]);
 
     React.useEffect(() => {
         fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
+    }, [fetchData]);
 
     // --- CRUD Functions ---
 
@@ -156,7 +155,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const updateUser = async (userId: string, userData: Partial<User>) => {
+    const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
         try {
             const userRef = doc(db, 'users', userId);
             await updateDoc(userRef, sanitizeDataForFirestore(userData));
@@ -167,7 +166,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const deleteUser = async (userId: string) => {
+    const deleteUser = async (userId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'users', userId));
             // Also delete related associations
@@ -195,7 +194,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const updateActivity = async (activityId: string, activityData: Partial<Activity>) => {
+    const updateActivity = async (activityId: string, activityData: Partial<Activity>): Promise<void> => {
         try {
             const activityRef = doc(db, 'activities', activityId);
             await updateDoc(activityRef, sanitizeDataForFirestore(activityData));
@@ -206,7 +205,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const deleteActivity = async (activityId: string) => {
+    const deleteActivity = async (activityId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'activities', activityId));
             await fetchData();
@@ -229,7 +228,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>) => {
+    const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
         try {
             const periodRef = doc(db, 'evaluationPeriods', periodId);
             await updateDoc(periodRef, sanitizeDataForFirestore(periodData));
@@ -240,7 +239,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const deleteEvaluationPeriod = async (periodId: string) => {
+    const deleteEvaluationPeriod = async (periodId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'evaluationPeriods', periodId));
             await fetchData();
@@ -263,7 +262,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const deleteAssociation = async (associationId: string) => {
+    const deleteAssociation = async (associationId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'associations', associationId));
             await fetchData();
@@ -273,7 +272,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
 
-    const contextValue = {
+    const contextValue: DataContextProps = {
         users,
         addUser,
         updateUser,
@@ -303,12 +302,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     );
 };
 
-export const useDataContext = () => {
+export const useDataContext = (): DataContextProps => {
     const context = React.useContext(DataContext);
     if (context === undefined) {
         throw new Error('useDataContext must be used within a DataProvider');
     }
     return context;
 };
-
-    

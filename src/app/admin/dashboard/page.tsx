@@ -70,7 +70,7 @@ const PeriodFormModal = ({
   onClose,
 }: {
   period: EvaluationPeriod | null;
-  onSave: (period: EvaluationPeriod) => void;
+  onSave: (period: EvaluationPeriod) => Promise<void>;
   onClose: () => void;
 }) => {
   const [name, setName] = React.useState('');
@@ -97,7 +97,7 @@ const PeriodFormModal = ({
     }
   }, [period, resetForm]);
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!name || !startDate || !endDate) {
       toast({
         variant: "destructive",
@@ -114,7 +114,7 @@ const PeriodFormModal = ({
       endDate: new Date(`${endDate}T12:00:00`),
       status,
     };
-    onSave(savedPeriod);
+    await onSave(savedPeriod);
   };
 
   return (
@@ -185,7 +185,7 @@ export default function AdminDashboard() {
   const [selectedAppraiser, setSelectedAppraiser] = React.useState('');
   
   const [isNewAppraiserModalOpen, setNewAppraiserModalOpen] = React.useState(false);
-  const [newlyCreatedAppraiserId, setNewlyCreatedAppraiserId] = React.useState<string>('');
+  const [newlyCreatedAppraiserId, setNewlyCreatedAppraiserId] = React.useState<string | undefined>('');
 
 
   const { toast } = useToast();
@@ -676,7 +676,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    
-
-    

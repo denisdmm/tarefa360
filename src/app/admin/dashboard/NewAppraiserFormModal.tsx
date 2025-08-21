@@ -19,7 +19,7 @@ import type { User } from "@/lib/types";
 interface NewAppraiserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (newUser: User) => void;
+  onSave: (newUser: User) => Promise<void>;
   existingUsers: User[];
 }
 
@@ -49,7 +49,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
     setJobTitle('');
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // --- Validation ---
     if (!name || !nomeDeGuerra) {
         toast({
@@ -98,7 +98,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         avatarUrl: 'https://placehold.co/100x100' // Default avatar
     };
     
-    onSave(newUser);
+    await onSave(newUser);
     resetForm();
     onClose();
   };
