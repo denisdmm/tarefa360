@@ -76,6 +76,7 @@ export const ActivityForm = ({
   }, [activity]);
   
   const handleRemoveProgress = (year: number, month: number) => {
+    if(isReadOnly) return;
     const newHistory = progressHistory.filter(p => !(p.year === year && p.month === month));
     setProgressHistory(newHistory);
   }
@@ -106,7 +107,6 @@ export const ActivityForm = ({
       userId: currentUserId,
     };
     await onSave(updatedActivity);
-    onClose();
   };
   
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
@@ -148,7 +148,7 @@ export const ActivityForm = ({
                         onChange={e => setStartDate(e.target.value)}
                         onBlur={e => validateStartDate(e.target.value)}
                         className={cn(dateError && "border-destructive")}
-                        readOnly={isReadOnly || (!!activity && !!activity.id)}
+                        readOnly={isReadOnly}
                     />
                     {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
                 </div>
@@ -170,7 +170,7 @@ export const ActivityForm = ({
                               variant="outline" 
                               size="sm" 
                               onClick={onAddProgress}
-                              disabled={!activity} // Disable if it's a new, unsaved activity
+                              disabled={!activity}
                             >
                                 <PlusCircle className="mr-2 h-4 w-4" />
                                 Adicionar Progresso
@@ -223,7 +223,7 @@ export const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline" onClick={onClose}>Fechar</Button></DialogClose>
+        <Button variant="outline" onClick={onClose}>Fechar</Button>
         {!isReadOnly && <Button onClick={handleSubmit} disabled={isSaveDisabled}>Salvar Atividade</Button>}
       </DialogFooter>
     </DialogContent>

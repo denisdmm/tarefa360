@@ -159,23 +159,23 @@ export default function AppraiseeDashboard() {
   }
 
   const handleSaveActivity = async (activityToSave: Activity) => {
-    const isEditing = activities.some(a => a.id === activityToSave.id);
+    const isEditing = !!activityToSave.id && activities.some(a => a.id === activityToSave.id);
+
     if (isEditing) {
-      await updateActivity(activityToSave.id, activityToSave);
-      toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
+        await updateActivity(activityToSave.id, activityToSave);
+        toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
+        handleCloseForms(); // Close form on successful update
     } else {
-      const { id, ...newActivityData } = activityToSave;
-      const newId = await addActivity(newActivityData as Activity);
-      if (newId) {
-        // After creating, re-select the activity to enable the 'Add Progress' button
-        const newActivity = activities.find(a => a.id === newId);
-        if (newActivity) setSelectedActivity(newActivity);
-      }
-      toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
-    }
-    // Don't close the form on creation, so user can add progress
-    if (isEditing) {
-        handleCloseForms();
+        const { id, ...newActivityData } = activityToSave;
+        const newId = await addActivity(newActivityData as Activity);
+        if (newId) {
+            // Re-fetch the newly created activity to update the form state
+            const createdActivity = { ...newActivityData, id: newId } as Activity;
+            setSelectedActivity(createdActivity);
+            toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
+        } else {
+             toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a atividade." });
+        }
     }
   };
   
@@ -345,4 +345,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
