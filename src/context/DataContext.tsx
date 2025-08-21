@@ -4,8 +4,9 @@
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { mockUsers, mockEvaluationPeriods, mockActivitiesData, mockAssociationsData } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -43,6 +44,7 @@ interface DataContextProps {
     loading: boolean;
     connectionError: boolean;
     fetchData: () => Promise<void>;
+    seedDatabase: () => Promise<void>;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
@@ -98,6 +100,60 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         fetchData();
     }, [fetchData]);
 
+    const seedDatabase = async () => {
+        const batch = writeBatch(db);
+
+        // Clear existing data
+        const collections = ["users", "activities", "evaluationPeriods", "associations"];
+        for (const coll of collections) {
+            const snapshot = await getDocs(collection(db, coll));
+            snapshot.docs.forEach(doc => batch.delete(doc.ref));
+        }
+        await batch.commit(); // Commit the deletions first
+
+        // Start a new batch for additions
+        const addBatch = writeBatch(db);
+
+        // Add users and create a CPF-to-ID map
+        const cpfToIdMap: Record<string, string> = {};
+        for (const userData of mockUsers) {
+            const userRef = doc(collection(db, "users"));
+            addBatch.set(userRef, userData);
+            cpfToIdMap[userData.cpf] = userRef.id;
+        }
+
+        // Add evaluation periods
+        mockEvaluationPeriods.forEach(periodData => {
+            const periodRef = doc(collection(db, "evaluationPeriods"));
+            addBatch.set(periodRef, periodData);
+        });
+
+        // Add activities using the CPF-to-ID map
+        mockActivitiesData.forEach(({ userCpf, activity }) => {
+            const userId = cpfToIdMap[userCpf];
+            if (userId) {
+                const activityRef = doc(collection(db, "activities"));
+                addBatch.set(activityRef, { ...activity, userId });
+            }
+        });
+
+        // Add associations using the CPF-to-ID map
+        mockAssociationsData.forEach(({ appraiseeCpf, appraiserCpf }) => {
+            const appraiseeId = cpfToIdMap[appraiseeCpf];
+            const appraiserId = cpfToIdMap[appraiserCpf];
+            if (appraiseeId && appraiserId) {
+                const assocRef = doc(collection(db, "associations"));
+                addBatch.set(assocRef, { appraiseeId, appraiserId });
+            }
+        });
+
+        // Commit all additions
+        await addBatch.commit();
+        
+        // Fetch the new data
+        await fetchData();
+    };
+
     // --- CRUD Functions ---
 
     // USERS
@@ -132,11 +188,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             await deleteDoc(doc(db, 'users', userId));
             setUsersState(prev => prev.filter(u => u.id !== userId));
-            // Also delete related associations
+            
             const associationsToDelete = associations.filter(a => a.appraiseeId === userId || a.appraiserId === userId);
-            for(const assoc of associationsToDelete) {
-                await deleteAssociation(assoc.id);
-            }
+            const deletePromises = associationsToDelete.map(assoc => deleteAssociation(assoc.id));
+            await Promise.all(deletePromises);
         } catch (error) {
             console.error("Error deleting user:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir usuário" });
@@ -278,6 +333,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         connectionError,
         fetchData,
+        seedDatabase,
     };
     
     return (
@@ -294,5 +350,3 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
-
-    

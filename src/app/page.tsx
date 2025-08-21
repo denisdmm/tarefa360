@@ -16,10 +16,10 @@ import { Logo } from "@/components/logo";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
 import { useDataContext } from "@/context/DataContext";
-import type { User, EvaluationPeriod } from "@/lib/types";
-import { collection, getDocs, writeBatch, doc, addDoc, query, where, Timestamp } from "firebase/firestore";
+import type { User } from "@/lib/types";
+import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Eye, EyeOff } from "lucide-react";
+import { Eye, EyeOff, TestTube2 } from "lucide-react";
 
 
 export default function LoginPage() {
@@ -28,7 +28,8 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoggedInUser } = useDataContext();
+  const { setLoggedInUser, seedDatabase } = useDataContext();
+  const [isSeeding, setIsSeeding] = React.useState(false);
 
   const handleLogin = async () => {
     try {
@@ -49,6 +50,16 @@ export default function LoginPage() {
         const userData = userDoc.data();
         
         // Firestore Timestamps need to be converted to Date objects
+        const convertTimestamps = (data: any) => {
+            const newData: { [key: string]: any } = { ...data };
+            for (const key in newData) {
+                if (newData[key] instanceof Timestamp) {
+                    newData[key] = newData[key].toDate();
+                }
+            }
+            return newData;
+        };
+
         const user = { 
             id: userDoc.id, 
             ...convertTimestamps(userData) 
@@ -85,16 +96,6 @@ export default function LoginPage() {
     }
   };
 
-  const convertTimestamps = (data: any) => {
-    const newData: { [key: string]: any } = { ...data };
-    for (const key in newData) {
-        if (newData[key] instanceof Timestamp) {
-            newData[key] = newData[key].toDate();
-        }
-    }
-    return newData;
-  };
-
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
@@ -106,6 +107,30 @@ export default function LoginPage() {
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !isLoginDisabled) {
       handleLogin();
+    }
+  }
+
+  const handleSeed = async () => {
+    setIsSeeding(true);
+    toast({
+        title: "Populando Banco de Dados",
+        description: "Aguarde, isso pode levar alguns segundos...",
+    });
+    try {
+        await seedDatabase();
+        toast({
+            title: "Sucesso!",
+            description: "O banco de dados foi populado com dados de teste.",
+        });
+    } catch (error) {
+         toast({
+            variant: "destructive",
+            title: "Erro ao Popular Banco",
+            description: "Ocorreu um erro. Verifique o console para mais detalhes.",
+        });
+        console.error("Seeding error:", error);
+    } finally {
+        setIsSeeding(false);
     }
   }
 
@@ -160,11 +185,13 @@ export default function LoginPage() {
             <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
               Login
             </Button>
+            <Button onClick={handleSeed} disabled={isSeeding} variant="secondary" className="w-full">
+              <TestTube2 className="mr-2" /> 
+              {isSeeding ? 'Populando...' : 'Popular Banco (Teste)'}
+            </Button>
           </div>
         </CardContent>
       </Card>
     </div>
   );
 }
-
-    
