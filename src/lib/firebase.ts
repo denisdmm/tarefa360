@@ -3,7 +3,6 @@
 
 import { initializeApp, getApps, getApp } from "firebase/app";
 import { getFirestore } from "firebase/firestore";
-import { initializeAppCheck, ReCaptchaV3Provider } from "firebase/app-check";
 
 // Your web app's Firebase configuration
 const firebaseConfig = {
@@ -18,14 +17,6 @@ const firebaseConfig = {
 // Initialize Firebase
 const app = !getApps().length ? initializeApp(firebaseConfig) : getApp();
 const db = getFirestore(app);
-
-// Initialize App Check
-if (typeof window !== "undefined") {
-  initializeAppCheck(app, {
-    provider: new ReCaptchaV3Provider('6LcrwP0pAAAAAPp_4v-A-E8f2p_aN-pE-fC_aB_c'), // Chave pública do reCAPTCHA v3 (exemplo)
-    isTokenAutoRefreshEnabled: true
-  });
-}
 
 
 export { app, db };
