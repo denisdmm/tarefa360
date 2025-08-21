@@ -16,6 +16,7 @@ import type { Activity, EvaluationPeriod, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { format, startOfDay } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Slider } from "@/components/ui/slider";
 
 export const ActivityForm = ({
   activity,
@@ -186,6 +187,17 @@ export const ActivityForm = ({
     return b.month - a.month;
   });
 
+  const handlePercentageChange = (value: number) => {
+    if (!newProgress) return;
+    const newPercentage = Math.max(0, Math.min(100, value));
+    setNewProgress({...newProgress, percentage: newPercentage});
+  }
+
+  const handleIncrementPercentage = (increment: number) => {
+      if (!newProgress) return;
+      handlePercentageChange(newProgress.percentage + increment);
+  }
+
   return (
     <DialogContent className="sm:max-w-[625px]">
       <DialogHeader>
@@ -259,15 +271,32 @@ export const ActivityForm = ({
                     </div>
                      <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
                         <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
-                        <Input 
-                            id="new-progress-percentage" 
-                            type="number" 
-                            min="0"
-                            max="100"
-                            value={newProgress.percentage} 
-                            onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value) || 0})} 
-                            className="col-span-1 md:col-span-3" 
-                        />
+                        <div className="col-span-1 md:col-span-3 flex items-center gap-2">
+                             <Input 
+                                id="new-progress-percentage" 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={newProgress.percentage} 
+                                onChange={e => handlePercentageChange(parseInt(e.target.value) || 0)} 
+                                className="w-20" 
+                            />
+                            <Slider
+                                value={[newProgress.percentage]}
+                                onValueChange={(value) => handlePercentageChange(value[0])}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                            />
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                       <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)}>+5%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)}>+10%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)}>+25%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)}>+50%</Button>
+                       </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
                         <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
