@@ -270,7 +270,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     const deleteActivity = async (activityId: string): Promise<void> => {
         try {
+            // First, delete from Firestore
             await deleteDoc(doc(db, 'activities', activityId));
+            // Only if Firestore deletion is successful, update the local state
             setActivitiesState(prev => prev.filter(a => a.id !== activityId));
         } catch (error) {
             console.error("Error deleting activity:", error);
@@ -370,3 +372,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
