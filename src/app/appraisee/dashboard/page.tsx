@@ -48,19 +48,16 @@ import { useDataContext } from "@/context/DataContext";
 import { format, add } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ActivityForm } from "@/app/shared/ActivityForm";
-import { ProgressFormModal } from "./ProgressFormModal";
 
 
 const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
-  onAddProgress
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
-  onAddProgress: (activity: Activity) => void;
 }) => {
     
   const getLatestProgress = (activity: Activity) => {
@@ -89,13 +86,9 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        <Button variant="outline" size="sm" onClick={() => onAddProgress(activity)}>
-            <PlusCircle className="mr-2 h-4 w-4" />
-            Progresso
-        </Button>
         <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
             <Edit className="mr-2 h-4 w-4" />
-            Editar
+            Editar/Progresso
         </Button>
         <AlertDialog>
           <AlertDialogTrigger asChild>
@@ -131,7 +124,6 @@ export default function AppraiseeDashboard() {
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
-  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
 
@@ -159,27 +151,20 @@ export default function AppraiseeDashboard() {
     }
     handleCloseForms();
   };
-
-  const handleSaveProgress = async (activityToSave: Activity) => {
-      await updateActivity(activityToSave.id, activityToSave);
-      toast({ title: "Progresso Salvo", description: "O progresso da atividade foi atualizado."});
-      handleCloseForms();
-  }
   
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
-    setSelectedActivity(activity);
+    // Ensure that creating a new activity always starts with a clean slate
+    if (activity === null) {
+      setSelectedActivity(null);
+    } else {
+      setSelectedActivity(activity);
+    }
     setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
 
-  const handleOpenProgressForm = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setProgressFormOpen(true);
-  }
-
   const handleCloseForms = () => {
     setActivityFormOpen(false);
-    setProgressFormOpen(false);
     setSelectedActivity(null);
     setIsFormReadOnly(false);
   }
@@ -224,7 +209,6 @@ export default function AppraiseeDashboard() {
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
                     onDelete={handleDeleteActivity}
-                    onAddProgress={() => handleOpenProgressForm(activity)}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -322,21 +306,6 @@ export default function AppraiseeDashboard() {
           )}
         </Dialog>
         
-        <Dialog open={isProgressFormOpen} onOpenChange={(isOpen) => {
-            if (!isOpen) {
-                handleCloseForms();
-            } else {
-                setProgressFormOpen(isOpen);
-            }
-        }}>
-          {selectedActivity && (
-            <ProgressFormModal
-              activity={selectedActivity}
-              onSave={handleSaveProgress}
-              onClose={handleCloseForms}
-            />
-          )}
-        </Dialog>
       </div>
     </>
   );
