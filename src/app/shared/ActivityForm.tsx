@@ -72,12 +72,14 @@ export const ActivityForm = ({
       }
       setProgressHistory(activity.progressHistory || []);
     } else {
-      // For new activities
+      // For new activities, reset everything
       setTitle("");
       setDescription("");
       setStartDate('');
       setProgressHistory([]);
       setDateError(null);
+      setIsAddingProgress(false);
+      setNewProgress(null);
     }
   }, [activity]);
 
