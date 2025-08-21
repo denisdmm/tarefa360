@@ -1,6 +1,5 @@
 
-import { User, Activity, EvaluationPeriod, Association } from './types';
-import { Timestamp } from 'firebase/firestore';
+import { User } from './types';
 
 // --- USERS ---
 export const mockUsers: Omit<User, 'id'>[] = [
@@ -21,12 +20,4 @@ export const mockUsers: Omit<User, 'id'>[] = [
   },
 ];
 
-// --- EVALUATION PERIODS ---
-export const mockEvaluationPeriods: Omit<EvaluationPeriod, 'id'>[] = [];
-
-// --- ACTIVITIES ---
-export const mockActivitiesData: { userCpf: string; activity: Omit<Activity, 'id' | 'userId'> }[] = [];
-
-
-// --- ASSOCIATIONS ---
-export const mockAssociationsData: { appraiseeCpf: string; appraiserCpf: string }[] = [];
+    

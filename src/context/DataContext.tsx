@@ -4,8 +4,9 @@
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
+import { mockUsers } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -17,6 +18,7 @@ const convertTimestamps = (data: any) => {
     }
     return newData;
 };
+
 
 interface DataContextProps {
     users: User[];
@@ -84,19 +86,50 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
-
+            
+            return { usersList };
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Verifique suas regras de segurança do Firestore." });
             setConnectionError(true);
+            return { usersList: [] };
         } finally {
             setLoading(false);
         }
     }, [toast]);
     
+    const ensureAdminUserExists = React.useCallback(async (currentUsers: User[]) => {
+        try {
+            const adminCpf = '00000000000';
+            const adminExists = currentUsers.some(user => user.cpf === adminCpf);
+
+            if (!adminExists) {
+                console.log("Admin user not found, creating one...");
+                const adminData = mockUsers[0];
+                if (adminData) {
+                    const docRef = await addDoc(collection(db, "users"), adminData);
+                    const newAdmin = { id: docRef.id, ...adminData } as User;
+                    setUsersState(prev => [...prev, newAdmin]);
+                    console.log("Admin user created successfully.");
+                }
+            }
+        } catch (error) {
+            console.error("Error ensuring admin user exists:", error);
+            toast({
+                variant: "destructive",
+                title: "Erro Crítico",
+                description: "Não foi possível verificar ou criar o usuário administrador."
+            });
+        }
+    }, [toast]);
+
     React.useEffect(() => {
-        fetchData();
-    }, [fetchData]);
+        const initialize = async () => {
+            const { usersList } = await fetchData();
+            await ensureAdminUserExists(usersList);
+        };
+        initialize();
+    }, [fetchData, ensureAdminUserExists]);
 
     // --- CRUD Functions ---
 
@@ -296,3 +329,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
