@@ -89,7 +89,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
-            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Algumas funcionalidades podem estar indisponíveis." });
+            toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Verifique suas regras de segurança do Firestore." });
             setConnectionError(true);
         } finally {
             setLoading(false);
@@ -101,67 +101,54 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }, [fetchData]);
 
     const seedDatabase = async () => {
-        console.log("Starting database seed...");
         setLoading(true);
-    
         try {
             // 1. Clear existing data
-            console.log("Clearing existing data...");
             const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
             for (const collName of collectionsToDelete) {
                 const snapshot = await getDocs(collection(db, collName));
                 const batch = writeBatch(db);
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-                console.log(`Collection ${collName} cleared.`);
             }
-    
-            // 2. Add new data sequentially to get IDs
+
+            // 2. Add new data and get IDs
             const cpfToIdMap: Record<string, string> = {};
-    
-            console.log("Seeding users...");
+
+            // Add Users
             for (const userData of mockUsers) {
                 const docRef = await addDoc(collection(db, "users"), userData);
                 cpfToIdMap[userData.cpf] = docRef.id;
             }
-            console.log("Users seeded.");
-    
-            console.log("Seeding evaluation periods...");
+
+            // Add Evaluation Periods
             for (const periodData of mockEvaluationPeriods) {
                 await addDoc(collection(db, "evaluationPeriods"), periodData);
             }
-            console.log("Evaluation periods seeded.");
-    
-            console.log("Seeding activities...");
+
+            // Add Activities
             for (const { userCpf, activity } of mockActivitiesData) {
                 const userId = cpfToIdMap[userCpf];
                 if (userId) {
                     await addDoc(collection(db, "activities"), { ...activity, userId });
-                } else {
-                    console.warn(`User with CPF ${userCpf} not found for activity seeding.`);
                 }
             }
-            console.log("Activities seeded.");
             
-            console.log("Seeding associations...");
+            // Add Associations
             for (const { appraiseeCpf, appraiserCpf } of mockAssociationsData) {
                 const appraiseeId = cpfToIdMap[appraiseeCpf];
                 const appraiserId = cpfToIdMap[appraiserCpf];
                 if (appraiseeId && appraiserId) {
                     await addDoc(collection(db, "associations"), { appraiseeId, appraiserId });
-                } else {
-                    console.warn(`Could not create association for ${appraiseeCpf} and ${appraiserCpf}. One or both users not found.`);
                 }
             }
-            console.log("Associations seeded.");
-    
+
             // 3. Fetch the new data to update the UI
-            console.log("Seeding complete. Fetching new data...");
             await fetchData();
     
         } catch (error) {
             console.error("An error occurred during the seeding process:", error);
-            throw new Error("Failed to seed the database. Check console for details.");
+            throw new Error("Failed to seed the database. Check console and Firebase rules for details.");
         } finally {
             setLoading(false);
         }
@@ -367,8 +354,3 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
-
-    
-
-    
-
