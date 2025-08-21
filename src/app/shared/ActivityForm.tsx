@@ -8,28 +8,26 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Trash2, PlusCircle } from "lucide-react";
+import { Trash2, PlusCircle, X, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Activity, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Slider } from "@/components/ui/slider";
 
 export const ActivityForm = ({
   activity,
   onSave,
   onClose,
-  onAddProgress,
   currentUserId,
   isReadOnly = false,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => Promise<void>;
   onClose: () => void;
-  onAddProgress?: (activity: Activity) => void;
   currentUserId: string;
   isReadOnly?: boolean;
 }) => {
@@ -38,6 +36,10 @@ export const ActivityForm = ({
   const [startDate, setStartDate] = React.useState('');
   const [dateError, setDateError] = React.useState<string | null>(null);
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
+
+  // State for the inline progress form
+  const [isAddingProgress, setIsAddingProgress] = React.useState(false);
+  const [newProgress, setNewProgress] = React.useState<{date: string, percentage: number, comment: string} | null>(null);
   
   const { toast } = useToast();
   
@@ -50,10 +52,10 @@ export const ActivityForm = ({
   };
 
   const isSaveDisabled = React.useMemo(() => {
-    if (isReadOnly) return true;
+    if (isReadOnly || isAddingProgress) return true;
     if (!title.trim() || !startDate || dateError) return true;
     return false;
-  }, [title, startDate, dateError, isReadOnly]);
+  }, [title, startDate, dateError, isReadOnly, isAddingProgress]);
 
 
   React.useEffect(() => {
@@ -61,7 +63,6 @@ export const ActivityForm = ({
       setTitle(activity.title || "");
       setDescription(activity.description || "");
       if (activity.startDate) {
-        // This handles both Date objects and Firestore Timestamps
         const dateToFormat = (activity.startDate as any).seconds 
             ? (activity.startDate as any).toDate() 
             : new Date(activity.startDate as any);
@@ -79,33 +80,53 @@ export const ActivityForm = ({
       setDateError(null);
     }
   }, [activity]);
+
+  const handleOpenProgressForm = () => {
+    const lastPercentage = sortedProgressHistory[0]?.percentage || 0;
+    setNewProgress({
+      date: format(new Date(), 'yyyy-MM-dd'),
+      percentage: lastPercentage,
+      comment: ""
+    });
+    setIsAddingProgress(true);
+  }
+
+  const handleCancelAddProgress = () => {
+    setIsAddingProgress(false);
+    setNewProgress(null);
+  }
   
+  const handleSaveNewProgress = () => {
+    if (!newProgress?.date) {
+        toast({ variant: 'destructive', title: "Data Inválida", description: "Por favor, selecione uma data."});
+        return;
+    }
+    
+    const parts = newProgress.date.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10);
+
+    const existingEntryIndex = progressHistory.findIndex(p => p.year === year && p.month === month);
+    if(existingEntryIndex > -1) {
+        toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um progresso para este mês. Remova o antigo primeiro."});
+        return;
+    }
+
+    const newProgressEntry: ProgressEntry = {
+        year,
+        month,
+        percentage: newProgress.percentage,
+        comment: newProgress.comment,
+    };
+    
+    setProgressHistory(prev => [...prev, newProgressEntry]);
+    handleCancelAddProgress();
+  }
+
   const handleRemoveProgress = (year: number, month: number) => {
     if(isReadOnly) return;
     const newHistory = progressHistory.filter(p => !(p.year === year && p.month === month));
     setProgressHistory(newHistory);
-  }
-  
-  const handleAddProgressClick = () => {
-    if (isReadOnly || !onAddProgress) return;
-    
-    // Create a valid date object from the string to avoid timezone issues
-    const parts = startDate.split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in Date
-    const day = parseInt(parts[2], 10);
-    const dateObject = new Date(year, month, day);
-
-    // We create a temporary activity object to pass to the progress modal
-    const currentActivityState: Activity = {
-        id: activity?.id || '', // id will be empty for new activities
-        title,
-        description,
-        startDate: dateObject,
-        progressHistory,
-        userId: currentUserId,
-    };
-    onAddProgress(currentActivityState);
   }
 
   const handleSaveClick = async () => {
@@ -113,7 +134,7 @@ export const ActivityForm = ({
         toast({
             variant: "destructive",
             title: "Formulário Inválido",
-            description: "Por favor, preencha todos os campos obrigatórios e corrija os erros.",
+            description: "Preencha todos os campos obrigatórios e corrija os erros.",
         });
         return;
     }
@@ -187,17 +208,70 @@ export const ActivityForm = ({
         <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                {!isReadOnly && onAddProgress && (
+                {!isReadOnly && !isAddingProgress && (
                   <Button 
                       variant="outline" 
                       size="sm"
-                      onClick={handleAddProgressClick}
+                      onClick={handleOpenProgressForm}
                   >
                       <PlusCircle className="mr-2 h-4 w-4" />
                       Adicionar Progresso
                   </Button>
                 )}
             </div>
+
+             {isAddingProgress && newProgress && (
+                <Card className="p-4 bg-muted/50 border-primary/50">
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-progress-date" className="md:text-right">Data</Label>
+                            <Input 
+                                id="new-progress-date" 
+                                type="date"
+                                value={newProgress.date} 
+                                onChange={e => setNewProgress({...newProgress, date: e.target.value})}
+                                className="col-span-1 md:col-span-3" 
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
+                            <div className="col-span-1 md:col-span-3 flex items-center gap-2">
+                                <Input 
+                                id="new-progress-percentage" 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={newProgress.percentage} 
+                                onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value) || 0})} 
+                                className="w-20" 
+                            />
+                            <Slider
+                                value={[newProgress.percentage]}
+                                onValueChange={(value) => setNewProgress({...newProgress, percentage: value[0]})}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                            />
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                            <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
+                            <Textarea 
+                                id="new-progress-comment"
+                                value={newProgress.comment}
+                                onChange={e => setNewProgress({...newProgress, comment: e.target.value})}
+                                className="col-span-1 md:col-span-3"
+                                placeholder="Descreva o que foi feito neste mês..."
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={handleCancelAddProgress}><X className="h-5 w-5"/></Button>
+                            <Button variant="ghost" size="icon" onClick={handleSaveNewProgress}><Check className="h-5 w-5 text-green-600"/></Button>
+                        </div>
+                    </div>
+                </Card>
+             )}
+            
             <Card>
                 <Table>
                     <TableHeader>
