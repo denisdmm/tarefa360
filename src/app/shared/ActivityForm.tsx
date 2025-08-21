@@ -161,7 +161,7 @@ export const ActivityForm = ({
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                 {!isReadOnly && onAddProgress && (
+                 {!isReadOnly && (
                    <TooltipProvider>
                     <Tooltip>
                       <TooltipTrigger asChild>
