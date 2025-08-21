@@ -171,6 +171,7 @@ export default function AdminDashboard() {
     deleteUser,
     addEvaluationPeriod,
     updateEvaluationPeriod,
+    deleteEvaluationPeriod,
     addAssociation,
     deleteAssociation,
    } = useDataContext();
@@ -280,6 +281,15 @@ export default function AdminDashboard() {
     }
     setPeriodModalOpen(false);
     setSelectedPeriod(null);
+  };
+  
+  const handleDeletePeriod = async (periodId: string) => {
+    await deleteEvaluationPeriod(periodId);
+    toast({
+        variant: "destructive",
+        title: "Período Excluído",
+        description: "O período de avaliação foi removido permanentemente.",
+    });
   };
 
   const handleCreateAssociation = async () => {
@@ -589,6 +599,23 @@ export default function AdminDashboard() {
                               <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}>
                                   <Edit className="h-4 w-4" />
                               </Button>
+                              <AlertDialog>
+                                <AlertDialogTrigger asChild>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                </AlertDialogTrigger>
+                                <AlertDialogContent>
+                                    <AlertDialogHeader>
+                                        <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                        <AlertDialogDescription>
+                                            Tem certeza que deseja excluir o período "{period.name}"? Esta ação não pode ser desfeita. Todos os dados associados serão perdidos.
+                                        </AlertDialogDescription>
+                                    </AlertDialogHeader>
+                                    <AlertDialogFooter>
+                                        <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                        <AlertDialogAction onClick={() => handleDeletePeriod(period.id)}>Excluir</AlertDialogAction>
+                                    </AlertDialogFooter>
+                                </AlertDialogContent>
+                            </AlertDialog>
                           </TableCell>
                         </TableRow>
                       ))}
