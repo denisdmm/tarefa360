@@ -74,10 +74,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 sector: 'TI',
                 avatarUrl: 'https://placehold.co/100x100',
                 cpf: adminCpf,
-                password: 'Admin1234', // Set a default password
+                password: 'Admin1234',
                 postoGrad: 'Cel',
                 status: 'Ativo',
-                forcePasswordChange: false, // Admin does not need to change password on first login
+                forcePasswordChange: false,
             };
             await addDoc(usersRef, adminData);
             console.log('Admin user seeded.');
@@ -135,7 +135,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const addUser = async (userData: Omit<User, 'id'>): Promise<string | null> => {
         try {
             const docRef = await addDoc(collection(db, 'users'), userData);
-            await fetchData();
+            const newUser = { id: docRef.id, ...userData };
+            setUsersState(prev => [...prev, newUser as User]);
             return docRef.id;
         } catch (error) {
             console.error("Error adding user:", error);
@@ -148,7 +149,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const userRef = doc(db, 'users', userId);
             await updateDoc(userRef, userData);
-            await fetchData();
+            setUsersState(prev => prev.map(u => u.id === userId ? { ...u, ...userData } : u));
+            if (loggedInUser?.id === userId) {
+                setLoggedInUser(prev => prev ? { ...prev, ...userData } : null);
+            }
         } catch (error) {
             console.error("Error updating user:", error);
             toast({ variant: 'destructive', title: "Erro ao atualizar usuário" });
@@ -158,12 +162,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const deleteUser = async (userId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'users', userId));
+            setUsersState(prev => prev.filter(u => u.id !== userId));
             // Also delete related associations
             const associationsToDelete = associations.filter(a => a.appraiseeId === userId || a.appraiserId === userId);
             for(const assoc of associationsToDelete) {
-                await deleteDoc(doc(db, 'associations', assoc.id));
+                await deleteAssociation(assoc.id);
             }
-            await fetchData();
         } catch (error) {
             console.error("Error deleting user:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir usuário" });
@@ -178,7 +182,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 startDate: Timestamp.fromDate(activityData.startDate as Date),
             };
             const docRef = await addDoc(collection(db, 'activities'), dataToSave);
-            await fetchData();
+            const newActivity = { id: docRef.id, ...activityData };
+            setActivitiesState(prev => [...prev, newActivity as Activity]);
             return docRef.id;
         } catch (error) {
             console.error("Error adding activity:", error);
@@ -189,13 +194,13 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const updateActivity = async (activityId: string, activityData: Partial<Activity>): Promise<void> => {
         try {
-             const dataToUpdate: Partial<Activity> = { ...activityData };
+            const dataToUpdate: { [key: string]: any } = { ...activityData };
             if (activityData.startDate) {
                 dataToUpdate.startDate = Timestamp.fromDate(activityData.startDate as Date);
             }
             const activityRef = doc(db, 'activities', activityId);
             await updateDoc(activityRef, dataToUpdate);
-            await fetchData();
+            setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...activityData } : a));
         } catch (error) {
             console.error("Error updating activity:", error);
             toast({ variant: 'destructive', title: "Erro ao atualizar atividade" });
@@ -205,7 +210,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const deleteActivity = async (activityId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'activities', activityId));
-            await fetchData();
+            setActivitiesState(prev => prev.filter(a => a.id !== activityId));
         } catch (error) {
             console.error("Error deleting activity:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir atividade" });
@@ -221,7 +226,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 endDate: Timestamp.fromDate(periodData.endDate as Date),
             };
             const docRef = await addDoc(collection(db, 'evaluationPeriods'), dataToSave);
-            await fetchData();
+            const newPeriod = { id: docRef.id, ...periodData };
+            setEvaluationPeriodsState(prev => [...prev, newPeriod as EvaluationPeriod].sort((a,b) => new Date(b.startDate as any).getTime() - new Date(a.startDate as any).getTime()));
             return docRef.id;
         } catch (error) {
             console.error("Error adding period:", error);
@@ -232,7 +238,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
         try {
-            const dataToUpdate: Partial<EvaluationPeriod> = { ...periodData };
+            const dataToUpdate: { [key: string]: any } = { ...periodData };
             if (periodData.startDate) {
                 dataToUpdate.startDate = Timestamp.fromDate(periodData.startDate as Date);
             }
@@ -241,7 +247,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
             const periodRef = doc(db, 'evaluationPeriods', periodId);
             await updateDoc(periodRef, dataToUpdate);
-            await fetchData();
+            setEvaluationPeriodsState(prev => prev.map(p => p.id === periodId ? { ...p, ...periodData } : p));
         } catch (error) {
             console.error("Error updating period:", error);
             toast({ variant: 'destructive', title: "Erro ao atualizar período" });
@@ -251,7 +257,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const deleteEvaluationPeriod = async (periodId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'evaluationPeriods', periodId));
-            await fetchData();
+            setEvaluationPeriodsState(prev => prev.filter(p => p.id !== periodId));
         } catch (error) {
             console.error("Error deleting period:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir período" });
@@ -262,7 +268,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const addAssociation = async (associationData: Omit<Association, 'id'>): Promise<string | null> => {
         try {
             const docRef = await addDoc(collection(db, 'associations'), associationData);
-            await fetchData();
+            const newAssociation = { id: docRef.id, ...associationData };
+            setAssociationsState(prev => [...prev, newAssociation]);
             return docRef.id;
         } catch (error) {
             console.error("Error adding association:", error);
@@ -274,7 +281,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const deleteAssociation = async (associationId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'associations', associationId));
-            await fetchData();
+            setAssociationsState(prev => prev.filter(a => a.id !== associationId));
         } catch (error) {
             console.error("Error deleting association:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir associação" });
