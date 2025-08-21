@@ -57,8 +57,6 @@ export const ActivityForm = ({
     }
 
     // The input type="date" returns "YYYY-MM-DD".
-    // new Date() will parse it as UTC, which can cause off-by-one day errors
-    // depending on the user's timezone. We need to parse it as local time.
     const parts = dateString.split('-');
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
@@ -70,20 +68,8 @@ export const ActivityForm = ({
         return;
     }
     
-    if (activePeriod) {
-        // Compare dates by creating UTC dates from local components to avoid timezone issues.
-        const checkDate = startOfDay(parsedDate);
-        const startDatePeriod = startOfDay(new Date(activePeriod.startDate as any));
-        const endDatePeriod = startOfDay(new Date(activePeriod.endDate as any));
-
-        if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
-             setDateError("A data deve estar dentro do período de avaliação ativo.");
-        } else {
-            setDateError(null);
-        }
-    } else {
-        setDateError(null); // No active period, no validation needed
-    }
+    // Validation removed to allow start date before active period
+    setDateError(null);
   };
 
 
