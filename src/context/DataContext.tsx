@@ -102,44 +102,43 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const seedDatabase = async () => {
         console.log("Starting database seed...");
-        // 1. Clear existing data
+        setLoading(true);
+    
         try {
+            // 1. Clear existing data
             console.log("Clearing existing data...");
             const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
-            const deletePromises = collectionsToDelete.map(async (collName) => {
+            for (const collName of collectionsToDelete) {
                 const snapshot = await getDocs(collection(db, collName));
                 const batch = writeBatch(db);
                 snapshot.forEach(doc => batch.delete(doc.ref));
                 await batch.commit();
-            });
-            await Promise.all(deletePromises);
-            console.log("All collections cleared.");
-        } catch (error) {
-            console.error("Error clearing data:", error);
-            throw new Error("Failed to clear database.");
-        }
-
-        // 2. Add new data
-        const cpfToIdMap: Record<string, string> = {};
-        try {
+                console.log(`Collection ${collName} cleared.`);
+            }
+    
+            // 2. Add new data sequentially to get IDs
+            const cpfToIdMap: Record<string, string> = {};
+    
             console.log("Seeding users...");
             for (const userData of mockUsers) {
                 const docRef = await addDoc(collection(db, "users"), userData);
                 cpfToIdMap[userData.cpf] = docRef.id;
             }
             console.log("Users seeded.");
-
+    
             console.log("Seeding evaluation periods...");
             for (const periodData of mockEvaluationPeriods) {
                 await addDoc(collection(db, "evaluationPeriods"), periodData);
             }
             console.log("Evaluation periods seeded.");
-
+    
             console.log("Seeding activities...");
             for (const { userCpf, activity } of mockActivitiesData) {
                 const userId = cpfToIdMap[userCpf];
                 if (userId) {
                     await addDoc(collection(db, "activities"), { ...activity, userId });
+                } else {
+                    console.warn(`User with CPF ${userCpf} not found for activity seeding.`);
                 }
             }
             console.log("Activities seeded.");
@@ -150,18 +149,22 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 const appraiserId = cpfToIdMap[appraiserCpf];
                 if (appraiseeId && appraiserId) {
                     await addDoc(collection(db, "associations"), { appraiseeId, appraiserId });
+                } else {
+                    console.warn(`Could not create association for ${appraiseeCpf} and ${appraiserCpf}. One or both users not found.`);
                 }
             }
             console.log("Associations seeded.");
-
-        } catch(error) {
-            console.error("Error writing new data:", error);
-            throw new Error("Failed to write new data to the database.");
+    
+            // 3. Fetch the new data to update the UI
+            console.log("Seeding complete. Fetching new data...");
+            await fetchData();
+    
+        } catch (error) {
+            console.error("An error occurred during the seeding process:", error);
+            throw new Error("Failed to seed the database. Check console for details.");
+        } finally {
+            setLoading(false);
         }
-        
-        // 3. Fetch the new data to update the UI
-        console.log("Seeding complete. Fetching new data...");
-        await fetchData();
     };
 
 
@@ -368,3 +371,4 @@ export const useDataContext = (): DataContextProps => {
     
 
     
+
