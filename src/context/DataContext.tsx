@@ -102,57 +102,64 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const seedDatabase = async () => {
         const batch = writeBatch(db);
-
-        // Clear existing data
-        const collections = ["users", "activities", "evaluationPeriods", "associations"];
-        for (const coll of collections) {
-            const snapshot = await getDocs(collection(db, coll));
-            snapshot.docs.forEach(doc => batch.delete(doc.ref));
-        }
-        await batch.commit(); // Commit the deletions first
-
-        // Start a new batch for additions
-        const addBatch = writeBatch(db);
-
-        // Add users and create a CPF-to-ID map
-        const cpfToIdMap: Record<string, string> = {};
-        for (const userData of mockUsers) {
-            const userRef = doc(collection(db, "users"));
-            addBatch.set(userRef, userData);
-            cpfToIdMap[userData.cpf] = userRef.id;
-        }
-
-        // Add evaluation periods
-        mockEvaluationPeriods.forEach(periodData => {
-            const periodRef = doc(collection(db, "evaluationPeriods"));
-            addBatch.set(periodRef, periodData);
-        });
-
-        // Add activities using the CPF-to-ID map
-        mockActivitiesData.forEach(({ userCpf, activity }) => {
-            const userId = cpfToIdMap[userCpf];
-            if (userId) {
-                const activityRef = doc(collection(db, "activities"));
-                addBatch.set(activityRef, { ...activity, userId });
-            }
-        });
-
-        // Add associations using the CPF-to-ID map
-        mockAssociationsData.forEach(({ appraiseeCpf, appraiserCpf }) => {
-            const appraiseeId = cpfToIdMap[appraiseeCpf];
-            const appraiserId = cpfToIdMap[appraiserCpf];
-            if (appraiseeId && appraiserId) {
-                const assocRef = doc(collection(db, "associations"));
-                addBatch.set(assocRef, { appraiseeId, appraiserId });
-            }
-        });
-
-        // Commit all additions
-        await addBatch.commit();
+        const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
         
-        // Fetch the new data
-        await fetchData();
+        try {
+            // 1. Clear existing data
+            for (const collName of collectionsToDelete) {
+                const snapshot = await getDocs(collection(db, collName));
+                snapshot.forEach(doc => batch.delete(doc.ref));
+            }
+            await batch.commit();
+
+            // 2. Start a new batch for seeding
+            const seedBatch = writeBatch(db);
+            const cpfToIdMap: Record<string, string> = {};
+
+            // 3. Add Users and map their new IDs
+            mockUsers.forEach(userData => {
+                const userRef = doc(collection(db, "users")); // Create ref with a new auto-generated ID
+                seedBatch.set(userRef, userData);
+                cpfToIdMap[userData.cpf] = userRef.id;
+            });
+
+            // 4. Add Evaluation Periods
+            mockEvaluationPeriods.forEach(periodData => {
+                const periodRef = doc(collection(db, "evaluationPeriods"));
+                seedBatch.set(periodRef, periodData);
+            });
+
+            // 5. Add Activities using the new user IDs from the map
+            mockActivitiesData.forEach(({ userCpf, activity }) => {
+                const userId = cpfToIdMap[userCpf];
+                if (userId) {
+                    const activityRef = doc(collection(db, "activities"));
+                    seedBatch.set(activityRef, { ...activity, userId });
+                }
+            });
+
+            // 6. Add Associations using the new user IDs from the map
+            mockAssociationsData.forEach(({ appraiseeCpf, appraiserCpf }) => {
+                const appraiseeId = cpfToIdMap[appraiseeCpf];
+                const appraiserId = cpfToIdMap[appraiserCpf];
+                if (appraiseeId && appraiserId) {
+                    const assocRef = doc(collection(db, "associations"));
+                    seedBatch.set(assocRef, { appraiseeId, appraiserId });
+                }
+            });
+
+            // 7. Commit the entire seed batch
+            await seedBatch.commit();
+            
+            // 8. Fetch the new data to update the UI
+            await fetchData();
+
+        } catch (error) {
+            console.error("Error seeding database: ", error);
+            throw error; // Re-throw to be caught by the caller
+        }
     };
+
 
     // --- CRUD Functions ---
 
@@ -350,3 +357,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
