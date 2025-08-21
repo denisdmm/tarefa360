@@ -18,17 +18,6 @@ const convertTimestamps = (data: any) => {
     return newData;
 };
 
-// Helper to remove 'undefined' fields before saving to Firestore
-const sanitizeDataForFirestore = (data: any) => {
-    const sanitizedData: { [key: string]: any } = {};
-    Object.keys(data).forEach(key => {
-        if (data[key] !== undefined) {
-            sanitizedData[key] = data[key];
-        }
-    });
-    return sanitizedData;
-};
-
 interface DataContextProps {
     users: User[];
     addUser: (userData: Omit<User, 'id'>) => Promise<string | null>;
@@ -90,7 +79,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 status: 'Ativo',
                 forcePasswordChange: false, // Admin does not need to change password on first login
             };
-            await addDoc(usersRef, sanitizeDataForFirestore(adminData));
+            await addDoc(usersRef, adminData);
             console.log('Admin user seeded.');
         } else {
             console.log('Admin user found.');
@@ -145,7 +134,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     // USERS
     const addUser = async (userData: Omit<User, 'id'>): Promise<string | null> => {
         try {
-            const docRef = await addDoc(collection(db, 'users'), sanitizeDataForFirestore(userData));
+            const docRef = await addDoc(collection(db, 'users'), userData);
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -158,7 +147,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
         try {
             const userRef = doc(db, 'users', userId);
-            await updateDoc(userRef, sanitizeDataForFirestore(userData));
+            await updateDoc(userRef, userData);
             await fetchData();
         } catch (error) {
             console.error("Error updating user:", error);
@@ -188,7 +177,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 ...activityData,
                 startDate: Timestamp.fromDate(activityData.startDate as Date),
             };
-            const docRef = await addDoc(collection(db, 'activities'), sanitizeDataForFirestore(dataToSave));
+            const docRef = await addDoc(collection(db, 'activities'), dataToSave);
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -205,7 +194,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 dataToUpdate.startDate = Timestamp.fromDate(activityData.startDate as Date);
             }
             const activityRef = doc(db, 'activities', activityId);
-            await updateDoc(activityRef, sanitizeDataForFirestore(dataToUpdate));
+            await updateDoc(activityRef, dataToUpdate);
             await fetchData();
         } catch (error) {
             console.error("Error updating activity:", error);
@@ -231,7 +220,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 startDate: Timestamp.fromDate(periodData.startDate as Date),
                 endDate: Timestamp.fromDate(periodData.endDate as Date),
             };
-            const docRef = await addDoc(collection(db, 'evaluationPeriods'), sanitizeDataForFirestore(dataToSave));
+            const docRef = await addDoc(collection(db, 'evaluationPeriods'), dataToSave);
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -251,7 +240,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 dataToUpdate.endDate = Timestamp.fromDate(periodData.endDate as Date);
             }
             const periodRef = doc(db, 'evaluationPeriods', periodId);
-            await updateDoc(periodRef, sanitizeDataForFirestore(dataToUpdate));
+            await updateDoc(periodRef, dataToUpdate);
             await fetchData();
         } catch (error) {
             console.error("Error updating period:", error);
@@ -272,7 +261,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     // ASSOCIATIONS
     const addAssociation = async (associationData: Omit<Association, 'id'>): Promise<string | null> => {
         try {
-            const docRef = await addDoc(collection(db, 'associations'), sanitizeDataForFirestore(associationData));
+            const docRef = await addDoc(collection(db, 'associations'), associationData);
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -329,3 +318,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
