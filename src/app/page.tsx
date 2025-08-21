@@ -28,7 +28,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoggedInUser, fetchData } = useDataContext();
+  const { setLoggedInUser } = useDataContext();
 
   const handleLogin = async () => {
     try {
@@ -57,9 +57,6 @@ export default function LoginPage() {
 
         if (user && user.password === password) {
             setLoggedInUser(user);
-
-            // Fetch latest data after successful login to ensure context is up to date
-            await fetchData();
 
             if (user.forcePasswordChange) {
                 toast({
