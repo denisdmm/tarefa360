@@ -80,9 +80,10 @@ export const ActivityForm = ({
   
   const handleAddProgressClick = () => {
     if (isReadOnly) return;
+    
     // We create a temporary activity object to pass to the progress modal
     const currentActivityState: Activity = {
-        id: activity?.id || '',
+        id: activity?.id || '', // id will be empty for new activities
         title,
         description,
         startDate: new Date(startDate),
@@ -172,26 +173,14 @@ export const ActivityForm = ({
              <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
                 {!isReadOnly && (
-                     <TooltipProvider>
-                        <Tooltip>
-                            <TooltipTrigger asChild>
-                                <Button 
-                                    variant="outline" 
-                                    size="sm"
-                                    onClick={handleAddProgressClick}
-                                    disabled={!activity}
-                                >
-                                    <PlusCircle className="mr-2 h-4 w-4" />
-                                    Adicionar Progresso
-                                </Button>
-                            </TooltipTrigger>
-                            {!activity && (
-                            <TooltipContent>
-                                <p>Salve a atividade primeiro para adicionar progressos.</p>
-                            </TooltipContent>
-                            )}
-                        </Tooltip>
-                    </TooltipProvider>
+                    <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={handleAddProgressClick}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Progresso
+                    </Button>
                 )}
             </div>
             <Card>
