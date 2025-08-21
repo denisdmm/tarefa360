@@ -95,38 +95,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }, [toast]);
     
     React.useEffect(() => {
-        const seedAdminUser = async () => {
-            const adminCpf = '00000000000';
-            const usersRef = collection(db, 'users');
-            const q = query(usersRef, where('cpf', '==', adminCpf));
-            const adminSnapshot = await getDocs(q);
-
-            if (adminSnapshot.empty) {
-                console.log('Admin user not found, seeding...');
-                const adminData: Omit<User, 'id'> = {
-                    name: 'Usuário Admin',
-                    nomeDeGuerra: 'Admin',
-                    email: 'admin@tarefa360.com',
-                    role: 'admin',
-                    jobTitle: 'Administrador do Sistema',
-                    sector: 'TI',
-                    avatarUrl: 'https://placehold.co/100x100',
-                    cpf: adminCpf,
-                    password: 'Admin1234',
-                    postoGrad: 'Cel',
-                    status: 'Ativo',
-                    forcePasswordChange: false,
-                };
-                await addDoc(usersRef, adminData);
-                console.log('Admin user seeded.');
-            } else {
-                console.log('Admin user found.');
-            }
-        };
-
-        seedAdminUser().then(() => {
-            fetchData();
-        })
+        fetchData();
     }, [fetchData]);
 
     // --- CRUD Functions ---
@@ -325,3 +294,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
