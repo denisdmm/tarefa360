@@ -41,13 +41,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye, TrendingUp } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 import { format, add } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ActivityForm } from "@/app/shared/ActivityForm";
+import { ProgressFormModal } from "./ProgressFormModal";
 
 
 const ActivityCard = ({
@@ -55,11 +56,13 @@ const ActivityCard = ({
   onEdit,
   onDelete,
   onView,
+  onAddProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
   onView: (activity: Activity) => void;
+  onAddProgress: (activity: Activity) => void;
 }) => {
     
   const getLatestProgress = (activity: Activity) => {
@@ -89,21 +92,20 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        {isCompleted ? (
-            <Button variant="outline" size="sm" onClick={() => onView(activity)}>
-                <Eye className="mr-2" />
-                Visualizar
-            </Button>
-        ) : (
-            <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-                <Edit className="mr-2" />
-                Editar
+        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar
+        </Button>
+        {!isCompleted && (
+           <Button variant="default" size="sm" onClick={() => onAddProgress(activity)}>
+                <TrendingUp className="mr-2 h-4 w-4" />
+                Progresso
             </Button>
         )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 />
+            <Button variant="destructive" size="icon" title="Excluir Atividade">
+              <Trash2 className="h-4 w-4" />
             </Button>
           </AlertDialogTrigger>
           <AlertDialogContent>
@@ -134,6 +136,7 @@ export default function AppraiseeDashboard() {
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
+  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
 
@@ -148,6 +151,12 @@ export default function AppraiseeDashboard() {
     });
     return sortedHistory[0].percentage;
   };
+  
+  const handleSaveProgress = async (activityToSave: Activity) => {
+    await updateActivity(activityToSave.id, activityToSave);
+    toast({ title: "Progresso Registrado", description: "O avanço da sua atividade foi salvo." });
+    handleCloseForms();
+  }
 
   const handleSaveActivity = async (activityToSave: Activity) => {
     const isEditing = activities.some(a => a.id === activityToSave.id);
@@ -161,6 +170,11 @@ export default function AppraiseeDashboard() {
     }
     handleCloseForms();
   };
+  
+  const handleOpenProgressForm = (activity: Activity) => {
+    setSelectedActivity(activity);
+    setProgressFormOpen(true);
+  }
 
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
     setSelectedActivity(activity);
@@ -170,6 +184,7 @@ export default function AppraiseeDashboard() {
 
   const handleCloseForms = () => {
     setActivityFormOpen(false);
+    setProgressFormOpen(false);
     setSelectedActivity(null);
     setIsFormReadOnly(false);
   }
@@ -215,6 +230,7 @@ export default function AppraiseeDashboard() {
                     onEdit={() => handleOpenActivityForm(activity)}
                     onDelete={handleDeleteActivity}
                     onView={() => handleOpenActivityForm(activity, true)}
+                    onAddProgress={() => handleOpenProgressForm(activity)}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -305,6 +321,16 @@ export default function AppraiseeDashboard() {
               activePeriod={activePeriod}
             />
           )}
+        </Dialog>
+
+        <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
+            {isProgressFormOpen && selectedActivity && (
+                <ProgressFormModal
+                    activity={selectedActivity}
+                    onSave={handleSaveProgress}
+                    onClose={handleCloseForms}
+                />
+            )}
         </Dialog>
         
       </div>
