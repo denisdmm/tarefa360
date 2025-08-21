@@ -317,6 +317,7 @@ export default function AppraiseeDashboard() {
                 setActivityFormOpen(isOpen);
             }
         }}>
+          {loggedInUser && (
            <ActivityForm
               activity={selectedActivity}
               onSave={handleSaveActivity}
@@ -325,6 +326,7 @@ export default function AppraiseeDashboard() {
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
             />
+          )}
         </Dialog>
         
         <Dialog open={isProgressFormOpen} onOpenChange={(isOpen) => {
@@ -346,3 +348,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
