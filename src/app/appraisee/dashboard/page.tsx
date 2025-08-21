@@ -169,8 +169,10 @@ export default function AppraiseeDashboard() {
   }
 
   const handleDeleteActivity = async (activityId: string) => {
-    await deleteActivity(activityId);
-    toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
+    const success = await deleteActivity(activityId);
+    if (success) {
+      toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida permanentemente." });
+    }
   };
 
   if (!loggedInUser) {

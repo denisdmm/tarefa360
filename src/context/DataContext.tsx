@@ -29,7 +29,7 @@ interface DataContextProps {
     activities: Activity[];
     addActivity: (activityData: Omit<Activity, 'id'>) => Promise<string | null>;
     updateActivity: (activityId: string, activityData: Partial<Activity>) => Promise<void>;
-    deleteActivity: (activityId: string) => Promise<void>;
+    deleteActivity: (activityId: string) => Promise<boolean>;
 
     evaluationPeriods: EvaluationPeriod[];
     addEvaluationPeriod: (periodData: Omit<EvaluationPeriod, 'id'>) => Promise<string | null>;
@@ -268,13 +268,15 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     };
     
-    const deleteActivity = async (activityId: string): Promise<void> => {
+    const deleteActivity = async (activityId: string): Promise<boolean> => {
         try {
             await deleteDoc(doc(db, "activities", activityId));
             setActivitiesState((prev) => prev.filter((a) => a.id !== activityId));
+            return true;
         } catch (error) {
             console.error("Error deleting activity:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir atividade", description: "Não foi possível remover a atividade do banco de dados." });
+            return false;
         }
     };
 
