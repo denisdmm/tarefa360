@@ -184,7 +184,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     // ACTIVITIES
     const addActivity = async (activityData: Omit<Activity, 'id'>): Promise<string | null> => {
         try {
-            const docRef = await addDoc(collection(db, 'activities'), sanitizeDataForFirestore(activityData));
+            const dataToSave = {
+                ...activityData,
+                startDate: Timestamp.fromDate(activityData.startDate as Date),
+            };
+            const docRef = await addDoc(collection(db, 'activities'), sanitizeDataForFirestore(dataToSave));
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -196,8 +200,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const updateActivity = async (activityId: string, activityData: Partial<Activity>): Promise<void> => {
         try {
+             const dataToUpdate: Partial<Activity> = { ...activityData };
+            if (activityData.startDate) {
+                dataToUpdate.startDate = Timestamp.fromDate(activityData.startDate as Date);
+            }
             const activityRef = doc(db, 'activities', activityId);
-            await updateDoc(activityRef, sanitizeDataForFirestore(activityData));
+            await updateDoc(activityRef, sanitizeDataForFirestore(dataToUpdate));
             await fetchData();
         } catch (error) {
             console.error("Error updating activity:", error);
@@ -218,7 +226,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     // EVALUATION PERIODS
     const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>): Promise<string | null> => {
         try {
-            const docRef = await addDoc(collection(db, 'evaluationPeriods'), sanitizeDataForFirestore(periodData));
+            const dataToSave = {
+                ...periodData,
+                startDate: Timestamp.fromDate(periodData.startDate as Date),
+                endDate: Timestamp.fromDate(periodData.endDate as Date),
+            };
+            const docRef = await addDoc(collection(db, 'evaluationPeriods'), sanitizeDataForFirestore(dataToSave));
             await fetchData();
             return docRef.id;
         } catch (error) {
@@ -230,8 +243,15 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
         try {
+            const dataToUpdate: Partial<EvaluationPeriod> = { ...periodData };
+            if (periodData.startDate) {
+                dataToUpdate.startDate = Timestamp.fromDate(periodData.startDate as Date);
+            }
+            if (periodData.endDate) {
+                dataToUpdate.endDate = Timestamp.fromDate(periodData.endDate as Date);
+            }
             const periodRef = doc(db, 'evaluationPeriods', periodId);
-            await updateDoc(periodRef, sanitizeDataForFirestore(periodData));
+            await updateDoc(periodRef, sanitizeDataForFirestore(dataToUpdate));
             await fetchData();
         } catch (error) {
             console.error("Error updating period:", error);
