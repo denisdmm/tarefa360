@@ -270,13 +270,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     
     const deleteActivity = async (activityId: string): Promise<void> => {
         try {
-            // First, delete from Firestore
-            await deleteDoc(doc(db, 'activities', activityId));
-            // Only if Firestore deletion is successful, update the local state
-            setActivitiesState(prev => prev.filter(a => a.id !== activityId));
+            await deleteDoc(doc(db, "activities", activityId));
+            setActivitiesState((prev) => prev.filter((a) => a.id !== activityId));
         } catch (error) {
             console.error("Error deleting activity:", error);
-            toast({ variant: 'destructive', title: "Erro ao excluir atividade" });
+            toast({ variant: 'destructive', title: "Erro ao excluir atividade", description: "Não foi possível remover a atividade do banco de dados." });
         }
     };
 
@@ -372,5 +370,7 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
 
     
