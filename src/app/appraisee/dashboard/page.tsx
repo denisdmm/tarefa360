@@ -100,7 +100,7 @@ const ActivityCard = ({
             <AlertDialogHeader>
               <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
               <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
+                Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade e todo o seu histórico de progresso.
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
@@ -153,7 +153,11 @@ export default function AppraiseeDashboard() {
   };
   
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
-    setSelectedActivity(activity);
+    if (activity === null) {
+      setSelectedActivity(null); 
+    } else {
+      setSelectedActivity(activity);
+    }
     setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
