@@ -101,62 +101,60 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     }, [fetchData]);
 
     const seedDatabase = async () => {
-        const batch = writeBatch(db);
-        const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
-        
         try {
             // 1. Clear existing data
-            for (const collName of collectionsToDelete) {
+            console.log("Starting database seed...");
+            const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
+            const deletePromises = collectionsToDelete.map(async (collName) => {
                 const snapshot = await getDocs(collection(db, collName));
+                const batch = writeBatch(db);
                 snapshot.forEach(doc => batch.delete(doc.ref));
-            }
-            await batch.commit();
+                await batch.commit();
+                console.log(`Collection ${collName} cleared.`);
+            });
+            await Promise.all(deletePromises);
+            console.log("All collections cleared.");
 
-            // 2. Start a new batch for seeding
-            const seedBatch = writeBatch(db);
+            // 2. Add Users and create a map of CPF to their new Firestore ID
             const cpfToIdMap: Record<string, string> = {};
+            for (const userData of mockUsers) {
+                const docRef = await addDoc(collection(db, "users"), userData);
+                cpfToIdMap[userData.cpf] = docRef.id;
+            }
+            console.log("Users seeded and CPF map created:", cpfToIdMap);
+            
+            // 3. Add Evaluation Periods
+            for (const periodData of mockEvaluationPeriods) {
+                await addDoc(collection(db, "evaluationPeriods"), periodData);
+            }
+            console.log("Evaluation periods seeded.");
 
-            // 3. Add Users and map their new IDs
-            mockUsers.forEach(userData => {
-                const userRef = doc(collection(db, "users")); // Create ref with a new auto-generated ID
-                seedBatch.set(userRef, userData);
-                cpfToIdMap[userData.cpf] = userRef.id;
-            });
-
-            // 4. Add Evaluation Periods
-            mockEvaluationPeriods.forEach(periodData => {
-                const periodRef = doc(collection(db, "evaluationPeriods"));
-                seedBatch.set(periodRef, periodData);
-            });
-
-            // 5. Add Activities using the new user IDs from the map
-            mockActivitiesData.forEach(({ userCpf, activity }) => {
+            // 4. Add Activities using the new user IDs from the map
+            for (const { userCpf, activity } of mockActivitiesData) {
                 const userId = cpfToIdMap[userCpf];
                 if (userId) {
-                    const activityRef = doc(collection(db, "activities"));
-                    seedBatch.set(activityRef, { ...activity, userId });
+                    await addDoc(collection(db, "activities"), { ...activity, userId });
                 }
-            });
+            }
+            console.log("Activities seeded.");
 
-            // 6. Add Associations using the new user IDs from the map
-            mockAssociationsData.forEach(({ appraiseeCpf, appraiserCpf }) => {
+            // 5. Add Associations using the new user IDs from the map
+            for (const { appraiseeCpf, appraiserCpf } of mockAssociationsData) {
                 const appraiseeId = cpfToIdMap[appraiseeCpf];
                 const appraiserId = cpfToIdMap[appraiserCpf];
                 if (appraiseeId && appraiserId) {
-                    const assocRef = doc(collection(db, "associations"));
-                    seedBatch.set(assocRef, { appraiseeId, appraiserId });
+                    await addDoc(collection(db, "associations"), { appraiseeId, appraiserId });
                 }
-            });
+            }
+            console.log("Associations seeded.");
 
-            // 7. Commit the entire seed batch
-            await seedBatch.commit();
-            
-            // 8. Fetch the new data to update the UI
+            // 6. Fetch the new data to update the UI
+            console.log("Seeding complete. Fetching new data...");
             await fetchData();
 
         } catch (error) {
             console.error("Error seeding database: ", error);
-            throw error; // Re-throw to be caught by the caller
+            throw error;
         }
     };
 
@@ -167,8 +165,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const addUser = async (userData: Omit<User, 'id'>): Promise<string | null> => {
         try {
             const docRef = await addDoc(collection(db, 'users'), userData);
-            const newUser = { id: docRef.id, ...userData };
-            setUsersState(prev => [...prev, newUser as User]);
+            const newUser = { id: docRef.id, ...userData } as User;
+            setUsersState(prev => [...prev, newUser]);
             return docRef.id;
         } catch (error) {
             console.error("Error adding user:", error);
@@ -181,9 +179,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const userRef = doc(db, 'users', userId);
             await updateDoc(userRef, userData);
-            setUsersState(prev => prev.map(u => u.id === userId ? { ...u, ...userData } : u));
+            const updatedUser = { id: userId, ...userData }
+            setUsersState(prev => prev.map(u => u.id === userId ? { ...u, ...updatedUser } : u));
             if (loggedInUser?.id === userId) {
-                setLoggedInUser(prev => prev ? { ...prev, ...userData } : null);
+                setLoggedInUser(prev => prev ? { ...prev, ...updatedUser } : null);
             }
         } catch (error) {
             console.error("Error updating user:", error);
@@ -213,8 +212,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 startDate: Timestamp.fromDate(activityData.startDate as Date),
             };
             const docRef = await addDoc(collection(db, 'activities'), dataToSave);
-            const newActivity = { id: docRef.id, ...activityData };
-            setActivitiesState(prev => [...prev, newActivity as Activity]);
+            const newActivity = { id: docRef.id, ...activityData } as Activity;
+            setActivitiesState(prev => [...prev, newActivity]);
             return docRef.id;
         } catch (error) {
             console.error("Error adding activity:", error);
@@ -231,7 +230,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
             const activityRef = doc(db, 'activities', activityId);
             await updateDoc(activityRef, dataToUpdate);
-            setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...activityData } : a));
+            const updatedActivity = { id: activityId, ...activityData };
+            setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...updatedActivity } : a));
         } catch (error) {
             console.error("Error updating activity:", error);
             toast({ variant: 'destructive', title: "Erro ao atualizar atividade" });
@@ -257,8 +257,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 endDate: Timestamp.fromDate(periodData.endDate as Date),
             };
             const docRef = await addDoc(collection(db, 'evaluationPeriods'), dataToSave);
-            const newPeriod = { id: docRef.id, ...periodData };
-            setEvaluationPeriodsState(prev => [...prev, newPeriod as EvaluationPeriod].sort((a,b) => new Date(b.startDate as any).getTime() - new Date(a.startDate as any).getTime()));
+            const newPeriod = { id: docRef.id, ...periodData } as EvaluationPeriod;
+            setEvaluationPeriodsState(prev => [...prev, newPeriod].sort((a,b) => new Date(b.startDate as any).getTime() - new Date(a.startDate as any).getTime()));
             return docRef.id;
         } catch (error) {
             console.error("Error adding period:", error);
@@ -278,7 +278,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             }
             const periodRef = doc(db, 'evaluationPeriods', periodId);
             await updateDoc(periodRef, dataToUpdate);
-            setEvaluationPeriodsState(prev => prev.map(p => p.id === periodId ? { ...p, ...periodData } : p));
+            const updatedPeriod = { id: periodId, ...periodData };
+            setEvaluationPeriodsState(prev => prev.map(p => p.id === periodId ? { ...p, ...updatedPeriod } : p));
         } catch (error) {
             console.error("Error updating period:", error);
             toast({ variant: 'destructive', title: "Erro ao atualizar período" });
@@ -299,7 +300,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const addAssociation = async (associationData: Omit<Association, 'id'>): Promise<string | null> => {
         try {
             const docRef = await addDoc(collection(db, 'associations'), associationData);
-            const newAssociation = { id: docRef.id, ...associationData };
+            const newAssociation = { id: docRef.id, ...associationData } as Association;
             setAssociationsState(prev => [...prev, newAssociation]);
             return docRef.id;
         } catch (error) {
@@ -357,5 +358,7 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
 
     
