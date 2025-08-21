@@ -16,7 +16,7 @@ import type { Activity, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Slider } from "@/components/ui/slider";
 
 
 export const ActivityForm = ({
@@ -25,20 +25,21 @@ export const ActivityForm = ({
   onClose,
   currentUserId,
   isReadOnly = false,
-  onAddProgress
 }: {
   activity?: Activity | null;
-  onSave: (activity: Activity, andAddProgress?: boolean) => Promise<void>;
+  onSave: (activity: Activity) => Promise<void>;
   onClose: () => void;
   currentUserId: string;
   isReadOnly?: boolean;
-  onAddProgress?: () => void;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
   const [startDate, setStartDate] = React.useState('');
   const [dateError, setDateError] = React.useState<string | null>(null);
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
+  
+  const [isAddingProgress, setIsAddingProgress] = React.useState(false);
+  const [newProgress, setNewProgress] = React.useState<{date: string, percentage: number, comment: string} | null>(null);
 
   const { toast } = useToast();
   
@@ -54,8 +55,9 @@ export const ActivityForm = ({
   const isSaveDisabled = React.useMemo(() => {
     if (isReadOnly) return true;
     if (!title.trim() || !startDate || dateError) return true;
+    if (isAddingProgress) return true;
     return false;
-  }, [title, startDate, dateError, isReadOnly]);
+  }, [title, startDate, dateError, isReadOnly, isAddingProgress]);
 
 
   React.useEffect(() => {
@@ -72,6 +74,8 @@ export const ActivityForm = ({
       setProgressHistory([]);
       setDateError(null);
     }
+    setIsAddingProgress(false);
+    setNewProgress(null);
   }, [activity]);
   
   const handleRemoveProgress = (year: number, month: number) => {
@@ -80,7 +84,7 @@ export const ActivityForm = ({
     setProgressHistory(newHistory);
   }
 
-  const handleSaveClick = (andAddProgress = false) => {
+  const handleSaveClick = async () => {
      if (isSaveDisabled) {
         toast({
             variant: "destructive",
@@ -104,22 +108,62 @@ export const ActivityForm = ({
       progressHistory: progressHistory,
       userId: currentUserId,
     };
-    onSave(updatedActivity, andAddProgress);
+    await onSave(updatedActivity);
+  }
+  
+  const handleAddNewProgressClick = () => {
+    setIsAddingProgress(true);
+    const lastProgress = sortedProgressHistory[0];
+    setNewProgress({
+        date: format(new Date(), 'yyyy-MM-dd'),
+        percentage: lastProgress?.percentage || 0,
+        comment: ""
+    })
   }
 
-  const handleSubmit = async () => {
-    handleSaveClick(false);
-  };
+  const handleCancelNewProgress = () => {
+      setIsAddingProgress(false);
+      setNewProgress(null);
+  }
 
-  const handleSaveAndAddProgress = () => {
-     if (activity) {
-      onClose(); // Close this modal
-      onAddProgress?.(); // Open the other one
-      return;
+  const handleSaveNewProgress = () => {
+    if (!newProgress?.date) {
+        toast({ variant: 'destructive', title: "Data Inválida", description: "Por favor, selecione uma data."});
+        return;
     }
-    // This logic might need adjustment based on how the parent handles the flow
-    // For now, let's assume we save then the parent opens the progress modal.
-    handleSaveClick(true);
+    
+    const dateValue = newProgress.date; // "YYYY-MM-DD"
+    const parts = dateValue.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10); // 1-12
+
+    const existingEntryIndex = progressHistory.findIndex(p => p.year === year && p.month === month);
+    if(existingEntryIndex > -1) {
+        toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um registro para este mês."});
+        return;
+    }
+
+    const newProgressEntry: ProgressEntry = {
+        year,
+        month,
+        percentage: newProgress.percentage,
+        comment: newProgress.comment,
+    };
+    
+    setProgressHistory(prev => [...prev, newProgressEntry]);
+    setIsAddingProgress(false);
+    setNewProgress(null);
+  }
+
+  const handlePercentageChange = (value: number) => {
+    if (!newProgress) return;
+    const newPercentage = Math.max(0, Math.min(100, value));
+    setNewProgress({...newProgress, percentage: newPercentage});
+  }
+
+  const handleIncrementPercentage = (increment: number) => {
+      if (!newProgress) return;
+      handlePercentageChange(newProgress.percentage + increment);
   }
   
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
@@ -174,31 +218,76 @@ export const ActivityForm = ({
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                 {!isReadOnly && (
-                    <TooltipProvider>
-                      <Tooltip>
-                        <TooltipTrigger asChild>
-                           <div tabIndex={!activity ? 0 : -1}>
-                            <Button 
-                                variant="outline" 
-                                size="sm" 
-                                onClick={handleSaveAndAddProgress}
-                                disabled={!activity} // Disabled when creating
-                            >
-                                <PlusCircle className="mr-2 h-4 w-4" />
-                                Adicionar Progresso
-                            </Button>
-                           </div>
-                        </TooltipTrigger>
-                        {!activity && (
-                          <TooltipContent>
-                            <p>Salve a atividade primeiro para adicionar progresso.</p>
-                          </TooltipContent>
-                        )}
-                      </Tooltip>
-                    </TooltipProvider>
+                 {!isReadOnly && !isAddingProgress && (
+                    <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleAddNewProgressClick}
+                    >
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Progresso
+                    </Button>
                 )}
             </div>
+
+            {isAddingProgress && newProgress && (
+                 <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
+                    <h4 className="font-medium">Novo Registro de Progresso</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-progress-date" className="md:text-right">Data</Label>
+                        <Input 
+                            id="new-progress-date" 
+                            type="date"
+                            value={newProgress.date} 
+                            onChange={e => setNewProgress({...newProgress, date: e.target.value})}
+                            className="col-span-1 md:col-span-3" 
+                        />
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
+                        <div className="col-span-1 md:col-span-3 flex items-center gap-2">
+                             <Input 
+                                id="new-progress-percentage" 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={newProgress.percentage} 
+                                onChange={e => handlePercentageChange(parseInt(e.target.value) || 0)} 
+                                className="w-20" 
+                            />
+                            <Slider
+                                value={[newProgress.percentage]}
+                                onValueChange={(value) => handlePercentageChange(value[0])}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                            />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                        <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2">
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)}>+5%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)}>+10%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)}>+25%</Button>
+                            <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)}>+50%</Button>
+                        </div>
+                    </div>
+                    <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                        <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
+                        <Textarea 
+                            id="new-progress-comment"
+                            value={newProgress.comment}
+                            onChange={e => setNewProgress({...newProgress, comment: e.target.value})}
+                            className="col-span-1 md:col-span-3"
+                            placeholder="Descreva o que foi feito neste mês..."
+                        />
+                    </div>
+                    <div className="flex justify-end gap-2">
+                        <Button variant="ghost" onClick={handleCancelNewProgress}>Cancelar</Button>
+                        <Button onClick={handleSaveNewProgress}>Salvar Progresso</Button>
+                    </div>
+                 </div>
+            )}
 
              <Card>
                 <Table>
@@ -238,7 +327,7 @@ export const ActivityForm = ({
       </div>
       <DialogFooter>
         <Button variant="outline" onClick={onClose}>Fechar</Button>
-        {!isReadOnly && <Button onClick={handleSubmit} disabled={isSaveDisabled}>Salvar Atividade</Button>}
+        {!isReadOnly && <Button onClick={handleSaveClick} disabled={isSaveDisabled}>Salvar Atividade</Button>}
       </DialogFooter>
     </DialogContent>
   );

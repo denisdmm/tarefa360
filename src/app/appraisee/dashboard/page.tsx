@@ -147,27 +147,17 @@ export default function AppraiseeDashboard() {
   };
   
 
-  const handleSaveActivity = async (activityToSave: Activity, andAddProgress?: boolean) => {
+  const handleSaveActivity = async (activityToSave: Activity) => {
     const isEditing = !!activityToSave.id && activities.some(a => a.id === activityToSave.id);
 
     if (isEditing) {
         await updateActivity(activityToSave.id, activityToSave);
         toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
-        handleCloseForms();
-        if (andAddProgress) {
-          handleOpenProgressForm(activityToSave);
-        }
     } else {
-        const newActivityId = await addActivity(activityToSave);
+        await addActivity(activityToSave);
         toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
-        handleCloseForms();
-        if (andAddProgress && newActivityId) {
-          const newActivity = activities.find(a => a.id === newActivityId);
-          if (newActivity) {
-            handleOpenProgressForm(newActivity);
-          }
-        }
     }
+    handleCloseForms();
   };
 
   const handleSaveProgress = async (activityToSave: Activity) => {
@@ -327,7 +317,6 @@ export default function AppraiseeDashboard() {
               onClose={handleCloseForms}
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
-              onAddProgress={() => selectedActivity && handleOpenProgressForm(selectedActivity)}
             />
         </Dialog>
         
