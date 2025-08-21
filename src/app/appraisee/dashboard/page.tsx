@@ -153,12 +153,7 @@ export default function AppraiseeDashboard() {
   };
   
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
-    // Ensure that creating a new activity always starts with a clean slate
-    if (activity === null) {
-      setSelectedActivity(null);
-    } else {
-      setSelectedActivity(activity);
-    }
+    setSelectedActivity(activity);
     setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
@@ -295,8 +290,9 @@ export default function AppraiseeDashboard() {
                 setActivityFormOpen(isOpen);
             }
         }}>
-          {loggedInUser && (
+          {loggedInUser && isActivityFormOpen && (
            <ActivityForm
+              key={selectedActivity?.id || 'new'}
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
@@ -310,3 +306,6 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+
+    
