@@ -76,9 +76,10 @@ export const ActivityForm = ({
   const isSaveDisabled = React.useMemo(() => {
     if (isReadOnly) return true;
     if (!title.trim() || !startDate || dateError) return true;
+    if (isAddingProgress) return true; // Disable save if progress is being added
     
     return false;
-  }, [title, startDate, dateError, isReadOnly]);
+  }, [title, startDate, dateError, isReadOnly, isAddingProgress]);
 
 
   React.useEffect(() => {
