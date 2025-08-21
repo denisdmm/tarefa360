@@ -8,7 +8,7 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Trash2 } from "lucide-react";
+import { Trash2, PlusCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
@@ -24,6 +24,7 @@ export const ActivityForm = ({
   currentUserId,
   isReadOnly = false,
   activePeriod,
+  onAddProgress,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => Promise<void>;
@@ -31,6 +32,7 @@ export const ActivityForm = ({
   currentUserId: string;
   isReadOnly?: boolean;
   activePeriod?: EvaluationPeriod;
+  onAddProgress?: () => void;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -158,6 +160,12 @@ export const ActivityForm = ({
         <div className="space-y-4">
             <div className="flex justify-between items-center">
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
+                 {!isReadOnly && onAddProgress && (
+                    <Button variant="outline" size="sm" onClick={onAddProgress}>
+                        <PlusCircle className="mr-2 h-4 w-4" />
+                        Adicionar Progresso
+                    </Button>
+                )}
             </div>
              <Card>
                 <Table>
@@ -193,9 +201,6 @@ export const ActivityForm = ({
                     </TableBody>
                 </Table>
             </Card>
-            {!isReadOnly && (
-                <p className="text-xs text-muted-foreground">Para adicionar um novo progresso, feche esta janela e use o botão "Progresso" no card da atividade.</p>
-            )}
         </div>
       </div>
       <DialogFooter>

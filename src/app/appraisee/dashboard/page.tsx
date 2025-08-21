@@ -173,6 +173,7 @@ export default function AppraiseeDashboard() {
   
   const handleOpenProgressForm = (activity: Activity) => {
     setSelectedActivity(activity);
+    setActivityFormOpen(false); // Close activity form if open
     setProgressFormOpen(true);
   }
 
@@ -311,9 +312,19 @@ export default function AppraiseeDashboard() {
         </main>
 
         <Dialog open={isActivityFormOpen} onOpenChange={setActivityFormOpen}>
-          {isActivityFormOpen && ( // Render only when open to re-mount and fetch correct state
+          {isActivityFormOpen && selectedActivity && ( // Render only when open to re-mount and fetch correct state
             <ActivityForm
               activity={selectedActivity}
+              onSave={handleSaveActivity}
+              onClose={handleCloseForms}
+              currentUserId={loggedInUser.id}
+              isReadOnly={isFormReadOnly}
+              activePeriod={activePeriod}
+              onAddProgress={() => handleOpenProgressForm(selectedActivity)}
+            />
+          )}
+           {isActivityFormOpen && !selectedActivity && ( // For creating a new activity
+            <ActivityForm
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
               currentUserId={loggedInUser.id}
