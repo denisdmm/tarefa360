@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -19,7 +18,7 @@ import { useDataContext } from "@/context/DataContext";
 import type { User } from "@/lib/types";
 import { collection, getDocs, query, where, Timestamp } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { Eye, EyeOff, TestTube2 } from "lucide-react";
+import { Eye, EyeOff } from "lucide-react";
 
 
 export default function LoginPage() {
@@ -28,8 +27,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoggedInUser, seedDatabase } = useDataContext();
-  const [isSeeding, setIsSeeding] = React.useState(false);
+  const { setLoggedInUser } = useDataContext();
 
   const handleLogin = async () => {
     try {
@@ -110,30 +108,6 @@ export default function LoginPage() {
     }
   }
 
-  const handleSeed = async () => {
-    setIsSeeding(true);
-    toast({
-        title: "Populando Banco de Dados",
-        description: "Aguarde, isso pode levar alguns segundos...",
-    });
-    try {
-        await seedDatabase();
-        toast({
-            title: "Sucesso!",
-            description: "O banco de dados foi populado com dados de teste.",
-        });
-    } catch (error: any) {
-         toast({
-            variant: "destructive",
-            title: "Erro ao Popular Banco",
-            description: `Ocorreu um erro. Verifique o console para mais detalhes. Erro: ${error.message}`,
-        });
-        console.error("Seeding error:", error);
-    } finally {
-        setIsSeeding(false);
-    }
-  }
-
   return (
     <div className="flex min-h-screen items-center justify-center bg-background p-4">
       <Card className="w-full max-w-sm shadow-2xl">
@@ -184,10 +158,6 @@ export default function LoginPage() {
             
             <Button onClick={handleLogin} disabled={isLoginDisabled} className="w-full">
               Login
-            </Button>
-            <Button onClick={handleSeed} disabled={isSeeding} variant="secondary" className="w-full">
-              <TestTube2 className="mr-2" /> 
-              {isSeeding ? 'Populando...' : 'Popular Banco (Teste)'}
             </Button>
           </div>
         </CardContent>

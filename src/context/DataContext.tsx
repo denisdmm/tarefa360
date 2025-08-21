@@ -6,7 +6,6 @@ import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types'
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { mockUsers, mockEvaluationPeriods, mockActivitiesData, mockAssociationsData } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -44,7 +43,6 @@ interface DataContextProps {
     loading: boolean;
     connectionError: boolean;
     fetchData: () => Promise<void>;
-    seedDatabase: () => Promise<void>;
 }
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
@@ -99,61 +97,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     React.useEffect(() => {
         fetchData();
     }, [fetchData]);
-
-    const seedDatabase = async () => {
-        setLoading(true);
-        try {
-            // 1. Clear existing data
-            const collectionsToDelete = ["users", "activities", "evaluationPeriods", "associations"];
-            for (const collName of collectionsToDelete) {
-                const snapshot = await getDocs(collection(db, collName));
-                const batch = writeBatch(db);
-                snapshot.forEach(doc => batch.delete(doc.ref));
-                await batch.commit();
-            }
-
-            // 2. Add new data and get IDs
-            const cpfToIdMap: Record<string, string> = {};
-
-            // Add Users
-            for (const userData of mockUsers) {
-                const docRef = await addDoc(collection(db, "users"), userData);
-                cpfToIdMap[userData.cpf] = docRef.id;
-            }
-
-            // Add Evaluation Periods
-            for (const periodData of mockEvaluationPeriods) {
-                await addDoc(collection(db, "evaluationPeriods"), periodData);
-            }
-
-            // Add Activities
-            for (const { userCpf, activity } of mockActivitiesData) {
-                const userId = cpfToIdMap[userCpf];
-                if (userId) {
-                    await addDoc(collection(db, "activities"), { ...activity, userId });
-                }
-            }
-            
-            // Add Associations
-            for (const { appraiseeCpf, appraiserCpf } of mockAssociationsData) {
-                const appraiseeId = cpfToIdMap[appraiseeCpf];
-                const appraiserId = cpfToIdMap[appraiserCpf];
-                if (appraiseeId && appraiserId) {
-                    await addDoc(collection(db, "associations"), { appraiseeId, appraiserId });
-                }
-            }
-
-            // 3. Fetch the new data to update the UI
-            await fetchData();
-    
-        } catch (error) {
-            console.error("An error occurred during the seeding process:", error);
-            throw new Error("Failed to seed the database. Check console and Firebase rules for details.");
-        } finally {
-            setLoading(false);
-        }
-    };
-
 
     // --- CRUD Functions ---
 
@@ -337,7 +280,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         loading,
         connectionError,
         fetchData,
-        seedDatabase,
     };
     
     return (
