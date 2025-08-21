@@ -72,7 +72,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
         const progressDate = new Date(progress.year, progress.month - 1);
-        if (isWithinInterval(progressDate, { start: activePeriod.startDate, end: activePeriod.endDate })) {
+        if (isWithinInterval(progressDate, { start: new Date(activePeriod.startDate as any), end: new Date(activePeriod.endDate as any) })) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
           
           if (!monthlyData[monthYearKey]) {
@@ -121,8 +121,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     if (!activePeriod) return [];
     
     const monthsInPeriod = eachMonthOfInterval({
-        start: startOfMonth(activePeriod.startDate),
-        end: startOfMonth(activePeriod.endDate)
+        start: startOfMonth(new Date(activePeriod.startDate as any)),
+        end: startOfMonth(new Date(activePeriod.endDate as any))
     });
     
     // Sort ascending for PDF
@@ -325,7 +325,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
               </div>
               {activePeriod && (
                   <div className="text-center p-1 border-b border-black font-bold uppercase">
-                      <span>{format(activePeriod.startDate, 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(activePeriod.endDate, 'MMM yyyy', {locale: ptBR})}</span>
+                      <span>{format(new Date(activePeriod.startDate as any), 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(new Date(activePeriod.endDate as any), 'MMM yyyy', {locale: ptBR})}</span>
                   </div>
               )}
 
