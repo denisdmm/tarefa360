@@ -81,12 +81,19 @@ export const ActivityForm = ({
   const handleAddProgressClick = () => {
     if (isReadOnly) return;
     
+    // Create a valid date object from the string to avoid timezone issues
+    const parts = startDate.split('-');
+    const year = parseInt(parts[0], 10);
+    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed in Date
+    const day = parseInt(parts[2], 10);
+    const dateObject = new Date(year, month, day);
+
     // We create a temporary activity object to pass to the progress modal
     const currentActivityState: Activity = {
         id: activity?.id || '', // id will be empty for new activities
         title,
         description,
-        startDate: new Date(startDate),
+        startDate: dateObject,
         progressHistory,
         userId: currentUserId,
     };
