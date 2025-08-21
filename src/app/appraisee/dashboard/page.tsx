@@ -57,7 +57,7 @@ const ActivityCard = ({
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
-  onDelete: (activityId: string) => void;
+  onDelete: (activityId: string) => Promise<void>;
 }) => {
     
   const getLatestProgress = (activity: Activity) => {
