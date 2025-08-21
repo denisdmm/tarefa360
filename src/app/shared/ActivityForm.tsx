@@ -29,7 +29,7 @@ export const ActivityForm = ({
   activity?: Activity | null;
   onSave: (activity: Activity) => Promise<void>;
   onClose: () => void;
-  onAddProgress: (activity: Activity) => void;
+  onAddProgress?: (activity: Activity) => void;
   currentUserId: string;
   isReadOnly?: boolean;
 }) => {
@@ -60,7 +60,15 @@ export const ActivityForm = ({
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      setStartDate(activity.startDate ? format(new Date(activity.startDate as any), 'yyyy-MM-dd') : '');
+      if (activity.startDate) {
+        // This handles both Date objects and Firestore Timestamps
+        const dateToFormat = (activity.startDate as any).seconds 
+            ? (activity.startDate as any).toDate() 
+            : new Date(activity.startDate as any);
+        setStartDate(format(dateToFormat, 'yyyy-MM-dd'));
+      } else {
+        setStartDate('');
+      }
       setProgressHistory(activity.progressHistory || []);
     } else {
       // For new activities
@@ -79,7 +87,7 @@ export const ActivityForm = ({
   }
   
   const handleAddProgressClick = () => {
-    if (isReadOnly) return;
+    if (isReadOnly || !onAddProgress) return;
     
     // Create a valid date object from the string to avoid timezone issues
     const parts = startDate.split('-');
@@ -114,7 +122,7 @@ export const ActivityForm = ({
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10) - 1;
     const day = parseInt(parts[2], 10);
-    const dateWithOffset = new Date(year, month, day);
+    const dateWithOffset = new Date(Date.UTC(year, month, day));
 
     const updatedActivity: Activity = {
       id: activity?.id || `act-${Date.now()}`,
@@ -179,15 +187,15 @@ export const ActivityForm = ({
         <div className="space-y-4">
              <div className="flex justify-between items-center">
                 <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                {!isReadOnly && (
-                    <Button 
-                        variant="outline" 
-                        size="sm"
-                        onClick={handleAddProgressClick}
-                    >
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Progresso
-                    </Button>
+                {!isReadOnly && onAddProgress && (
+                  <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleAddProgressClick}
+                  >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Adicionar Progresso
+                  </Button>
                 )}
             </div>
             <Card>
