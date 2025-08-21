@@ -19,6 +19,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
@@ -191,6 +192,18 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <Button onClick={handleGoToDashboard}>Ir para o Painel</Button>
             </div>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Aparência</CardTitle>
+            <CardDescription>
+              Personalize a aparência do aplicativo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThemeSwitcher />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
