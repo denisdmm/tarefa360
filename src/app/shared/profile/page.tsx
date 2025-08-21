@@ -304,7 +304,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 border-t">
                 <Button onClick={handleUpdatePassword}>Alterar Senha</Button>
             </div>
           </CardContent>

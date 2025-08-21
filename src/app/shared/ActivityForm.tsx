@@ -16,6 +16,7 @@ import type { Activity, EvaluationPeriod, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 
 export const ActivityForm = ({
   activity,
@@ -147,7 +148,7 @@ export const ActivityForm = ({
                         onChange={e => setStartDate(e.target.value)}
                         onBlur={e => validateStartDate(e.target.value)}
                         className={cn(dateError && "border-destructive")}
-                        readOnly={isReadOnly || !!activity}
+                        readOnly={isReadOnly || (!!activity && !!activity.id)}
                     />
                     {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
                 </div>
@@ -161,10 +162,28 @@ export const ActivityForm = ({
             <div className="flex justify-between items-center">
                  <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
                  {!isReadOnly && onAddProgress && (
-                    <Button variant="outline" size="sm" onClick={onAddProgress}>
-                        <PlusCircle className="mr-2 h-4 w-4" />
-                        Adicionar Progresso
-                    </Button>
+                   <TooltipProvider>
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                         <div tabIndex={0}> 
+                            <Button 
+                              variant="outline" 
+                              size="sm" 
+                              onClick={onAddProgress}
+                              disabled={!activity} // Disable if it's a new, unsaved activity
+                            >
+                                <PlusCircle className="mr-2 h-4 w-4" />
+                                Adicionar Progresso
+                            </Button>
+                         </div>
+                      </TooltipTrigger>
+                      {!activity && (
+                          <TooltipContent>
+                            <p>Salve a atividade antes de adicionar progresso.</p>
+                          </TooltipContent>
+                      )}
+                    </Tooltip>
+                   </TooltipProvider>
                 )}
             </div>
              <Card>

@@ -165,10 +165,18 @@ export default function AppraiseeDashboard() {
       toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
       const { id, ...newActivityData } = activityToSave;
-      await addActivity(newActivityData as Activity);
+      const newId = await addActivity(newActivityData as Activity);
+      if (newId) {
+        // After creating, re-select the activity to enable the 'Add Progress' button
+        const newActivity = activities.find(a => a.id === newId);
+        if (newActivity) setSelectedActivity(newActivity);
+      }
       toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
-    handleCloseForms();
+    // Don't close the form on creation, so user can add progress
+    if (isEditing) {
+        handleCloseForms();
+    }
   };
   
   const handleOpenProgressForm = (activity: Activity) => {
@@ -312,26 +320,15 @@ export default function AppraiseeDashboard() {
         </main>
 
         <Dialog open={isActivityFormOpen} onOpenChange={setActivityFormOpen}>
-          {isActivityFormOpen && selectedActivity && ( // Render only when open to re-mount and fetch correct state
-            <ActivityForm
+           <ActivityForm
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
               activePeriod={activePeriod}
-              onAddProgress={() => handleOpenProgressForm(selectedActivity)}
+              onAddProgress={selectedActivity ? () => handleOpenProgressForm(selectedActivity) : undefined}
             />
-          )}
-           {isActivityFormOpen && !selectedActivity && ( // For creating a new activity
-            <ActivityForm
-              onSave={handleSaveActivity}
-              onClose={handleCloseForms}
-              currentUserId={loggedInUser.id}
-              isReadOnly={isFormReadOnly}
-              activePeriod={activePeriod}
-            />
-          )}
         </Dialog>
 
         <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
@@ -348,3 +345,4 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
