@@ -41,28 +41,23 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye, TrendingUp } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 import { format, add } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ActivityForm } from "@/app/shared/ActivityForm";
-import { ProgressFormModal } from "./ProgressFormModal";
 
 
 const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
-  onView,
-  onAddProgress,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
-  onView: (activity: Activity) => void;
-  onAddProgress: (activity: Activity) => void;
 }) => {
     
   const getLatestProgress = (activity: Activity) => {
@@ -76,7 +71,6 @@ const ActivityCard = ({
   };
   
   const latestProgress = getLatestProgress(activity);
-  const isCompleted = latestProgress === 100;
 
   return (
     <Card className="flex flex-col">
@@ -94,14 +88,8 @@ const ActivityCard = ({
       <CardFooter className="flex justify-end gap-2">
         <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
             <Edit className="mr-2 h-4 w-4" />
-            Editar
+            Editar/Progresso
         </Button>
-        {!isCompleted && (
-           <Button variant="default" size="sm" onClick={() => onAddProgress(activity)}>
-                <TrendingUp className="mr-2 h-4 w-4" />
-                Progresso
-            </Button>
-        )}
         <AlertDialog>
           <AlertDialogTrigger asChild>
             <Button variant="destructive" size="icon" title="Excluir Atividade">
@@ -131,16 +119,14 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, evaluationPeriods, loggedInUser, addActivity, updateActivity, deleteActivity } = useDataContext();
+  const { activities, loggedInUser, addActivity, updateActivity, deleteActivity } = useDataContext();
   
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
-  const [isProgressFormOpen, setProgressFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
 
-  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -152,11 +138,6 @@ export default function AppraiseeDashboard() {
     return sortedHistory[0].percentage;
   };
   
-  const handleSaveProgress = async (activityToSave: Activity) => {
-    await updateActivity(activityToSave.id, activityToSave);
-    toast({ title: "Progresso Registrado", description: "O avanço da sua atividade foi salvo." });
-    handleCloseForms();
-  }
 
   const handleSaveActivity = async (activityToSave: Activity) => {
     const isEditing = !!activityToSave.id && activities.some(a => a.id === activityToSave.id);
@@ -164,27 +145,13 @@ export default function AppraiseeDashboard() {
     if (isEditing) {
         await updateActivity(activityToSave.id, activityToSave);
         toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
-        handleCloseForms(); // Close form on successful update
     } else {
-        const { id, ...newActivityData } = activityToSave;
-        const newId = await addActivity(newActivityData as Activity);
-        if (newId) {
-            // Re-fetch the newly created activity to update the form state
-            const createdActivity = { ...newActivityData, id: newId } as Activity;
-            setSelectedActivity(createdActivity);
-            toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
-        } else {
-             toast({ variant: "destructive", title: "Erro", description: "Não foi possível criar a atividade." });
-        }
+        await addActivity(activityToSave);
+        toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
+    handleCloseForms();
   };
   
-  const handleOpenProgressForm = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setActivityFormOpen(false); // Close activity form if open
-    setProgressFormOpen(true);
-  }
-
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
     setSelectedActivity(activity);
     setIsFormReadOnly(readOnly);
@@ -193,7 +160,6 @@ export default function AppraiseeDashboard() {
 
   const handleCloseForms = () => {
     setActivityFormOpen(false);
-    setProgressFormOpen(false);
     setSelectedActivity(null);
     setIsFormReadOnly(false);
   }
@@ -238,8 +204,6 @@ export default function AppraiseeDashboard() {
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
                     onDelete={handleDeleteActivity}
-                    onView={() => handleOpenActivityForm(activity, true)}
-                    onAddProgress={() => handleOpenProgressForm(activity)}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -319,26 +283,20 @@ export default function AppraiseeDashboard() {
           </Tabs>
         </main>
 
-        <Dialog open={isActivityFormOpen} onOpenChange={setActivityFormOpen}>
+        <Dialog open={isActivityFormOpen} onOpenChange={(isOpen) => {
+            if (!isOpen) {
+                handleCloseForms();
+            } else {
+                setActivityFormOpen(isOpen);
+            }
+        }}>
            <ActivityForm
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
-              activePeriod={activePeriod}
-              onAddProgress={selectedActivity ? () => handleOpenProgressForm(selectedActivity) : undefined}
             />
-        </Dialog>
-
-        <Dialog open={isProgressFormOpen} onOpenChange={setProgressFormOpen}>
-            {isProgressFormOpen && selectedActivity && (
-                <ProgressFormModal
-                    activity={selectedActivity}
-                    onSave={handleSaveProgress}
-                    onClose={handleCloseForms}
-                />
-            )}
         </Dialog>
         
       </div>

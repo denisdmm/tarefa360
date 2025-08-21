@@ -11,7 +11,6 @@ import type { Activity, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
 import { format } from "date-fns";
 import { Slider } from "@/components/ui/slider";
-import { ptBR } from "date-fns/locale";
 
 export const ProgressFormModal = ({
   activity,
@@ -154,4 +153,3 @@ export const ProgressFormModal = ({
     </DialogContent>
   );
 };
-
