@@ -8,9 +8,10 @@ import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Trash2 } from "lucide-react";
+import { Trash2, PlusCircle } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
 import type { Activity, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
@@ -21,12 +22,14 @@ export const ActivityForm = ({
   activity,
   onSave,
   onClose,
+  onAddProgress,
   currentUserId,
   isReadOnly = false,
 }: {
   activity?: Activity | null;
   onSave: (activity: Activity) => Promise<void>;
   onClose: () => void;
+  onAddProgress: (activity: Activity) => void;
   currentUserId: string;
   isReadOnly?: boolean;
 }) => {
@@ -73,6 +76,20 @@ export const ActivityForm = ({
     if(isReadOnly) return;
     const newHistory = progressHistory.filter(p => !(p.year === year && p.month === month));
     setProgressHistory(newHistory);
+  }
+  
+  const handleAddProgressClick = () => {
+    if (isReadOnly) return;
+    // We create a temporary activity object to pass to the progress modal
+    const currentActivityState: Activity = {
+        id: activity?.id || '',
+        title,
+        description,
+        startDate: new Date(startDate),
+        progressHistory,
+        userId: currentUserId,
+    };
+    onAddProgress(currentActivityState);
   }
 
   const handleSaveClick = async () => {
@@ -152,8 +169,30 @@ export const ActivityForm = ({
         
         {/* Progress History */}
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                 <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
+             <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
+                {!isReadOnly && (
+                     <TooltipProvider>
+                        <Tooltip>
+                            <TooltipTrigger asChild>
+                                <Button 
+                                    variant="outline" 
+                                    size="sm"
+                                    onClick={handleAddProgressClick}
+                                    disabled={!activity}
+                                >
+                                    <PlusCircle className="mr-2 h-4 w-4" />
+                                    Adicionar Progresso
+                                </Button>
+                            </TooltipTrigger>
+                            {!activity && (
+                            <TooltipContent>
+                                <p>Salve a atividade primeiro para adicionar progressos.</p>
+                            </TooltipContent>
+                            )}
+                        </Tooltip>
+                    </TooltipProvider>
+                )}
             </div>
             <Card>
                 <Table>

@@ -176,6 +176,12 @@ export default function AppraiseeDashboard() {
     setSelectedActivity(activity);
     setProgressFormOpen(true);
   }
+  
+  const handleSwitchToProgressForm = (activity: Activity) => {
+      setActivityFormOpen(false);
+      setProgressFormOpen(true);
+      setSelectedActivity(activity); // ensure selected activity is up to date
+  }
 
   const handleCloseForms = () => {
     setActivityFormOpen(false);
@@ -315,6 +321,7 @@ export default function AppraiseeDashboard() {
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
+              onAddProgress={handleSwitchToProgressForm}
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
             />
