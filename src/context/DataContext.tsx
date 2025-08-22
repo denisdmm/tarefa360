@@ -1,9 +1,10 @@
+
 "use client";
 
 import * as React from 'react';
 import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types';
 import { db } from '@/lib/firebase';
-import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where } from 'firebase/firestore';
+import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
 import { mockUsers } from '@/lib/mock-data';
 
@@ -221,15 +222,40 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const deleteUser = async (userId: string): Promise<void> => {
         try {
-            await deleteDoc(doc(db, 'users', userId));
+            // Batch delete to ensure atomicity
+            const batch = writeBatch(db);
+
+            // 1. Find and delete user's activities
+            const activitiesRef = collection(db, "activities");
+            const userActivitiesQuery = query(activitiesRef, where("userId", "==", userId));
+            const userActivitiesSnapshot = await getDocs(userActivitiesQuery);
+            userActivitiesSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            // 2. Find and delete user's associations
+            const associationsRef = collection(db, "associations");
+            const appraiseeQuery = query(associationsRef, where("appraiseeId", "==", userId));
+            const appraiserQuery = query(associationsRef, where("appraiserId", "==", userId));
+            const [appraiseeSnapshot, appraiserSnapshot] = await Promise.all([getDocs(appraiseeQuery), getDocs(appraiserQuery)]);
+            appraiseeSnapshot.forEach(doc => batch.delete(doc.ref));
+            appraiserSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            // 3. Delete the user document itself
+            const userRef = doc(db, 'users', userId);
+            batch.delete(userRef);
+
+            // 4. Commit the batch
+            await batch.commit();
+
+            // 5. Update local state
             setUsersState(prev => prev.filter(u => u.id !== userId));
-            
-            const associationsToDelete = associations.filter(a => a.appraiseeId === userId || a.appraiserId === userId);
-            const deletePromises = associationsToDelete.map(assoc => deleteAssociation(assoc.id));
-            await Promise.all(deletePromises);
+            setActivitiesState(prev => prev.filter(a => a.userId !== userId));
+            setAssociationsState(prev => prev.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));
+
         } catch (error) {
-            console.error("Error deleting user:", error);
-            toast({ variant: 'destructive', title: "Erro ao excluir usuário" });
+            console.error("Error deleting user and their data:", error);
+            toast({ variant: 'destructive', title: "Erro ao Excluir Usuário", description: "Não foi possível remover o usuário e seus dados." });
         }
     };
     

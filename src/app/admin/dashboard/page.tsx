@@ -241,7 +241,7 @@ export default function AdminDashboard() {
         toast({
             variant: "destructive",
             title: "Usuário Excluído",
-            description: "A conta do usuário foi removida permanentemente.",
+            description: "A conta do usuário e todos os seus dados foram removidos permanentemente.",
         });
     };
 
@@ -541,7 +541,7 @@ export default function AdminDashboard() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Tem certeza que deseja excluir o usuário "{user.name}"? Esta ação não pode ser desfeita.
+                                            Tem certeza que deseja excluir o usuário "{user.name}"? Esta ação não pode ser desfeita. Todos os dados associados (atividades, etc) serão permanentemente removidos.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
