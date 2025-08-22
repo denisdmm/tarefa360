@@ -1,3 +1,4 @@
+
 "use client";
 
 import * as React from "react";
@@ -157,19 +158,22 @@ export default function AppraiseeDashboard() {
   };
 
   const confirmDelete = async () => {
-    if (activityToDeleteId) {
-      const success = await deleteActivity(activityToDeleteId);
-      if (success) {
-        toast({
-          variant: "destructive",
-          title: "Atividade Excluída",
-          description: "A atividade foi removida permanentemente.",
-        });
-      }
-      // Reset state regardless of success to close the modal
-      setActivityToDeleteId(null);
-      setDeleteAlertOpen(false);
+    if (!activityToDeleteId) return;
+
+    const success = await deleteActivity(activityToDeleteId);
+    
+    if (success) {
+      toast({
+        variant: "destructive",
+        title: "Atividade Excluída",
+        description: "A atividade foi removida permanentemente.",
+      });
     }
+    // A notificação de erro já é exibida pelo DataContext
+    
+    // Reset state e fecha o diálogo
+    setActivityToDeleteId(null);
+    setDeleteAlertOpen(false);
   };
 
 
@@ -311,3 +315,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
