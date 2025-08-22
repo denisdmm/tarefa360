@@ -89,9 +89,25 @@ const ActivityCard = ({
             <Edit className="mr-2 h-4 w-4" />
             Editar/Progresso
         </Button>
-        <Button variant="destructive" size="icon" title="Excluir Atividade" onClick={() => onDelete(activity.id)}>
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        <AlertDialog>
+            <AlertDialogTrigger asChild>
+                <Button variant="destructive" size="icon" title="Excluir Atividade">
+                    <Trash2 className="h-4 w-4" />
+                </Button>
+            </AlertDialogTrigger>
+            <AlertDialogContent>
+                <AlertDialogHeader>
+                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                        Esta ação não pode ser desfeita. Isso excluirá permanentemente a atividade "{activity.title}" e todo o seu histórico de progresso.
+                    </AlertDialogDescription>
+                </AlertDialogHeader>
+                <AlertDialogFooter>
+                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                    <AlertDialogAction onClick={() => onDelete(activity.id)}>Excluir</AlertDialogAction>
+                </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
       </CardFooter>
     </Card>
   );
