@@ -11,7 +11,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -53,11 +52,11 @@ import { ActivityForm } from "@/app/shared/ActivityForm";
 const ActivityCard = ({
   activity,
   onEdit,
-  deleteActivity,
+  onDelete,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
-  deleteActivity: (activityId: string) => void;
+  onDelete: (activityId: string) => void;
 }) => {
 
   const getLatestProgress = (activity: Activity) => {
@@ -90,27 +89,9 @@ const ActivityCard = ({
             <Edit className="mr-2 h-4 w-4" />
             Editar/Progresso
         </Button>
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="icon" title="Excluir Atividade">
-              <Trash2 className="h-4 w-4" />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade e todo o seu histórico de progresso.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => deleteActivity(activity.id)}>
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button variant="destructive" size="icon" title="Excluir Atividade" onClick={() => onDelete(activity.id)}>
+          <Trash2 className="h-4 w-4" />
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -126,6 +107,9 @@ export default function AppraiseeDashboard() {
   const [isActivityFormOpen, setActivityFormOpen] = React.useState(false);
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
+
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
+  const [activityToDeleteId, setActivityToDeleteId] = React.useState<string | null>(null);
 
 
   const getLatestProgress = (activity: Activity) => {
@@ -168,10 +152,24 @@ export default function AppraiseeDashboard() {
     setIsFormReadOnly(false);
   }
 
-  const handleDeleteActivity = async (activityId: string) => {
-    const success = await deleteActivity(activityId);
-    if (success) {
-      toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida permanentemente." });
+  const handleDeleteRequest = (activityId: string) => {
+    setActivityToDeleteId(activityId);
+    setDeleteAlertOpen(true);
+  };
+
+  const confirmDelete = async () => {
+    if (activityToDeleteId) {
+      const success = await deleteActivity(activityToDeleteId);
+      if (success) {
+        toast({
+          variant: "destructive",
+          title: "Atividade Excluída",
+          description: "A atividade foi removida permanentemente.",
+        });
+      }
+      // Reset state regardless of success to close the modal
+      setActivityToDeleteId(null);
+      setDeleteAlertOpen(false);
     }
   };
 
@@ -182,6 +180,8 @@ export default function AppraiseeDashboard() {
 
   const inProgressActivities = userActivities.filter(a => getLatestProgress(a) < 100);
   const completedActivities = userActivities.filter(a => getLatestProgress(a) === 100);
+
+  const activityToDelete = activityToDeleteId ? userActivities.find(a => a.id === activityToDeleteId) : null;
 
   return (
     <>
@@ -210,7 +210,7 @@ export default function AppraiseeDashboard() {
                     key={activity.id}
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
-                    deleteActivity={handleDeleteActivity}
+                    onDelete={handleDeleteRequest}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -253,27 +253,9 @@ export default function AppraiseeDashboard() {
                               <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity, true)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                               <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
-                                        Excluir
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                                </AlertDialog>
+                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteRequest(activity.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                               </Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -308,6 +290,23 @@ export default function AppraiseeDashboard() {
             />
           )}
         </Dialog>
+
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente a atividade "{activityToDelete?.title}" e todo o seu histórico de progresso.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeleteAlertOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={confirmDelete}>
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         
       </div>
     </>
