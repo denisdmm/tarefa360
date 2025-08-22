@@ -145,7 +145,6 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
         return;
     }
 
-    const finalStatus = cpf ? 'Ativo' : 'Inativo';
     const finalCpf = cpf || (mode === 'create' ? "99999999999" : "");
     
     let formData: UserFormData;
@@ -183,7 +182,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
                 sector,
                 jobTitle,
                 role,
-                status: finalCpf ? 'Ativo' : 'Inativo',
+                status,
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,
         };
@@ -264,6 +263,24 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
             </SelectContent>
           </Select>
         </div>
+        
+        {mode === 'edit' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="md:text-right">
+              Status
+            </Label>
+            <Select value={status} onValueChange={value => setStatus(value as 'Ativo' | 'Inativo')}>
+              <SelectTrigger className="col-span-1 md:col-span-3">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
         {mode === 'create' && role === 'appraisee' && (
           <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
             <Label htmlFor="appraiser" className="md:text-right">
@@ -292,3 +309,5 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     </DialogContent>
   );
 };
+
+    
