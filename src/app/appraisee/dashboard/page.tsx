@@ -57,9 +57,8 @@ const ActivityCard = ({
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
-  deleteActivity: (activityId: string) => Promise<boolean>;
+  deleteActivity: (activityId: string) => void;
 }) => {
-  const { toast } = useToast();
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -72,17 +71,6 @@ const ActivityCard = ({
   };
   
   const latestProgress = getLatestProgress(activity);
-
-  const handleDelete = async () => {
-    const success = await deleteActivity(activity.id);
-    if (success) {
-      toast({ 
-        variant: 'destructive', 
-        title: "Atividade Excluída", 
-        description: "A atividade foi removida permanentemente." 
-      });
-    }
-  };
 
   return (
     <Card className="flex flex-col">
@@ -117,7 +105,7 @@ const ActivityCard = ({
             </AlertDialogHeader>
             <AlertDialogFooter>
               <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={handleDelete}>
+              <AlertDialogAction onClick={() => deleteActivity(activity.id)}>
                 Excluir
               </AlertDialogAction>
             </AlertDialogFooter>
@@ -180,7 +168,7 @@ export default function AppraiseeDashboard() {
     setIsFormReadOnly(false);
   }
 
-  const handleDeleteActivityFromTable = async (activityId: string) => {
+  const handleDeleteActivity = async (activityId: string) => {
     const success = await deleteActivity(activityId);
     if (success) {
       toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida permanentemente." });
@@ -222,7 +210,7 @@ export default function AppraiseeDashboard() {
                     key={activity.id}
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
-                    deleteActivity={deleteActivity}
+                    deleteActivity={handleDeleteActivity}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -280,7 +268,7 @@ export default function AppraiseeDashboard() {
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
                                     <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteActivityFromTable(activity.id)}>
+                                    <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
                                         Excluir
                                     </AlertDialogAction>
                                     </AlertDialogFooter>
@@ -325,3 +313,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
