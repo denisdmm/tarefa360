@@ -60,7 +60,9 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         return;
     }
     
-    if (cpf && cpf.length !== 11) {
+    const finalCpf = cpf || "99999999999";
+
+    if (finalCpf.length !== 11) {
         toast({
             variant: "destructive",
             title: "Erro de Validação",
@@ -69,22 +71,20 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         return;
     }
 
-    if (cpf) {
-        const isCpfTaken = existingUsers.some(u => u.cpf === cpf);
-        if (isCpfTaken) {
-            toast({
-                variant: "destructive",
-                title: "CPF Duplicado",
-                description: "Este CPF já está sendo utilizado por outro usuário.",
-            });
-            return;
-        }
+    const isCpfTaken = existingUsers.some(u => u.cpf === finalCpf);
+    if (isCpfTaken) {
+        toast({
+            variant: "destructive",
+            title: "CPF Duplicado",
+            description: "Este CPF já está sendo utilizado por outro usuário.",
+        });
+        return;
     }
 
-    const newPassword = cpf ? `${cpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+    const newPassword = `${finalCpf.substring(0, 4)}${nomeDeGuerra}`;
     const newUser: User = {
         id: `user-${Date.now()}`,
-        cpf,
+        cpf: finalCpf,
         name,
         nomeDeGuerra,
         postoGrad,
@@ -94,7 +94,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         role: 'appraiser',
         password: newPassword, 
         forcePasswordChange: true,
-        status: cpf ? 'Ativo' : 'Inativo',
+        status: 'Ativo',
         avatarUrl: 'https://placehold.co/100x100' // Default avatar
     };
     
@@ -108,7 +108,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
             <DialogTitle>Cadastrar Novo Avaliador</DialogTitle>
-            <DialogDescription>Preencha os dados do novo avaliador. Se o CPF não for informado, a conta será criada como 'Inativa'.</DialogDescription>
+            <DialogDescription>Preencha os dados do novo avaliador. Se o CPF não for informado, a conta será criada com o CPF padrão '99999999999'.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">

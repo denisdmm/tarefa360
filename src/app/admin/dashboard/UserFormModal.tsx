@@ -146,16 +146,17 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     }
 
     const finalStatus = cpf ? 'Ativo' : 'Inativo';
+    const finalCpf = cpf || (mode === 'create' ? "99999999999" : "");
     
     let formData: UserFormData;
 
     if (mode === 'create') {
-        const newPassword = cpf ? `${cpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+        const newPassword = finalCpf ? `${finalCpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
         formData = {
             mode,
             user: null,
             data: {
-                cpf,
+                cpf: finalCpf,
                 name,
                 nomeDeGuerra,
                 postoGrad,
@@ -163,7 +164,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
                 sector,
                 jobTitle,
                 role,
-                status: finalStatus,
+                status: finalCpf ? 'Ativo' : 'Inativo',
                 password: newPassword,
                 forcePasswordChange: true
             },
@@ -174,7 +175,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
             mode,
             user,
             data: {
-                cpf,
+                cpf: finalCpf,
                 name,
                 nomeDeGuerra,
                 postoGrad,
@@ -182,7 +183,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
                 sector,
                 jobTitle,
                 role,
-                status: finalStatus,
+                status: finalCpf ? 'Ativo' : 'Inativo',
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,
         };
@@ -197,7 +198,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
   const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
   const description = mode === 'edit' 
     ? 'Atualize os dados do usuário. Para ativar uma conta inativa, basta preencher o CPF.' 
-    : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa.';
+    : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa com um CPF padrão.';
 
   return (
     <DialogContent className="sm:max-w-[625px]">
