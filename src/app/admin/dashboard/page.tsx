@@ -195,11 +195,7 @@ export default function AdminDashboard() {
 
   const handleSaveUser = async (formData: UserFormData) => {
       if (formData.mode === 'edit' && formData.user) {
-        const updatedUserData: User = {
-          ...formData.user,
-          ...formData.data,
-        };
-        await updateUser(updatedUserData.id, updatedUserData);
+        await updateUser(formData.user.id, formData.data);
         toast({
             title: "Usuário Atualizado",
             description: "Os dados foram salvos com sucesso.",

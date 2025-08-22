@@ -309,5 +309,3 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     </DialogContent>
   );
 };
-
-    
