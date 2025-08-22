@@ -150,9 +150,7 @@ export const ActivityForm = ({
     // "2024-01-15" becomes "2024-01-15T00:00:00.000Z"
     const dateWithOffset = new Date(`${startDate}T00:00:00`);
 
-    const activityData: Partial<Activity> = {
-      // Conditionally add the id only if it exists (for updates)
-      ...(activity?.id && { id: activity.id }),
+    const activityData: Partial<Omit<Activity, 'id'>> & { id?: string } = {
       title,
       description,
       startDate: dateWithOffset,
@@ -160,8 +158,8 @@ export const ActivityForm = ({
       userId: currentUserId,
     };
 
-     if (!activity?.id) {
-      delete activityData.id;
+    if (activity?.id) {
+        activityData.id = activity.id;
     }
 
     await onSave(activityData);
@@ -277,11 +275,11 @@ export const ActivityForm = ({
                             </div>
                         </div>
                          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                            <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2">
-                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)}>+5%</Button>
-                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)}>+10%</Button>
-                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)}>+25%</Button>
-                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)}>+50%</Button>
+                            <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2 justify-stretch">
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)} className="flex-grow basis-0 h-8 text-xs p-1">+5%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)} className="flex-grow basis-0 h-8 text-xs p-1">+10%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)} className="flex-grow basis-0 h-8 text-xs p-1">+25%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)} className="flex-grow basis-0 h-8 text-xs p-1">+50%</Button>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
