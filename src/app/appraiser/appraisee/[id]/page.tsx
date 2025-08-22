@@ -39,8 +39,14 @@ import { Dialog } from '@/components/ui/dialog';
 import { ActivityForm } from '@/app/shared/ActivityForm';
 import { cn } from '@/lib/utils';
 
-type MonthlyActivity = Activity & {
-    progressForMonth: ProgressEntry;
+type MonthlyActivity = {
+    id: string;
+    title: string;
+    description: string;
+    totalPercentage: number;
+    comments: string[];
+    // Include the original activity for the modal
+    originalActivity: Activity;
 };
 
 export default function AppraiseeDetailView({ params: paramsProp }: { params: { id: string } }) {
@@ -67,7 +73,7 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     if (!activePeriod || !appraisee) return {};
 
     const userActivities = activities.filter(a => a.userId === appraisee.id);
-    const monthlyData: Record<string, MonthlyActivity[]> = {};
+    const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
@@ -76,21 +82,34 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
           const monthYearKey = format(progressDate, 'yyyy-MM');
           
           if (!monthlyData[monthYearKey]) {
-              monthlyData[monthYearKey] = [];
+              monthlyData[monthYearKey] = {};
           }
-
-          const existingActivity = monthlyData[monthYearKey].find(a => a.id === activity.id);
-          if (!existingActivity) {
-              monthlyData[monthYearKey].push({
-                  ...activity,
-                  progressForMonth: progress,
-              });
+          
+          if (!monthlyData[monthYearKey][activity.id]) {
+            monthlyData[monthYearKey][activity.id] = {
+                id: activity.id,
+                title: activity.title,
+                description: activity.description,
+                totalPercentage: 0,
+                comments: [],
+                originalActivity: activity
+            };
+          }
+          
+          monthlyData[monthYearKey][activity.id].totalPercentage += progress.percentage;
+          if (progress.comment) {
+            monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
           }
         }
       });
     });
 
-    return monthlyData;
+    const finalMonthlyActivities: Record<string, MonthlyActivity[]> = {};
+    for (const monthKey in monthlyData) {
+        finalMonthlyActivities[monthKey] = Object.values(monthlyData[monthKey]);
+    }
+
+    return finalMonthlyActivities;
   }, [activities, appraisee, activePeriod]);
 
 
@@ -197,7 +216,6 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
               onClose={handleCloseModal}
               currentUserId={appraisee.id}
               isReadOnly={true}
-              activePeriod={activePeriod}
             />
         )}
       </Dialog>
@@ -269,16 +287,16 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                             <TableCell className="font-medium">
                                 <button
                                     className="text-left hover:underline"
-                                    onClick={() => handleOpenModal(activity)}
+                                    onClick={() => handleOpenModal(activity.originalActivity)}
                                 >
                                     {activity.title}
                                 </button>
                             </TableCell>
-                            <TableCell className="text-muted-foreground italic hidden sm:table-cell">"{activity.progressForMonth.comment || 'N/A'}"</TableCell>
+                            <TableCell className="text-muted-foreground italic hidden sm:table-cell">"{activity.comments.join('; ') || 'N/A'}"</TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                <Progress value={activity.progressForMonth.percentage} className="w-[60%] md:w-[80%]" />
-                                <span className="text-xs md:text-sm">{activity.progressForMonth.percentage}%</span>
+                                <Progress value={activity.totalPercentage} className="w-[60%] md:w-[80%]" />
+                                <span className="text-xs md:text-sm">{activity.totalPercentage}%</span>
                                 </div>
                             </TableCell>
                             </TableRow>
@@ -345,8 +363,8 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
                     <tbody>
                     {activitiesForMonth.map(activity => (
                         <tr key={`${activity.id}-${monthKey}-pdf`}>
-                        <td className="w-[15%] p-2 pb-5 border border-black text-center uppercase">{activity.progressForMonth.percentage}%</td>
-                        <td className="p-2 pb-5 border border-black text-justify uppercase">{activity.title} - <i>{activity.progressForMonth.comment || 'Nenhum comentário.'}</i></td>
+                        <td className="w-[15%] p-2 pb-5 border border-black text-center uppercase">{activity.totalPercentage}%</td>
+                        <td className="p-2 pb-5 border border-black text-justify uppercase">{activity.title} - <i>{activity.comments.join('; ') || 'Nenhum comentário.'}</i></td>
                         </tr>
                     ))}
                     </tbody>
@@ -362,5 +380,3 @@ export default function AppraiseeDetailView({ params: paramsProp }: { params: { 
     </>
   );
 }
-
-    

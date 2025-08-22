@@ -113,12 +113,6 @@ export const ActivityForm = ({
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10);
 
-    const existingEntryIndex = progressHistory.findIndex(p => p.year === year && p.month === month);
-    if(existingEntryIndex > -1) {
-        toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um progresso para este mês. Remova o antigo primeiro."});
-        return;
-    }
-
     const newProgressEntry: ProgressEntry = {
         year,
         month,
@@ -130,10 +124,14 @@ export const ActivityForm = ({
     handleCancelAddProgress();
   }
 
-  const handleRemoveProgress = (year: number, month: number) => {
+  const handleRemoveProgress = (year: number, month: number, comment: string) => {
     if(isReadOnly) return;
-    const newHistory = progressHistory.filter(p => !(p.year === year && p.month === month));
-    setProgressHistory(newHistory);
+    const newHistory = [...progressHistory];
+    const indexToRemove = newHistory.findIndex(p => p.year === year && p.month === month && p.comment === comment);
+    if(indexToRemove > -1) {
+        newHistory.splice(indexToRemove, 1);
+        setProgressHistory(newHistory);
+    }
   }
 
   const handleSaveClick = async () => {
@@ -178,7 +176,9 @@ export const ActivityForm = ({
 
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
+    if (a.month !== b.month) return b.month - a.month;
+    // Keep order for same month entries if needed, e.g., by comment or add a timestamp
+    return 0;
   });
 
   return (
@@ -311,8 +311,8 @@ export const ActivityForm = ({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedProgressHistory.length > 0 ? sortedProgressHistory.map(p => (
-                            <TableRow key={`${p.year}-${p.month}`}>
+                        {sortedProgressHistory.length > 0 ? sortedProgressHistory.map((p, index) => (
+                            <TableRow key={`${p.year}-${p.month}-${index}`}>
                                 <TableCell className="font-medium">
                                     {format(new Date(p.year, p.month - 1), "MMM yyyy", { locale: ptBR })}
                                 </TableCell>
@@ -320,7 +320,7 @@ export const ActivityForm = ({
                                 <TableCell className="text-muted-foreground hidden sm:table-cell">{p.comment}</TableCell>
                                 {!isReadOnly && (
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month)}>
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month, p.comment)}>
                                         <Trash2 className="h-4 w-4 text-destructive"/>
                                     </Button>
                                 </TableCell>

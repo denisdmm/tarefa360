@@ -53,12 +53,6 @@ export const ProgressFormModal = ({
     const year = parseInt(parts[0], 10);
     const month = parseInt(parts[1], 10); // 1-12
 
-    const existingEntryIndex = activity.progressHistory.findIndex(p => p.year === year && p.month === month);
-    if(existingEntryIndex > -1) {
-        toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um registro de progresso para este mês. Edite a atividade para remover o antigo primeiro."});
-        return;
-    }
-
     const newProgressEntry: ProgressEntry = {
         year,
         month,
