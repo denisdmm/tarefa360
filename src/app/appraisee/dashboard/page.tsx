@@ -306,7 +306,7 @@ export default function AppraiseeDashboard() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDeleteAlertOpen(false)}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete}>
+                <AlertDialogAction onClick={() => confirmDelete()}>
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>

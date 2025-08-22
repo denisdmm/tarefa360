@@ -151,7 +151,8 @@ export const ActivityForm = ({
     const dateWithOffset = new Date(`${startDate}T00:00:00`);
 
     const activityData: Partial<Activity> = {
-      id: activity?.id, // Pass ID for updates, undefined for creations
+      // Conditionally add the id only if it exists (for updates)
+      ...(activity?.id && { id: activity.id }),
       title,
       description,
       startDate: dateWithOffset,
