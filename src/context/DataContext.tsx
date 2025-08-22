@@ -222,10 +222,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const deleteUser = async (userId: string): Promise<void> => {
         try {
-            // Batch delete to ensure atomicity
             const batch = writeBatch(db);
 
-            // 1. Find and delete user's activities
             const activitiesRef = collection(db, "activities");
             const userActivitiesQuery = query(activitiesRef, where("userId", "==", userId));
             const userActivitiesSnapshot = await getDocs(userActivitiesQuery);
@@ -233,7 +231,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 batch.delete(doc.ref);
             });
 
-            // 2. Find and delete user's associations
             const associationsRef = collection(db, "associations");
             const appraiseeQuery = query(associationsRef, where("appraiseeId", "==", userId));
             const appraiserQuery = query(associationsRef, where("appraiserId", "==", userId));
@@ -241,14 +238,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             appraiseeSnapshot.forEach(doc => batch.delete(doc.ref));
             appraiserSnapshot.forEach(doc => batch.delete(doc.ref));
 
-            // 3. Delete the user document itself
             const userRef = doc(db, 'users', userId);
             batch.delete(userRef);
 
-            // 4. Commit the batch
             await batch.commit();
 
-            // 5. Update local state
             setUsersState(prev => prev.filter(u => u.id !== userId));
             setActivitiesState(prev => prev.filter(a => a.userId !== userId));
             setAssociationsState(prev => prev.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));

@@ -169,9 +169,7 @@ export default function AppraiseeDashboard() {
         description: "A atividade foi removida permanentemente.",
       });
     }
-    // A notificação de erro já é exibida pelo DataContext
     
-    // Reset state e fecha o diálogo
     setActivityToDeleteId(null);
     setDeleteAlertOpen(false);
   };
