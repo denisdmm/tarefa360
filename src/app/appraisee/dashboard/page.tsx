@@ -166,6 +166,7 @@ export default function AppraiseeDashboard() {
           description: "A atividade foi removida permanentemente.",
         });
       }
+      // Reset state regardless of success to close the modal
       setActivityToDeleteId(null);
       setDeleteAlertOpen(false);
     }
@@ -299,7 +300,7 @@ export default function AppraiseeDashboard() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDeleteAlertOpen(false)}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={() => confirmDelete()}>
+                <AlertDialogAction onClick={confirmDelete}>
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -310,8 +311,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
-
-    
-
