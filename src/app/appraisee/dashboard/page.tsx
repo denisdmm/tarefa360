@@ -11,7 +11,6 @@ import {
   AlertDialogFooter,
   AlertDialogHeader,
   AlertDialogTitle,
-  AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { Button } from "@/components/ui/button";
 import {
@@ -54,14 +53,12 @@ const ActivityCard = ({
   activity,
   onEdit,
   onDelete,
-  onView,
 }: {
   activity: Activity;
   onEdit: (activity: Activity) => void;
   onDelete: (activityId: string) => void;
-  onView: (activity: Activity) => void;
 }) => {
-    
+
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
     if (!progressHistory || progressHistory.length === 0) return 0;
@@ -73,14 +70,13 @@ const ActivityCard = ({
   };
   
   const latestProgress = getLatestProgress(activity);
-  const isCompleted = latestProgress === 100;
 
   return (
     <Card className="flex flex-col">
       <CardHeader>
         <CardTitle>{activity.title}</CardTitle>
         <CardDescription>
-          Iniciada em {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
+          Iniciada em {activity.startDate ? format(add(new Date(activity.startDate as any), {minutes: new Date(activity.startDate as any).getTimezoneOffset()}), "dd 'de' MMMM 'de' yyyy", { locale: ptBR }) : 'Data não definida'}
         </CardDescription>
       </CardHeader>
       <CardContent className="flex-grow">
@@ -89,38 +85,13 @@ const ActivityCard = ({
         <p className="text-sm font-medium text-right mt-1">{latestProgress}%</p>
       </CardContent>
       <CardFooter className="flex justify-end gap-2">
-        {isCompleted ? (
-            <Button variant="outline" size="sm" onClick={() => onView(activity)}>
-                <Eye className="mr-2" />
-                Visualizar
-            </Button>
-        ) : (
-            <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
-                <Edit className="mr-2" />
-                Editar
-            </Button>
-        )}
-        <AlertDialog>
-          <AlertDialogTrigger asChild>
-            <Button variant="destructive" size="sm">
-              <Trash2 />
-            </Button>
-          </AlertDialogTrigger>
-          <AlertDialogContent>
-            <AlertDialogHeader>
-              <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-              <AlertDialogDescription>
-                Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
-              </AlertDialogDescription>
-            </AlertDialogHeader>
-            <AlertDialogFooter>
-              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-              <AlertDialogAction onClick={() => onDelete(activity.id)}>
-                Excluir
-              </AlertDialogAction>
-            </AlertDialogFooter>
-          </AlertDialogContent>
-        </AlertDialog>
+        <Button variant="outline" size="sm" onClick={() => onEdit(activity)}>
+            <Edit className="mr-2 h-4 w-4" />
+            Editar/Progresso
+        </Button>
+        <Button variant="destructive" size="icon" title="Excluir a Atividade" onClick={() => onDelete(activity.id)}>
+            <Trash2 className="h-4 w-4" />
+        </Button>
       </CardFooter>
     </Card>
   );
@@ -129,7 +100,7 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, setActivities, evaluationPeriods, loggedInUser } = useDataContext();
+  const { activities, loggedInUser, addActivity, updateActivity, deleteActivity } = useDataContext();
   
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
@@ -137,7 +108,9 @@ export default function AppraiseeDashboard() {
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isFormReadOnly, setIsFormReadOnly] = React.useState(false);
 
-  const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+  const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
+  const [activityToDeleteId, setActivityToDeleteId] = React.useState<string | null>(null);
+
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -148,21 +121,31 @@ export default function AppraiseeDashboard() {
     });
     return sortedHistory[0].percentage;
   };
+  
 
-  const handleSaveActivity = (activity: Activity) => {
-    const isEditing = activities.some(a => a.id === activity.id);
-    if (isEditing) {
-      setActivities(prevActivities => prevActivities.map(a => a.id === activity.id ? activity : a));
-      toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
+  const handleSaveActivity = async (activityData: Partial<Activity>) => {
+    if (activityData.id) {
+        // It's an update
+        await updateActivity(activityData.id, activityData);
+        toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
-      setActivities(prevActivities => [activity, ...prevActivities]);
-      toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
+        // It's a creation
+        if (!activityData.userId) { // Ensure userId is set
+            toast({ variant: "destructive", title: "Erro", description: "ID do usuário não encontrado." });
+            return;
+        }
+        await addActivity(activityData as Omit<Activity, 'id'>);
+        toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
     handleCloseForms();
-  };
-
+};
+  
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
-    setSelectedActivity(activity);
+    if (activity === null) {
+      setSelectedActivity(null); 
+    } else {
+      setSelectedActivity(activity);
+    }
     setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
@@ -173,10 +156,28 @@ export default function AppraiseeDashboard() {
     setIsFormReadOnly(false);
   }
 
-  const handleDeleteActivity = (activityId: string) => {
-    setActivities(prevActivities => prevActivities.filter(a => a.id !== activityId));
-    toast({ variant: 'destructive', title: "Atividade Excluída", description: "A atividade foi removida." });
+  const handleDeleteRequest = (activityId: string) => {
+    setActivityToDeleteId(activityId);
+    setDeleteAlertOpen(true);
   };
+
+  const confirmDelete = async () => {
+    if (!activityToDeleteId) return;
+
+    const success = await deleteActivity(activityToDeleteId);
+    
+    if (success) {
+      toast({
+        variant: "destructive",
+        title: "Atividade Excluída",
+        description: "A atividade foi removida permanentemente.",
+      });
+    }
+    
+    setActivityToDeleteId(null);
+    setDeleteAlertOpen(false);
+  };
+
 
   if (!loggedInUser) {
     return <div>Carregando...</div>
@@ -184,6 +185,8 @@ export default function AppraiseeDashboard() {
 
   const inProgressActivities = userActivities.filter(a => getLatestProgress(a) < 100);
   const completedActivities = userActivities.filter(a => getLatestProgress(a) === 100);
+
+  const activityToDelete = activityToDeleteId ? userActivities.find(a => a.id === activityToDeleteId) : null;
 
   return (
     <>
@@ -212,8 +215,7 @@ export default function AppraiseeDashboard() {
                     key={activity.id}
                     activity={activity}
                     onEdit={() => handleOpenActivityForm(activity)}
-                    onDelete={handleDeleteActivity}
-                    onView={() => handleOpenActivityForm(activity, true)}
+                    onDelete={handleDeleteRequest}
                   />
                 ))}
                 {inProgressActivities.length === 0 && (
@@ -238,7 +240,7 @@ export default function AppraiseeDashboard() {
                         <TableHead>Título</TableHead>
                         <TableHead className="hidden md:table-cell">Início</TableHead>
                         <TableHead>Status</TableHead>
-                        <TableHead className="text-right">Ações</TableHead>
+                        <TableHead className="text-center">Ações</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
@@ -247,36 +249,18 @@ export default function AppraiseeDashboard() {
                           <TableRow key={activity.id}>
                             <TableCell className="font-medium">{activity.title}</TableCell>
                             <TableCell className="hidden md:table-cell">
-                              {activity.startDate ? format(add(activity.startDate, {minutes: activity.startDate.getTimezoneOffset()}), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
+                              {activity.startDate ? format(add(new Date(activity.startDate as any), {minutes: new Date(activity.startDate as any).getTimezoneOffset()}), "dd/MM/yyyy", { locale: ptBR }) : 'N/A'}
                             </TableCell>
                             <TableCell>
                               <Badge>Concluído</Badge>
                             </TableCell>
-                            <TableCell className="text-right space-x-2">
+                            <TableCell className="text-center space-x-2">
                               <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity, true)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                               <AlertDialog>
-                                <AlertDialogTrigger asChild>
-                                  <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive">
-                                      <Trash2 className="h-4 w-4" />
-                                  </Button>
-                                </AlertDialogTrigger>
-                                <AlertDialogContent>
-                                    <AlertDialogHeader>
-                                    <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
-                                    <AlertDialogDescription>
-                                        Esta ação não pode ser desfeita. Isso excluirá permanentemente esta atividade.
-                                    </AlertDialogDescription>
-                                    </AlertDialogHeader>
-                                    <AlertDialogFooter>
-                                    <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                                    <AlertDialogAction onClick={() => handleDeleteActivity(activity.id)}>
-                                        Excluir
-                                    </AlertDialogAction>
-                                    </AlertDialogFooter>
-                                </AlertDialogContent>
-                                </AlertDialog>
+                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteRequest(activity.id)}>
+                                    <Trash2 className="h-4 w-4" />
+                               </Button>
                             </TableCell>
                           </TableRow>
                         ))
@@ -293,18 +277,41 @@ export default function AppraiseeDashboard() {
           </Tabs>
         </main>
 
-        <Dialog open={isActivityFormOpen} onOpenChange={setActivityFormOpen}>
-          {isActivityFormOpen && ( // Render only when open to re-mount and fetch correct state
-            <ActivityForm
+        <Dialog open={isActivityFormOpen} onOpenChange={(isOpen) => {
+            if (!isOpen) {
+                handleCloseForms();
+            } else {
+                setActivityFormOpen(isOpen);
+            }
+        }}>
+          {loggedInUser && isActivityFormOpen && (
+           <ActivityForm
+              key={selectedActivity?.id || 'new'}
               activity={selectedActivity}
               onSave={handleSaveActivity}
               onClose={handleCloseForms}
               currentUserId={loggedInUser.id}
               isReadOnly={isFormReadOnly}
-              activePeriod={activePeriod}
             />
           )}
         </Dialog>
+
+        <AlertDialog open={isDeleteAlertOpen} onOpenChange={setDeleteAlertOpen}>
+            <AlertDialogContent>
+              <AlertDialogHeader>
+                <AlertDialogTitle>Você tem certeza?</AlertDialogTitle>
+                <AlertDialogDescription>
+                  Esta ação não pode ser desfeita. Isso excluirá permanentemente a atividade "{activityToDelete?.title}" e todo o seu histórico de progresso.
+                </AlertDialogDescription>
+              </AlertDialogHeader>
+              <AlertDialogFooter>
+                <AlertDialogCancel onClick={() => setDeleteAlertOpen(false)}>Cancelar</AlertDialogCancel>
+                <AlertDialogAction onClick={() => confirmDelete()}>
+                  Excluir
+                </AlertDialogAction>
+              </AlertDialogFooter>
+            </AlertDialogContent>
+        </AlertDialog>
         
       </div>
     </>

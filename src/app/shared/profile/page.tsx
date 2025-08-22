@@ -19,10 +19,11 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useRouter } from "next/navigation";
+import { ThemeSwitcher } from "@/components/theme-switcher";
 
 
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
-  const { users, setUsers } = useDataContext();
+  const { users, updateUser } = useDataContext();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -80,15 +81,18 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   };
 
 
-  const handleUpdateProfile = () => {
+  const handleUpdateProfile = async () => {
     if (!currentUser) return;
     
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, name, nomeDeGuerra, postoGrad, email, avatarUrl: avatarPreview || u.avatarUrl }
-        : u
-    );
-    setUsers(updatedUsers);
+    const updatedData: Partial<User> = {
+        name,
+        nomeDeGuerra,
+        postoGrad,
+        email,
+        avatarUrl: avatarPreview || currentUser.avatarUrl
+    };
+
+    await updateUser(currentUser.id, updatedData);
 
     toast({
       title: "Perfil Atualizado",
@@ -96,7 +100,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     });
   };
 
-  const handleUpdatePassword = () => {
+  const handleUpdatePassword = async () => {
     if (!currentUser) return;
 
     // Check if the current password matches (only if it's not the first login)
@@ -109,12 +113,12 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       return;
     }
     
-    // On first login, the password is the `nomeDeGuerra`
-    if (currentUser.forcePasswordChange && currentPassword !== currentUser.nomeDeGuerra) {
+    // On first login, the password is the `nomeDeGuerra` or the default one set by admin
+    if (currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
         toast({
             variant: "destructive",
             title: "Senha Temporária Incorreta",
-            description: "A senha temporária (seu Nome de Guerra) não confere.",
+            description: "A senha temporária informada não confere.",
         });
         return;
     }
@@ -137,12 +141,12 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         return;
     }
     
-    const updatedUsers = users.map(u => 
-      u.id === currentUser.id 
-        ? { ...u, password: newPassword, forcePasswordChange: false }
-        : u
-    );
-    setUsers(updatedUsers);
+    const updatedData: Partial<User> = {
+        password: newPassword,
+        forcePasswordChange: false
+    };
+
+    await updateUser(currentUser.id, updatedData);
     
     toast({
       title: "Senha Atualizada",
@@ -178,7 +182,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <Terminal className="h-4 w-4" />
                 <AlertTitle>Ação Necessária: Altere sua Senha</AlertTitle>
                 <AlertDescription>
-                    Este é seu primeiro acesso. Sua senha temporária é o seu "Nome de Guerra". Por favor, cadastre uma nova senha abaixo para continuar.
+                    Este é seu primeiro acesso ou sua senha foi redefinida. Por favor, cadastre uma nova senha abaixo para continuar. Sua senha temporária foi fornecida pelo administrador.
                 </AlertDescription>
             </Alert>
         )}
@@ -188,6 +192,18 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <Button onClick={handleGoToDashboard}>Ir para o Painel</Button>
             </div>
         )}
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Aparência</CardTitle>
+            <CardDescription>
+              Personalize a aparência do aplicativo.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ThemeSwitcher />
+          </CardContent>
+        </Card>
 
         <Card>
           <CardHeader>
@@ -267,7 +283,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 type="password"
                 value={currentPassword}
                 onChange={(e) => setCurrentPassword(e.target.value)}
-                placeholder={currentUser.forcePasswordChange ? "Digite seu Nome de Guerra" : "Digite sua senha atual"}
+                placeholder={currentUser.forcePasswordChange ? "Digite sua senha temporária" : "Digite sua senha atual"}
               />
             </div>
             <div className="space-y-2">
@@ -288,7 +304,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 onChange={(e) => setConfirmPassword(e.target.value)}
               />
             </div>
-            <div className="flex justify-end pt-2">
+            <div className="flex justify-end pt-2 border-t">
                 <Button onClick={handleUpdatePassword}>Alterar Senha</Button>
             </div>
           </CardContent>

@@ -18,13 +18,12 @@ import {
 } from "@/components/ui/sidebar";
 import { LogOut, LayoutDashboard, FileText, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
 
 
-const AppraiseeSidebarContent = () => {
+export const AppraiseeSidebarContent = () => {
     const pathname = usePathname();
     const isActive = (path: string) => pathname === path;
     const { loggedInUser } = useDataContext();

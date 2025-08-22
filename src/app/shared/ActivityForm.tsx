@@ -2,20 +2,21 @@
 "use client";
 
 import * as React from "react";
-import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogClose } from "@/components/ui/dialog";
+import { DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
-import { Plus, Trash2, X } from "lucide-react";
+import { Trash2, PlusCircle, X, Check } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
-import type { Activity, EvaluationPeriod, ProgressEntry } from "@/lib/types";
+import type { Activity, ProgressEntry } from "@/lib/types";
 import { useToast } from "@/hooks/use-toast";
-import { format, startOfDay } from "date-fns";
+import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
+import { Slider } from "@/components/ui/slider";
 
 export const ActivityForm = ({
   activity,
@@ -23,14 +24,12 @@ export const ActivityForm = ({
   onClose,
   currentUserId,
   isReadOnly = false,
-  activePeriod,
 }: {
   activity?: Activity | null;
-  onSave: (activity: Activity) => void;
+  onSave: (activity: Partial<Activity>) => Promise<void>;
   onClose: () => void;
   currentUserId: string;
   isReadOnly?: boolean;
-  activePeriod?: EvaluationPeriod;
 }) => {
   const [title, setTitle] = React.useState("");
   const [description, setDescription] = React.useState("");
@@ -38,152 +37,148 @@ export const ActivityForm = ({
   const [dateError, setDateError] = React.useState<string | null>(null);
   const [progressHistory, setProgressHistory] = React.useState<ProgressEntry[]>([]);
 
+  // State for the inline progress form
   const [isAddingProgress, setIsAddingProgress] = React.useState(false);
   const [newProgress, setNewProgress] = React.useState<{date: string, percentage: number, comment: string} | null>(null);
-
+  
   const { toast } = useToast();
   
   const validateStartDate = (dateString: string) => {
-    // Only validate for new activities.
-    if (activity) {
-        setDateError(null);
-        return;
-    }
-  
     if (!dateString) {
         setDateError("A data de início é obrigatória.");
         return;
     }
-
-    // The input type="date" returns "YYYY-MM-DD".
-    // new Date() will parse it as UTC, which can cause off-by-one day errors
-    // depending on the user's timezone. We need to parse it as local time.
-    const parts = dateString.split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1; // Month is 0-indexed
-    const day = parseInt(parts[2], 10);
-    const parsedDate = new Date(year, month, day);
-
-    if (isNaN(parsedDate.getTime())) {
-        setDateError("Formato de data inválido.");
-        return;
-    }
-    
-    if (activePeriod) {
-        // Compare dates by creating UTC dates from local components to avoid timezone issues.
-        const checkDate = startOfDay(parsedDate);
-        const startDatePeriod = startOfDay(activePeriod.startDate);
-        const endDatePeriod = startOfDay(activePeriod.endDate);
-
-        if (checkDate < startDatePeriod || checkDate > endDatePeriod) {
-             setDateError("A data deve estar dentro do período de avaliação ativo.");
-        } else {
-            setDateError(null);
-        }
-    } else {
-        setDateError(null); // No active period, no validation needed
-    }
+    setDateError(null);
   };
 
-
   const isSaveDisabled = React.useMemo(() => {
-    if (isReadOnly) return true;
+    if (isReadOnly || isAddingProgress) return true;
     if (!title.trim() || !startDate || dateError) return true;
-    
     return false;
-  }, [title, startDate, dateError, isReadOnly]);
+  }, [title, startDate, dateError, isReadOnly, isAddingProgress]);
 
 
   React.useEffect(() => {
     if (activity) {
       setTitle(activity.title || "");
       setDescription(activity.description || "");
-      setStartDate(activity.startDate ? format(activity.startDate, 'yyyy-MM-dd') : '');
+      
+      let initialDate = '';
+      if (activity.startDate) {
+          // Handles both JS Date objects and Firestore Timestamps
+          const dateToFormat = (activity.startDate as any).seconds 
+              ? (activity.startDate as any).toDate() 
+              : new Date(activity.startDate as any);
+          if (!isNaN(dateToFormat.getTime())) {
+            initialDate = format(dateToFormat, 'yyyy-MM-dd');
+          }
+      }
+      setStartDate(initialDate);
+
       setProgressHistory(activity.progressHistory || []);
     } else {
-      // For new activities
+      // For new activities, reset everything
       setTitle("");
       setDescription("");
       setStartDate('');
       setProgressHistory([]);
       setDateError(null);
+      setIsAddingProgress(false);
+      setNewProgress(null);
     }
   }, [activity]);
 
-  const handleStartAddNewProgress = () => {
-    const lastProgress = progressHistory.sort((a, b) => b.year - a.year || b.month - a.month)[0];
+  const handleOpenProgressForm = () => {
+    const lastPercentage = sortedProgressHistory[0]?.percentage || 0;
     setNewProgress({
-        date: format(new Date(), 'yyyy-MM-dd'),
-        percentage: lastProgress?.percentage || 0,
-        comment: ""
+      date: format(new Date(), 'yyyy-MM-dd'),
+      percentage: lastPercentage,
+      comment: ""
     });
     setIsAddingProgress(true);
   }
 
+  const handleCancelAddProgress = () => {
+    setIsAddingProgress(false);
+    setNewProgress(null);
+  }
+  
   const handleSaveNewProgress = () => {
     if (!newProgress?.date) {
-        toast({ variant: 'destructive', title: "Data Inválida", description: "Por favor, selecione uma data para o registro de progresso."});
+        toast({ variant: 'destructive', title: "Data Inválida", description: "Por favor, selecione uma data."});
         return;
     }
     
-    // Parse date directly from string to avoid timezone issues
-    const dateValue = newProgress.date; // "YYYY-MM-DD"
-    const parts = dateValue.split('-');
+    const parts = newProgress.date.split('-');
     const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10); // 1-12
+    const month = parseInt(parts[1], 10);
 
-    const existingEntryIndex = progressHistory.findIndex(p => p.year === year && p.month === month);
-    if(existingEntryIndex > -1) {
-        toast({ variant: 'destructive', title: "Registro Duplicado", description: "Já existe um registro de progresso para este mês."});
-        return;
-    }
-
-    setProgressHistory(prev => [...prev, {
+    const newProgressEntry: ProgressEntry = {
         year,
         month,
         percentage: newProgress.percentage,
-        comment: newProgress.comment
-    }]);
-    setIsAddingProgress(false);
-    setNewProgress(null);
-  };
-  
-  const handleRemoveProgress = (year: number, month: number) => {
-    setProgressHistory(prev => prev.filter(p => !(p.year === year && p.month === month)));
+        comment: newProgress.comment,
+    };
+    
+    setProgressHistory(prev => [...prev, newProgressEntry]);
+    handleCancelAddProgress();
   }
 
+  const handleRemoveProgress = (year: number, month: number, comment: string) => {
+    if(isReadOnly) return;
+    const newHistory = [...progressHistory];
+    const indexToRemove = newHistory.findIndex(p => p.year === year && p.month === month && p.comment === comment);
+    if(indexToRemove > -1) {
+        newHistory.splice(indexToRemove, 1);
+        setProgressHistory(newHistory);
+    }
+  }
 
-  const handleSubmit = () => {
-    if (isSaveDisabled) {
+  const handleSaveClick = async () => {
+     if (isSaveDisabled) {
         toast({
             variant: "destructive",
             title: "Formulário Inválido",
-            description: "Por favor, preencha todos os campos obrigatórios e corrija os erros.",
+            description: "Preencha todos os campos obrigatórios e corrija os erros.",
         });
         return;
     }
     
-    const parts = startDate.split('-');
-    const year = parseInt(parts[0], 10);
-    const month = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const dateWithOffset = new Date(year, month, day);
+    // This handles timezone offset by creating the date in UTC.
+    // "2024-01-15" becomes "2024-01-15T00:00:00.000Z"
+    const dateWithOffset = new Date(`${startDate}T00:00:00`);
 
-    const updatedActivity: Activity = {
-      id: activity?.id || `act-${Date.now()}`,
+    const activityData: Partial<Omit<Activity, 'id'>> & { id?: string } = {
       title,
       description,
       startDate: dateWithOffset,
       progressHistory: progressHistory,
       userId: currentUserId,
     };
-    onSave(updatedActivity);
-    onClose();
-  };
+
+    if (activity?.id) {
+        activityData.id = activity.id;
+    }
+
+    await onSave(activityData);
+  }
   
+  const handlePercentageChange = (value: number) => {
+    if (!newProgress) return;
+    const newPercentage = Math.max(0, Math.min(100, value));
+    setNewProgress({...newProgress, percentage: newPercentage});
+  }
+
+  const handleIncrementPercentage = (increment: number) => {
+      if (!newProgress) return;
+      handlePercentageChange(newProgress.percentage + increment);
+  }
+
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
-    return b.month - a.month;
+    if (a.month !== b.month) return b.month - a.month;
+    // Keep order for same month entries if needed, e.g., by comment or add a timestamp
+    return 0;
   });
 
   return (
@@ -220,7 +215,7 @@ export const ActivityForm = ({
                         onChange={e => setStartDate(e.target.value)}
                         onBlur={e => validateStartDate(e.target.value)}
                         className={cn(dateError && "border-destructive")}
-                        readOnly={isReadOnly || !!activity}
+                        readOnly={isReadOnly}
                     />
                     {dateError && <p className="text-sm text-destructive mt-1">{dateError}</p>}
                 </div>
@@ -229,61 +224,83 @@ export const ActivityForm = ({
 
         <Separator />
         
-        {/* Progress Registration */}
+        {/* Progress History */}
         <div className="space-y-4">
-            <div className="flex justify-between items-center">
-                 <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
-                 {!isAddingProgress && !isReadOnly && (
-                     <Button variant="outline" size="sm" onClick={handleStartAddNewProgress}>
-                        <Plus className="mr-2 h-4 w-4" /> Adicionar
-                     </Button>
-                 )}
+             <div className="flex justify-between items-center">
+                <h3 className="font-semibold text-lg">Histórico de Progresso</h3>
+                {!isReadOnly && !isAddingProgress && (
+                  <Button 
+                      variant="outline" 
+                      size="sm"
+                      onClick={handleOpenProgressForm}
+                  >
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Adicionar Progresso
+                  </Button>
+                )}
             </div>
-            {isAddingProgress && newProgress && (
-                <div className="p-4 border rounded-lg bg-muted/50 space-y-4">
-                    <div className="flex justify-between items-center">
-                        <h4 className="font-medium">Novo Registro de Progresso</h4>
-                        <Button variant="ghost" size="icon" onClick={() => setIsAddingProgress(false)}>
-                            <X className="h-4 w-4" />
-                        </Button>
+
+             {isAddingProgress && newProgress && (
+                <Card className="p-4 bg-muted/50 border-primary/50">
+                    <div className="space-y-4">
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-progress-date" className="md:text-right">Data</Label>
+                            <Input 
+                                id="new-progress-date" 
+                                type="date"
+                                value={newProgress.date} 
+                                onChange={e => setNewProgress({...newProgress, date: e.target.value})}
+                                className="col-span-1 md:col-span-3" 
+                            />
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
+                            <div className="col-span-1 md:col-span-3 flex items-center gap-2">
+                                <Input 
+                                id="new-progress-percentage" 
+                                type="number" 
+                                min="0"
+                                max="100"
+                                value={newProgress.percentage} 
+                                onChange={e => handlePercentageChange(parseInt(e.target.value) || 0)} 
+                                className="w-20" 
+                            />
+                            <Slider
+                                value={[newProgress.percentage]}
+                                onValueChange={(value) => handlePercentageChange(value[0])}
+                                max={100}
+                                step={1}
+                                className="flex-1"
+                            />
+                            </div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2 justify-stretch">
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)} className="flex-grow basis-0 h-8 text-xs p-1">+5%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)} className="flex-grow basis-0 h-8 text-xs p-1">+10%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)} className="flex-grow basis-0 h-8 text-xs p-1">+25%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)} className="flex-grow basis-0 h-8 text-xs p-1">+50%</Button>
+                            </div>
+                        </div>
+                        <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
+                            <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
+                            <Textarea 
+                                id="new-progress-comment"
+                                value={newProgress.comment}
+                                onChange={e => setNewProgress({...newProgress, comment: e.target.value})}
+                                className="col-span-1 md:col-span-3"
+                                placeholder="Descreva o que foi feito neste mês..."
+                            />
+                        </div>
+                        <div className="flex justify-end gap-2">
+                            <Button variant="ghost" size="icon" onClick={handleCancelAddProgress}><X className="h-5 w-5"/></Button>
+                            <Button variant="ghost" size="icon" onClick={handleSaveNewProgress}><Check className="h-5 w-5 text-green-600"/></Button>
+                        </div>
                     </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-date" className="md:text-right">Data</Label>
-                        <Input 
-                            id="new-progress-date" 
-                            type="date"
-                            value={newProgress.date} 
-                            onChange={e => setNewProgress({...newProgress, date: e.target.value})}
-                            className="col-span-1 md:col-span-3" 
-                        />
-                    </div>
-                     <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
-                        <Label htmlFor="new-progress-percentage" className="md:text-right">Conclusão (%)</Label>
-                        <Input 
-                            id="new-progress-percentage" 
-                            type="number" 
-                            min="0"
-                            max="100"
-                            value={newProgress.percentage} 
-                            onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value) || 0})} 
-                            className="col-span-1 md:col-span-3" 
-                        />
-                    </div>
-                    <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
-                        <Label htmlFor="new-progress-comment" className="md:text-right mt-2">Comentário</Label>
-                        <Textarea 
-                            id="new-progress-comment"
-                            value={newProgress.comment}
-                            onChange={e => setNewProgress({...newProgress, comment: e.target.value})}
-                            className="col-span-1 md:col-span-3"
-                        />
-                    </div>
-                    <div className="flex justify-end">
-                        <Button onClick={handleSaveNewProgress}>Salvar Progresso</Button>
-                    </div>
-                </div>
-            )}
-             <Card>
+                </Card>
+             )}
+            
+            <Card>
                 <Table>
                     <TableHeader>
                         <TableRow>
@@ -294,8 +311,8 @@ export const ActivityForm = ({
                         </TableRow>
                     </TableHeader>
                     <TableBody>
-                        {sortedProgressHistory.length > 0 ? sortedProgressHistory.map(p => (
-                            <TableRow key={`${p.year}-${p.month}`}>
+                        {sortedProgressHistory.length > 0 ? sortedProgressHistory.map((p, index) => (
+                            <TableRow key={`${p.year}-${p.month}-${index}`}>
                                 <TableCell className="font-medium">
                                     {format(new Date(p.year, p.month - 1), "MMM yyyy", { locale: ptBR })}
                                 </TableCell>
@@ -303,7 +320,7 @@ export const ActivityForm = ({
                                 <TableCell className="text-muted-foreground hidden sm:table-cell">{p.comment}</TableCell>
                                 {!isReadOnly && (
                                 <TableCell className="text-right">
-                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month)}>
+                                    <Button variant="ghost" size="icon" onClick={() => handleRemoveProgress(p.year, p.month, p.comment)}>
                                         <Trash2 className="h-4 w-4 text-destructive"/>
                                     </Button>
                                 </TableCell>
@@ -320,8 +337,8 @@ export const ActivityForm = ({
         </div>
       </div>
       <DialogFooter>
-        <DialogClose asChild><Button variant="outline" onClick={onClose}>Fechar</Button></DialogClose>
-        {!isReadOnly && <Button onClick={handleSubmit} disabled={isSaveDisabled}>Salvar Atividade</Button>}
+        <Button variant="outline" onClick={onClose}>Fechar</Button>
+        {!isReadOnly && <Button onClick={handleSaveClick} disabled={isSaveDisabled}>Salvar Atividade</Button>}
       </DialogFooter>
     </DialogContent>
   );

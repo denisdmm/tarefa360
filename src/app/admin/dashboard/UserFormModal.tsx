@@ -21,7 +21,6 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { useDataContext } from "@/context/DataContext";
 import type { User, Role } from "@/lib/types";
 
 export interface UserFormData {
@@ -34,13 +33,15 @@ export interface UserFormData {
 interface UserFormModalProps {
   mode: 'create' | 'edit';
   user: User | null;
-  onSave: (formData: UserFormData) => void;
+  users: User[];
+  appraisers: User[];
+  onSave: (formData: UserFormData) => Promise<void>;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
-  onAppraiserCreated: (newAppraiserId: string) => void;
+  newlyCreatedAppraiserId?: string;
 }
 
-export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserModal, onAppraiserCreated }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -53,12 +54,24 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
   const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
 
   const { toast } = useToast();
-  const { users } = useDataContext();
 
   const handleCpfChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const onlyNumbers = e.target.value.replace(/[^0-9]/g, '');
     setCpf(onlyNumbers);
   };
+  
+  const resetForm = React.useCallback(() => {
+    setName('');
+    setNomeDeGuerra('');
+    setPostoGrad('');
+    setEmail('');
+    setCpf('');
+    setSector('');
+    setJobTitle('');
+    setRole('appraisee');
+    setStatus('Ativo');
+    setSelectedAppraiser('');
+  }, []);
 
   React.useEffect(() => {
     if (mode === 'edit' && user) {
@@ -72,23 +85,15 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         setRole(user.role || 'appraisee');
         setStatus(user.status || 'Inativo');
     } else {
-        // Reset for create mode
-        setName('');
-        setNomeDeGuerra('');
-        setPostoGrad('');
-        setEmail('');
-        setCpf('');
-        setSector('');
-        setJobTitle('');
-        setRole('appraisee');
-        setStatus('Ativo');
-        setSelectedAppraiser('');
+        resetForm();
     }
-  }, [user, mode]);
+  }, [user, mode, resetForm]);
   
   React.useEffect(() => {
-    onAppraiserCreated(selectedAppraiser);
-  }, [selectedAppraiser, onAppraiserCreated]);
+    if(newlyCreatedAppraiserId) {
+        setSelectedAppraiser(newlyCreatedAppraiserId);
+    }
+  }, [newlyCreatedAppraiserId]);
 
   const handleAppraiserChange = (value: string) => {
     if (value === 'new-appraiser') {
@@ -98,7 +103,7 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
     }
   }
 
-  const handleSave = () => {
+  const handleSave = async () => {
     // --- Validation ---
     if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
         toast({
@@ -183,15 +188,16 @@ export const UserFormModal = ({ mode, user, onSave, onClose, onOpenNewAppraiserM
         };
     }
     
-    onSave(formData);
+    await onSave(formData);
+    if (mode === 'create') {
+        resetForm();
+    }
   };
   
   const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
   const description = mode === 'edit' 
     ? 'Atualize os dados do usuário. Para ativar uma conta inativa, basta preencher o CPF.' 
     : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa.';
-
-  const appraisers = users.filter(u => u.role === 'appraiser');
 
   return (
     <DialogContent className="sm:max-w-[625px]">

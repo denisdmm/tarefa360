@@ -87,7 +87,7 @@ export default function AppraiserReports() {
                       <TableHead>Funcionário</TableHead>
                       <TableHead className="hidden md:table-cell">Função</TableHead>
                       <TableHead className="hidden md:table-cell">Setor</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -114,7 +114,7 @@ export default function AppraiserReports() {
                         </TableCell>
                         <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
                         <TableCell className="hidden md:table-cell">{appraisee.sector}</TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                            <Button asChild size="sm" className="w-10 sm:w-auto p-0 sm:px-3 sm:py-2">
                               <Link href={`/appraiser/appraisee/${appraisee.id}`}>
                                 <FileText className="h-4 w-4 sm:mr-2" />
@@ -152,7 +152,7 @@ export default function AppraiserReports() {
                       <TableHead>Data de Início</TableHead>
                       <TableHead>Data de Fim</TableHead>
                       <TableHead>Status</TableHead>
-                      <TableHead className="text-right">Ações</TableHead>
+                      <TableHead className="text-center">Ações</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
@@ -176,7 +176,7 @@ export default function AppraiserReports() {
                             {period.status}
                           </Badge>
                         </TableCell>
-                        <TableCell className="text-right">
+                        <TableCell className="text-center">
                           <Button onClick={() => handleViewOwnReport()}>
                             <Eye className="mr-2 h-4 w-4" />
                             Visualizar

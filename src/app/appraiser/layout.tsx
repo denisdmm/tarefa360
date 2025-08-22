@@ -21,6 +21,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
+import { AppraiseeSidebarContent } from "../appraisee/layout";
 
 
 const AppraiserSidebarContent = () => {
@@ -48,18 +49,18 @@ const AppraiserSidebarContent = () => {
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
+                            <Link href="/appraisee/dashboard">
+                            <Briefcase />
+                            {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/reports")} tooltip="Relatórios">
                         <Link href="/appraiser/reports">
                         <FileText />
                         {sidebarState === 'expanded' && <span className="truncate">Relatórios</span>}
-                        </Link>
-                    </SidebarMenuButton>
-                    </SidebarMenuItem>
-                    <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
-                        <Link href="/appraisee/dashboard">
-                        <Briefcase />
-                        {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
@@ -102,10 +103,12 @@ const AppraiserSidebarContent = () => {
 }
 
 export default function AppraiserLayout({ children }: { children: React.ReactNode }) {
+  const { loggedInUser } = useDataContext();
+
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        <AppraiserSidebarContent />
+        {loggedInUser?.role === 'appraiser' ? <AppraiserSidebarContent /> : <AppraiseeSidebarContent />}
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
