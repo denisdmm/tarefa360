@@ -48,6 +48,14 @@ const AppraiserSidebarContent = () => {
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
+                        <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
+                            <Link href="/appraisee/dashboard">
+                            <Briefcase />
+                            {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
+                            </Link>
+                        </SidebarMenuButton>
+                    </SidebarMenuItem>
+                    <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/reports")} tooltip="Relatórios">
                         <Link href="/appraiser/reports">
                         <FileText />
@@ -55,16 +63,6 @@ const AppraiserSidebarContent = () => {
                         </Link>
                     </SidebarMenuButton>
                     </SidebarMenuItem>
-                    {loggedInUser?.role === 'appraiser' && (
-                        <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
-                            <Link href="/appraisee/dashboard">
-                            <Briefcase />
-                            {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
-                            </Link>
-                        </SidebarMenuButton>
-                        </SidebarMenuItem>
-                    )}
                     <SidebarMenuItem>
                     <SidebarMenuButton asChild isActive={isActive("/appraiser/profile")} tooltip="Meu Perfil">
                         <Link href="/appraiser/profile">
