@@ -159,9 +159,25 @@ export const ActivityForm = ({
       progressHistory: progressHistory,
       userId: currentUserId,
     };
+
+     if (!activity?.id) {
+      delete activityData.id;
+    }
+
     await onSave(activityData);
   }
   
+  const handlePercentageChange = (value: number) => {
+    if (!newProgress) return;
+    const newPercentage = Math.max(0, Math.min(100, value));
+    setNewProgress({...newProgress, percentage: newPercentage});
+  }
+
+  const handleIncrementPercentage = (increment: number) => {
+      if (!newProgress) return;
+      handlePercentageChange(newProgress.percentage + increment);
+  }
+
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
     if (a.year !== b.year) return b.year - a.year;
     return b.month - a.month;
@@ -248,16 +264,24 @@ export const ActivityForm = ({
                                 min="0"
                                 max="100"
                                 value={newProgress.percentage} 
-                                onChange={e => setNewProgress({...newProgress, percentage: parseInt(e.target.value) || 0})} 
+                                onChange={e => handlePercentageChange(parseInt(e.target.value) || 0)} 
                                 className="w-20" 
                             />
                             <Slider
                                 value={[newProgress.percentage]}
-                                onValueChange={(value) => setNewProgress({...newProgress, percentage: value[0]})}
+                                onValueChange={(value) => handlePercentageChange(value[0])}
                                 max={100}
                                 step={1}
                                 className="flex-1"
                             />
+                            </div>
+                        </div>
+                         <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+                            <div className="md:col-start-2 col-span-1 md:col-span-3 flex flex-wrap gap-2">
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(5)}>+5%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(10)}>+10%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(25)}>+25%</Button>
+                                <Button size="sm" variant="outline" onClick={() => handleIncrementPercentage(50)}>+50%</Button>
                             </div>
                         </div>
                         <div className="grid grid-cols-1 md:grid-cols-4 items-start gap-4">
