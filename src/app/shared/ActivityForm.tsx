@@ -26,7 +26,7 @@ export const ActivityForm = ({
   isReadOnly = false,
 }: {
   activity?: Activity | null;
-  onSave: (activity: Activity) => Promise<void>;
+  onSave: (activity: Partial<Activity>) => Promise<void>;
   onClose: () => void;
   currentUserId: string;
   isReadOnly?: boolean;
@@ -146,21 +146,19 @@ export const ActivityForm = ({
         return;
     }
     
-    const parts = startDate.split('-');
-    const year = parseInt(parts[0], 10);
-    const monthIndex = parseInt(parts[1], 10) - 1;
-    const day = parseInt(parts[2], 10);
-    const dateWithOffset = new Date(year, monthIndex, day);
+    // This handles timezone offset by creating the date in UTC.
+    // "2024-01-15" becomes "2024-01-15T00:00:00.000Z"
+    const dateWithOffset = new Date(`${startDate}T00:00:00`);
 
-    const updatedActivity: Activity = {
-      id: activity?.id || `act-${Date.now()}`,
+    const activityData: Partial<Activity> = {
+      id: activity?.id, // Pass ID for updates, undefined for creations
       title,
       description,
       startDate: dateWithOffset,
       progressHistory: progressHistory,
       userId: currentUserId,
     };
-    await onSave(updatedActivity);
+    await onSave(activityData);
   }
   
   const sortedProgressHistory = [...progressHistory].sort((a, b) => {
@@ -322,5 +320,3 @@ export const ActivityForm = ({
     </DialogContent>
   );
 };
-
-    

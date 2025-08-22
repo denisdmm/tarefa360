@@ -27,7 +27,7 @@ interface DataContextProps {
     deleteUser: (userId: string) => Promise<void>;
 
     activities: Activity[];
-    addActivity: (activityData: Omit<Activity, 'id'>) => Promise<string | null>;
+    addActivity: (activityData: Omit<Activity, 'id'>) => Promise<Activity | null>;
     updateActivity: (activityId: string, activityData: Partial<Activity>) => Promise<void>;
     deleteActivity: (activityId: string) => Promise<boolean>;
 
@@ -254,16 +254,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     };
     
     // ACTIVITIES
-    const addActivity = async (activityData: Omit<Activity, 'id'>): Promise<string | null> => {
+    const addActivity = async (activityData: Omit<Activity, 'id'>): Promise<Activity | null> => {
         try {
             const dataToSave = {
                 ...activityData,
                 startDate: Timestamp.fromDate(activityData.startDate as Date),
             };
             const docRef = await addDoc(collection(db, 'activities'), dataToSave);
-            const newActivity = { id: docRef.id, ...activityData } as Activity;
+            const newActivity = { 
+                id: docRef.id, 
+                ...activityData 
+            } as Activity;
             setActivitiesState(prev => [...prev, newActivity]);
-            return docRef.id;
+            return newActivity;
         } catch (error) {
             console.error("Error adding activity:", error);
             toast({ variant: 'destructive', title: "Erro ao adicionar atividade" });
@@ -283,7 +286,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...updatedActivity } : a));
         } catch (error) {
             console.error("Error updating activity:", error);
-            toast({ variant: 'destructive', title: "Erro ao atualizar atividade" });
+            toast({ variant: 'destructive', title: "Erro ao atualizar atividade", description: error instanceof Error ? error.message : String(error) });
         }
     };
     

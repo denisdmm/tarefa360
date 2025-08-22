@@ -89,7 +89,7 @@ const ActivityCard = ({
             <Edit className="mr-2 h-4 w-4" />
             Editar/Progresso
         </Button>
-        <Button variant="destructive" size="icon" title="Excluir Atividade" onClick={() => onDelete(activity.id)}>
+        <Button variant="destructive" size="icon" title="Excluir a Atividade" onClick={() => onDelete(activity.id)}>
             <Trash2 className="h-4 w-4" />
         </Button>
       </CardFooter>
@@ -123,18 +123,22 @@ export default function AppraiseeDashboard() {
   };
   
 
-  const handleSaveActivity = async (activityToSave: Activity) => {
-    const isEditing = !!activityToSave.id && activities.some(a => a.id === activityToSave.id);
-
-    if (isEditing) {
-        await updateActivity(activityToSave.id, activityToSave);
+  const handleSaveActivity = async (activityData: Partial<Activity>) => {
+    if (activityData.id) {
+        // It's an update
+        await updateActivity(activityData.id, activityData);
         toast({ title: "Atividade Atualizada", description: "Sua atividade foi atualizada com sucesso." });
     } else {
-        await addActivity(activityToSave);
+        // It's a creation
+        if (!activityData.userId) { // Ensure userId is set
+            toast({ variant: "destructive", title: "Erro", description: "ID do usuário não encontrado." });
+            return;
+        }
+        await addActivity(activityData as Omit<Activity, 'id'>);
         toast({ title: "Atividade Criada", description: "Sua nova atividade foi registrada." });
     }
     handleCloseForms();
-  };
+};
   
   const handleOpenActivityForm = (activity: Activity | null, readOnly = false) => {
     if (activity === null) {
@@ -313,5 +317,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
