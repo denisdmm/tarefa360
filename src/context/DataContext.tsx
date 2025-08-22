@@ -274,8 +274,8 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             setActivitiesState((prev) => prev.filter((a) => a.id !== activityId));
             return true;
         } catch (error) {
-            console.error("Error deleting activity:", error);
-            toast({ variant: 'destructive', title: "Erro ao excluir atividade", description: "Não foi possível remover a atividade do banco de dados." });
+            console.error("Error deleting activity from Firestore:", error);
+            toast({ variant: 'destructive', title: "Erro ao Excluir", description: "Não foi possível remover a atividade do banco de dados." });
             return false;
         }
     };
@@ -376,3 +376,4 @@ export const useDataContext = (): DataContextProps => {
     
 
     
+
