@@ -23,7 +23,7 @@ import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
 
 
-const AppraiseeSidebarContent = () => {
+export const AppraiseeSidebarContent = () => {
     const pathname = usePathname();
     const isActive = (path: string) => pathname === path;
     const { loggedInUser } = useDataContext();
