@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -142,7 +141,7 @@ export default function AppraiseeDashboard() {
     } else {
       setSelectedActivity(activity);
     }
-    setIsFormReadOnly(readReadOnly);
+    setIsFormReadOnly(readOnly);
     setActivityFormOpen(true);
   }
 
@@ -300,7 +299,7 @@ export default function AppraiseeDashboard() {
               </AlertDialogHeader>
               <AlertDialogFooter>
                 <AlertDialogCancel onClick={() => setDeleteAlertOpen(false)}>Cancelar</AlertDialogCancel>
-                <AlertDialogAction onClick={confirmDelete}>
+                <AlertDialogAction onClick={() => confirmDelete()}>
                   Excluir
                 </AlertDialogAction>
               </AlertDialogFooter>
@@ -315,3 +314,4 @@ export default function AppraiseeDashboard() {
     
 
     
+
