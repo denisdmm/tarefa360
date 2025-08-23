@@ -173,6 +173,7 @@ export default function AdminDashboard() {
     deleteEvaluationPeriod,
     addAssociation,
     deleteAssociation,
+    toggleUserStatus,
    } = useDataContext();
 
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -237,6 +238,15 @@ export default function AdminDashboard() {
             variant: "destructive",
             title: "Usuário Excluído",
             description: "A conta do usuário e todos os seus dados foram removidos permanentemente.",
+        });
+    };
+
+    const handleToggleUserStatus = async (user: User) => {
+        const newStatus = user.status === 'Ativo' ? 'Inativo' : 'Ativo';
+        await toggleUserStatus(user.id, newStatus);
+        toast({
+            title: "Status Alterado",
+            description: `O status de ${user.name} foi alterado para ${newStatus}.`,
         });
     };
 
@@ -500,11 +510,18 @@ export default function AdminDashboard() {
                           <TableCell className="hidden md:table-cell">{user.cpf || 'N/A'}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
                            <TableCell>
-                            <Badge className={cn(
-                                user.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                            )}>
+                           <Button
+                                size="sm"
+                                onClick={() => handleToggleUserStatus(user)}
+                                className={cn(
+                                    "w-24",
+                                    user.status === 'Ativo' 
+                                    ? 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white' 
+                                    : 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white'
+                                )}
+                            >
                                 {user.status}
-                            </Badge>
+                            </Button>
                           </TableCell>
                           <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>

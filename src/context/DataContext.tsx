@@ -25,6 +25,7 @@ interface DataContextProps {
     addUser: (userData: Omit<User, 'id'>) => Promise<string | null>;
     updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
+    toggleUserStatus: (userId: string, newStatus: 'Ativo' | 'Inativo') => Promise<void>;
 
     activities: Activity[];
     addActivity: (activityData: Omit<Activity, 'id'>) => Promise<Activity | null>;
@@ -113,16 +114,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast]);
 
-    const ensureAdminUserExists = React.useCallback(async (currentUsers: User[]) => {
+    const ensureAdminUserExists = React.useCallback(async () => {
         try {
+             const usersRef = collection(db, 'users');
             const adminCpf = '00000000000';
-            const adminExists = currentUsers.some(user => user.cpf === adminCpf);
+            const q = query(usersRef, where('cpf', '==', adminCpf));
+            const adminSnapshot = await getDocs(q);
 
-            if (!adminExists) {
+            if (adminSnapshot.empty) {
                 console.log("Admin user not found, creating one...");
                 const adminData = mockUsers.find(u => u.cpf === adminCpf);
                 if (adminData) {
-                    await addUser(adminData);
+                    await addDoc(collection(db, 'users'), adminData);
+                    await fetchData(); // Refetch data after creating admin
                 }
             }
         } catch (error) {
@@ -133,12 +137,12 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 description: "Não foi possível verificar ou criar o usuário administrador."
             });
         }
-    }, [toast, addUser]);
+    }, [toast, fetchData]);
 
     React.useEffect(() => {
         const initialize = async () => {
-            const usersList = await fetchData();
-            await ensureAdminUserExists(usersList);
+            await fetchData();
+            await ensureAdminUserExists();
         };
         initialize();
     }, [fetchData, ensureAdminUserExists]);
@@ -159,6 +163,15 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             toast({ variant: 'destructive', title: "Erro ao atualizar usuário" });
         }
     }, [toast, loggedInUser?.id]);
+
+     const toggleUserStatus = React.useCallback(async (userId: string, newStatus: 'Ativo' | 'Inativo'): Promise<void> => {
+        try {
+            await updateUser(userId, { status: newStatus });
+        } catch (error) {
+            console.error("Error toggling user status:", error);
+            toast({ variant: 'destructive', title: "Erro ao alterar status" });
+        }
+    }, [updateUser, toast]);
 
     const deleteUser = React.useCallback(async (userId: string): Promise<void> => {
         try {
@@ -360,6 +373,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         addUser,
         updateUser,
         deleteUser,
+        toggleUserStatus,
         activities,
         addActivity,
         updateActivity,
