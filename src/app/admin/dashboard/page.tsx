@@ -62,6 +62,7 @@ import { useDataContext } from "@/context/DataContext";
 import { UserFormModal, type UserFormData } from "./UserFormModal";
 import { NewAppraiserFormModal } from "./NewAppraiserFormModal";
 import { cn } from "@/lib/utils";
+import { StatusToggleSwitch } from "@/components/ui/StatusToggleSwitch";
 
 
 const PeriodFormModal = ({
@@ -509,19 +510,11 @@ export default function AdminDashboard() {
                           <TableCell>{user.postoGrad} {user.nomeDeGuerra}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.cpf || 'N/A'}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
-                           <TableCell>
-                           <Button
-                                size="sm"
-                                onClick={() => handleToggleUserStatus(user)}
-                                className={cn(
-                                    "w-24",
-                                    user.status === 'Ativo' 
-                                    ? 'bg-green-500 hover:bg-green-600 dark:bg-green-600 dark:hover:bg-green-700 text-white' 
-                                    : 'bg-red-500 hover:bg-red-600 dark:bg-red-600 dark:hover:bg-red-700 text-white'
-                                )}
-                            >
-                                {user.status}
-                            </Button>
+                          <TableCell>
+                            <StatusToggleSwitch
+                              status={user.status ?? 'Inativo'}
+                              onToggle={() => handleToggleUserStatus(user)}
+                            />
                           </TableCell>
                           <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
