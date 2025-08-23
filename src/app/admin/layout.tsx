@@ -46,6 +46,14 @@ const AdminSidebarContent = () => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
+           <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/admin/profile")} tooltip="Meu Perfil">
+              <Link href="/admin/profile">
+                <User />
+                {sidebarState === 'expanded' && <span className="truncate">Meu Perfil</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>

@@ -25,7 +25,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 export const AppraiseeSidebarContent = () => {
     const pathname = usePathname();
-    const isActive = (path: string) => pathname === path;
+    const isActive = (path: string) => pathname.startsWith(path);
     const { loggedInUser } = useDataContext();
     const { state: sidebarState } = useSidebar();
 

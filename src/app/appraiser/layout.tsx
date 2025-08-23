@@ -40,7 +40,7 @@ const AppraiserSidebarContent = () => {
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")} tooltip="Painel do Avaliador">
+                    <SidebarMenuButton asChild isActive={pathname === "/appraiser/dashboard"} tooltip="Painel do Avaliador">
                         <Link href="/appraiser/dashboard">
                         <LayoutDashboard />
                         {sidebarState === 'expanded' && <span className="truncate">Painel do Avaliador</span>}
@@ -48,8 +48,8 @@ const AppraiserSidebarContent = () => {
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
-                            <Link href="/appraisee/dashboard">
+                        <SidebarMenuButton asChild isActive={isActive("/appraiser/my-activities")} tooltip="Minhas Atividades">
+                            <Link href="/appraiser/my-activities">
                             <Briefcase />
                             {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
                             </Link>
