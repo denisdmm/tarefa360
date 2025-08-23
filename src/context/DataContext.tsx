@@ -40,7 +40,7 @@ interface DataContextProps {
 
     associations: Association[];
     addAssociation: (associationData: Omit<Association, 'id'>) => Promise<string | null>;
-    updateAssociation: (associationId: string, associationData: Partial<Omit<Association, 'id'>>) => Promise<void>;
+    updateAssociation: (associationId: string, associationData: Partial<Association>) => Promise<void>;
     deleteAssociation: (associationId: string) => Promise<void>;
 
     loggedInUser: User | null;
@@ -357,7 +357,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast]);
     
-    const updateAssociation = React.useCallback(async (associationId: string, associationData: Partial<Omit<Association, 'id'>>): Promise<void> => {
+    const updateAssociation = React.useCallback(async (associationId: string, associationData: Partial<Association>): Promise<void> => {
         try {
             const associationRef = doc(db, 'associations', associationId);
             await updateDoc(associationRef, associationData);
@@ -418,3 +418,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    

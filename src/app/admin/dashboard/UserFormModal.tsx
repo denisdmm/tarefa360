@@ -88,9 +88,9 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
         
         if (user.role === 'appraisee') {
             const currentAssociation = associations.find(a => a.appraiseeId === user.id);
-            if (currentAssociation) {
-                setSelectedAppraiser(currentAssociation.appraiserId);
-            }
+            setSelectedAppraiser(currentAssociation?.appraiserId || '');
+        } else {
+            setSelectedAppraiser('');
         }
     } else {
         resetForm();
@@ -317,3 +317,5 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
     </DialogContent>
   );
 };
+
+    

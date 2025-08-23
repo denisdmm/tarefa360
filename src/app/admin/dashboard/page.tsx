@@ -202,7 +202,7 @@ export default function AdminDashboard() {
             const existingAssociation = associations.find(a => a.appraiseeId === formData.user!.id);
             if (existingAssociation) {
                 if (existingAssociation.appraiserId !== formData.appraiserId) {
-                    await updateAssociation(existingAssociation.id, { appraiserId: formData.appraiserId });
+                    await updateAssociation(existingAssociation.id, { id: existingAssociation.id, appraiseeId: existingAssociation.appraiseeId, appraiserId: formData.appraiserId });
                     toast({
                         title: "Usuário e Associação Atualizados",
                         description: "Os dados do usuário e o avaliador responsável foram atualizados.",
@@ -213,6 +213,16 @@ export default function AdminDashboard() {
                         description: "Os dados foram salvos com sucesso.",
                     });
                 }
+            } else {
+                 const newAssociation: Omit<Association, 'id'> = {
+                    appraiseeId: formData.user.id,
+                    appraiserId: formData.appraiserId,
+                };
+                await addAssociation(newAssociation);
+                toast({
+                    title: "Usuário Atualizado e Associação Criada",
+                    description: "Os dados do usuário foram atualizados e uma nova associação foi criada.",
+                });
             }
         } else {
             toast({
@@ -395,6 +405,13 @@ export default function AdminDashboard() {
     }
     setUserModalOpen(true);
   }
+  
+  const handleEditAssociation = (association: Association) => {
+    const appraiseeUser = users.find(u => u.id === association.appraiseeId);
+    if (appraiseeUser) {
+        openUserModal(appraiseeUser, 'edit');
+    }
+  };
 
   const openPeriodModal = (period: EvaluationPeriod | null) => {
     setSelectedPeriod(period);
@@ -698,6 +715,9 @@ export default function AdminDashboard() {
                           <TableCell>{getUserDisplayById(assoc.appraiseeId)}</TableCell>
                           <TableCell>{getUserDisplayById(assoc.appraiserId)}</TableCell>
                           <TableCell className="text-center">
+                             <Button variant="ghost" size="icon" onClick={() => handleEditAssociation(assoc)}>
+                                <Edit className="h-4 w-4" />
+                             </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
                                     <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
@@ -706,7 +726,7 @@ export default function AdminDashboard() {
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Tem certeza que deseja excluir esta associação?
+                                            Tem certeza que deseja excluir esta associação? O avaliado ficará sem um avaliador responsável.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
