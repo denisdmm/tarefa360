@@ -21,7 +21,7 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { User, Role } from "@/lib/types";
+import type { User, Role, Association } from "@/lib/types";
 
 export interface UserFormData {
   mode: 'create' | 'edit';
@@ -35,13 +35,14 @@ interface UserFormModalProps {
   user: User | null;
   users: User[];
   appraisers: User[];
+  associations: Association[];
   onSave: (formData: UserFormData) => Promise<void>;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
   newlyCreatedAppraiserId?: string;
 }
 
-export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, appraisers, associations, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -84,10 +85,17 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
         setJobTitle(user.jobTitle || '');
         setRole(user.role || 'appraisee');
         setStatus(user.status || 'Inativo');
+        
+        if (user.role === 'appraisee') {
+            const currentAssociation = associations.find(a => a.appraiseeId === user.id);
+            if (currentAssociation) {
+                setSelectedAppraiser(currentAssociation.appraiserId);
+            }
+        }
     } else {
         resetForm();
     }
-  }, [user, mode, resetForm]);
+  }, [user, mode, resetForm, associations]);
   
   React.useEffect(() => {
     if(newlyCreatedAppraiserId) {
@@ -136,11 +144,11 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     }
 
 
-    if (role === 'appraisee' && mode === 'create' && !selectedAppraiser) {
+    if (role === 'appraisee' && !selectedAppraiser) {
        toast({
             variant: "destructive",
             title: "Avaliador Necessário",
-            description: "É necessário selecionar um avaliador responsável para criar um usuário com perfil 'Avaliado'.",
+            description: "É necessário selecionar um avaliador responsável para um usuário com perfil 'Avaliado'.",
         });
         return;
     }
@@ -281,7 +289,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
           </div>
         )}
 
-        {mode === 'create' && role === 'appraisee' && (
+        {role === 'appraisee' && (
           <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
             <Label htmlFor="appraiser" className="md:text-right">
               Avaliador Responsável

@@ -174,6 +174,7 @@ export default function AdminDashboard() {
     deleteEvaluationPeriod,
     addAssociation,
     deleteAssociation,
+    updateAssociation,
     toggleUserStatus,
    } = useDataContext();
 
@@ -197,10 +198,28 @@ export default function AdminDashboard() {
   const handleSaveUser = async (formData: UserFormData) => {
       if (formData.mode === 'edit' && formData.user) {
         await updateUser(formData.user.id, formData.data);
-        toast({
-            title: "Usuário Atualizado",
-            description: "Os dados foram salvos com sucesso.",
-        });
+         if (formData.data.role === 'appraisee' && formData.appraiserId) {
+            const existingAssociation = associations.find(a => a.appraiseeId === formData.user!.id);
+            if (existingAssociation) {
+                if (existingAssociation.appraiserId !== formData.appraiserId) {
+                    await updateAssociation(existingAssociation.id, { appraiserId: formData.appraiserId });
+                    toast({
+                        title: "Usuário e Associação Atualizados",
+                        description: "Os dados do usuário e o avaliador responsável foram atualizados.",
+                    });
+                } else {
+                     toast({
+                        title: "Usuário Atualizado",
+                        description: "Os dados foram salvos com sucesso.",
+                    });
+                }
+            }
+        } else {
+            toast({
+                title: "Usuário Atualizado",
+                description: "Os dados foram salvos com sucesso.",
+            });
+        }
       } else {
         // Create mode
         const newUser: Omit<User, 'id'> = {
@@ -308,14 +327,14 @@ export default function AdminDashboard() {
     }
     
     const isAlreadyAssociated = associations.some(
-        a => a.appraiseeId === selectedAppraisee && a.appraiserId === selectedAppraiser
+        a => a.appraiseeId === selectedAppraisee
     );
 
     if (isAlreadyAssociated) {
         toast({
             variant: "destructive",
             title: "Associação Existente",
-            description: "Este avaliado já está associado a este avaliador.",
+            description: "Este avaliado já está associado a um avaliador. Use a edição de usuário para trocá-lo.",
         });
         return;
     }
@@ -420,6 +439,7 @@ export default function AdminDashboard() {
           user={selectedUser} 
           users={users}
           appraisers={appraisers}
+          associations={associations}
           onSave={handleSaveUser}
           onClose={() => setUserModalOpen(false)}
           onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}

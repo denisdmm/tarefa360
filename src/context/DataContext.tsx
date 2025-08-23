@@ -40,6 +40,7 @@ interface DataContextProps {
 
     associations: Association[];
     addAssociation: (associationData: Omit<Association, 'id'>) => Promise<string | null>;
+    updateAssociation: (associationId: string, associationData: Partial<Omit<Association, 'id'>>) => Promise<void>;
     deleteAssociation: (associationId: string) => Promise<void>;
 
     loggedInUser: User | null;
@@ -89,12 +90,10 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
             
-            return usersList;
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Verifique suas regras de segurança do Firestore." });
             setConnectionError(true);
-            return [];
         } finally {
             setLoading(false);
         }
@@ -357,6 +356,17 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             return null;
         }
     }, [toast]);
+    
+    const updateAssociation = React.useCallback(async (associationId: string, associationData: Partial<Omit<Association, 'id'>>): Promise<void> => {
+        try {
+            const associationRef = doc(db, 'associations', associationId);
+            await updateDoc(associationRef, associationData);
+            setAssociationsState(prev => prev.map(a => a.id === associationId ? { ...a, ...associationData } as Association : a));
+        } catch (error) {
+            console.error("Error updating association:", error);
+            toast({ variant: 'destructive', title: "Erro ao atualizar associação" });
+        }
+    }, [toast]);
 
     const deleteAssociation = React.useCallback(async (associationId: string): Promise<void> => {
         try {
@@ -385,6 +395,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         ensureCurrentEvaluationPeriodExists,
         associations,
         addAssociation,
+        updateAssociation,
         deleteAssociation,
         loggedInUser,
         setLoggedInUser,
