@@ -162,10 +162,10 @@ export default function AppraiserReports() {
                           {period.name}
                         </TableCell>
                         <TableCell>
-                          {format(period.startDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          {format(new Date(period.startDate as any), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
-                          {format(period.endDate, "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
+                          {format(new Date(period.endDate as any), "dd 'de' MMMM 'de' yyyy", { locale: ptBR })}
                         </TableCell>
                         <TableCell>
                           <Badge
