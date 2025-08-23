@@ -19,7 +19,7 @@ import type { User } from "@/lib/types";
 interface NewAppraiserFormModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onSave: (newUser: User) => Promise<void>;
+  onSave: (newUser: Omit<User, 'id'>) => Promise<void>;
   existingUsers: User[];
 }
 
@@ -51,11 +51,11 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
 
   const handleSave = async () => {
     // --- Validation ---
-    if (!name || !nomeDeGuerra) {
+    if (!name || !nomeDeGuerra || !postoGrad || !email || !sector || !jobTitle) {
         toast({
             variant: "destructive",
             title: "Campos Obrigatórios",
-            description: "Por favor, preencha pelo menos o Nome Completo e o Nome de Guerra.",
+            description: "Por favor, preencha todos os campos para cadastrar o novo avaliador.",
         });
         return;
     }
@@ -82,8 +82,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
     }
 
     const newPassword = `${finalCpf.substring(0, 4)}${nomeDeGuerra}`;
-    const newUser: User = {
-        id: `user-${Date.now()}`,
+    const newUser: Omit<User, 'id'> = {
         cpf: finalCpf,
         name,
         nomeDeGuerra,
