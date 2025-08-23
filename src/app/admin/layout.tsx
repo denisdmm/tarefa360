@@ -16,7 +16,7 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, User } from "lucide-react";
+import { LogOut, LayoutDashboard, User, Users } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
@@ -25,7 +25,7 @@ import { useSidebar } from "@/components/ui/sidebar";
 
 const AdminSidebarContent = () => {
   const pathname = usePathname();
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => pathname.startsWith(path);
   const { loggedInUser } = useDataContext();
   const { state: sidebarState } = useSidebar();
 
@@ -44,6 +44,14 @@ const AdminSidebarContent = () => {
               <Link href="/admin/dashboard">
                 <LayoutDashboard />
                 {sidebarState === 'expanded' && <span className="truncate">Painel</span>}
+              </Link>
+            </SidebarMenuButton>
+          </SidebarMenuItem>
+          <SidebarMenuItem>
+            <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")} tooltip="Painel do Avaliador">
+              <Link href="/appraiser/dashboard">
+                <Users />
+                {sidebarState === 'expanded' && <span className="truncate">Painel do Avaliador</span>}
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
