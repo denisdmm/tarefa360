@@ -40,13 +40,14 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import type { Activity } from "@/lib/types";
-import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye } from "lucide-react";
+import { Edit, PlusCircle, Trash2, CheckCircle, ListTodo, Eye, LayoutGrid, List } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { useDataContext } from "@/context/DataContext";
 import { format, add } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import { ActivityForm } from "@/app/shared/ActivityForm";
+import { cn } from "@/lib/utils";
 
 
 const ActivityCard = ({
@@ -89,7 +90,7 @@ const ActivityCard = ({
             <Edit className="mr-2 h-4 w-4" />
             Editar/Progresso
         </Button>
-        <Button variant="destructive" size="icon" title="Excluir a Atividade" onClick={() => onDelete(activity.id)}>
+        <Button variant="ghost" size="icon" title="Excluir a Atividade" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80" onClick={() => onDelete(activity.id)}>
             <Trash2 className="h-4 w-4" />
         </Button>
       </CardFooter>
@@ -110,6 +111,20 @@ export default function AppraiseeDashboard() {
 
   const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
   const [activityToDeleteId, setActivityToDeleteId] = React.useState<string | null>(null);
+  const [viewMode, setViewMode] = React.useState<'card' | 'list'>('card');
+
+  // Load view mode from localStorage on mount
+  React.useEffect(() => {
+    const savedViewMode = localStorage.getItem('appraiseeViewMode') as 'card' | 'list';
+    if (savedViewMode) {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  // Save view mode to localStorage on change
+  React.useEffect(() => {
+    localStorage.setItem('appraiseeViewMode', viewMode);
+  }, [viewMode]);
 
 
   const getLatestProgress = (activity: Activity) => {
@@ -204,28 +219,78 @@ export default function AppraiseeDashboard() {
           </div>
 
           <Tabs defaultValue="in-progress">
-            <TabsList className="mb-4">
-              <TabsTrigger value="in-progress"><ListTodo className="mr-2" />Em Andamento</TabsTrigger>
-              <TabsTrigger value="completed"><CheckCircle className="mr-2" />Concluídas</TabsTrigger>
-            </TabsList>
+             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-4 gap-2">
+                <TabsList>
+                <TabsTrigger value="in-progress"><ListTodo className="mr-2" />Em Andamento</TabsTrigger>
+                <TabsTrigger value="completed"><CheckCircle className="mr-2" />Concluídas</TabsTrigger>
+                </TabsList>
+                <div className="flex items-center gap-2">
+                    <Button variant={viewMode === 'card' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('card')}>
+                        <LayoutGrid className="h-4 w-4" />
+                    </Button>
+                     <Button variant={viewMode === 'list' ? 'secondary' : 'ghost'} size="icon" onClick={() => setViewMode('list')}>
+                        <List className="h-4 w-4" />
+                    </Button>
+                </div>
+            </div>
             <TabsContent value="in-progress">
-              <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-                {inProgressActivities.map((activity) => (
-                  <ActivityCard
-                    key={activity.id}
-                    activity={activity}
-                    onEdit={() => handleOpenActivityForm(activity)}
-                    onDelete={handleDeleteRequest}
-                  />
-                ))}
-                {inProgressActivities.length === 0 && (
-                  <div className="col-span-full text-center py-12">
-                    <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
-                    <h2 className="mt-4 text-xl font-semibold">Tudo em dia!</h2>
-                    <p className="text-muted-foreground">Você não possui atividades pendentes.</p>
-                  </div>
+                {inProgressActivities.length === 0 ? (
+                    <div className="col-span-full text-center py-12">
+                        <CheckCircle className="mx-auto h-12 w-12 text-green-500" />
+                        <h2 className="mt-4 text-xl font-semibold">Tudo em dia!</h2>
+                        <p className="text-muted-foreground">Você não possui atividades pendentes.</p>
+                    </div>
+                ) : viewMode === 'card' ? (
+                     <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
+                        {inProgressActivities.map((activity) => (
+                        <ActivityCard
+                            key={activity.id}
+                            activity={activity}
+                            onEdit={() => handleOpenActivityForm(activity)}
+                            onDelete={handleDeleteRequest}
+                        />
+                        ))}
+                    </div>
+                ) : (
+                    <Card>
+                        <CardContent className="pt-6">
+                             <Table>
+                                <TableHeader>
+                                <TableRow>
+                                    <TableHead>Título</TableHead>
+                                    <TableHead className="w-[150px]">Progresso</TableHead>
+                                    <TableHead className="w-[200px] text-center">Ações</TableHead>
+                                </TableRow>
+                                </TableHeader>
+                                <TableBody>
+                                    {inProgressActivities.map(activity => {
+                                        const latestProgress = getLatestProgress(activity);
+                                        return (
+                                            <TableRow key={activity.id}>
+                                                <TableCell className="font-medium">{activity.title}</TableCell>
+                                                <TableCell>
+                                                    <div className="flex items-center gap-2">
+                                                        <Progress value={latestProgress} className="w-full" />
+                                                        <span className="text-xs font-medium">{latestProgress}%</span>
+                                                    </div>
+                                                </TableCell>
+                                                <TableCell className="text-center">
+                                                    <Button variant="outline" size="sm" onClick={() => handleOpenActivityForm(activity)}>
+                                                        <Edit className="mr-2 h-4 w-4" />
+                                                        Editar
+                                                    </Button>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80" onClick={() => handleDeleteRequest(activity.id)}>
+                                                        <Trash2 className="h-4 w-4" />
+                                                    </Button>
+                                                </TableCell>
+                                            </TableRow>
+                                        )
+                                    })}
+                                </TableBody>
+                            </Table>
+                        </CardContent>
+                    </Card>
                 )}
-              </div>
             </TabsContent>
             <TabsContent value="completed">
               <Card>
@@ -258,7 +323,7 @@ export default function AppraiseeDashboard() {
                               <Button variant="ghost" size="icon" onClick={() => handleOpenActivityForm(activity, true)}>
                                 <Eye className="h-4 w-4" />
                               </Button>
-                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive" onClick={() => handleDeleteRequest(activity.id)}>
+                               <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80" onClick={() => handleDeleteRequest(activity.id)}>
                                     <Trash2 className="h-4 w-4" />
                                </Button>
                             </TableCell>
@@ -317,3 +382,7 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
+
+    

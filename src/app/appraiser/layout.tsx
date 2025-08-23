@@ -21,7 +21,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { AppraiseeSidebarContent } from "../appraisee/layout";
 
 
 const AppraiserSidebarContent = () => {
@@ -41,7 +40,7 @@ const AppraiserSidebarContent = () => {
             <SidebarContent>
                 <SidebarMenu>
                     <SidebarMenuItem>
-                    <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")} tooltip="Painel do Avaliador">
+                    <SidebarMenuButton asChild isActive={pathname === "/appraiser/dashboard"} tooltip="Painel do Avaliador">
                         <Link href="/appraiser/dashboard">
                         <LayoutDashboard />
                         {sidebarState === 'expanded' && <span className="truncate">Painel do Avaliador</span>}
@@ -49,8 +48,8 @@ const AppraiserSidebarContent = () => {
                     </SidebarMenuButton>
                     </SidebarMenuItem>
                     <SidebarMenuItem>
-                        <SidebarMenuButton asChild isActive={isActive("/appraisee/dashboard")} tooltip="Minhas Atividades">
-                            <Link href="/appraisee/dashboard">
+                        <SidebarMenuButton asChild isActive={isActive("/appraiser/my-activities")} tooltip="Minhas Atividades">
+                            <Link href="/appraiser/my-activities">
                             <Briefcase />
                             {sidebarState === 'expanded' && <span className="truncate">Minhas Atividades</span>}
                             </Link>
@@ -78,7 +77,7 @@ const AppraiserSidebarContent = () => {
                 <div className="flex items-center gap-2 p-2 border-t">
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
-                    <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{loggedInUser?.name?.charAt(0)}</AvatarFallback>
                 </Avatar>
                 {sidebarState === 'expanded' && (
                     <div className="flex flex-col overflow-hidden">
@@ -103,12 +102,10 @@ const AppraiserSidebarContent = () => {
 }
 
 export default function AppraiserLayout({ children }: { children: React.ReactNode }) {
-  const { loggedInUser } = useDataContext();
-
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        {loggedInUser?.role === 'appraiser' ? <AppraiserSidebarContent /> : <AppraiseeSidebarContent />}
+        <AppraiserSidebarContent />
         <SidebarRail />
       </Sidebar>
       <SidebarInset>

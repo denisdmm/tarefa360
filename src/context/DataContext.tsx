@@ -10,10 +10,10 @@ import { mockUsers } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
-    const newData: Partial<User & Activity & EvaluationPeriod> = { ...data };
+    const newData: { [key: string]: any } = { ...data };
     for (const key in newData) {
-        if (newData[key as keyof typeof newData] instanceof Timestamp) {
-            (newData as any)[key] = (newData[key as keyof typeof newData] as Timestamp).toDate();
+        if (newData[key] instanceof Timestamp) {
+            newData[key] = newData[key].toDate();
         }
     }
     return newData;
@@ -25,6 +25,7 @@ interface DataContextProps {
     addUser: (userData: Omit<User, 'id'>) => Promise<string | null>;
     updateUser: (userId: string, userData: Partial<User>) => Promise<void>;
     deleteUser: (userId: string) => Promise<void>;
+    toggleUserStatus: (userId: string, newStatus: 'Ativo' | 'Inativo') => Promise<void>;
 
     activities: Activity[];
     addActivity: (activityData: Omit<Activity, 'id'>) => Promise<Activity | null>;
@@ -39,6 +40,7 @@ interface DataContextProps {
 
     associations: Association[];
     addAssociation: (associationData: Omit<Association, 'id'>) => Promise<string | null>;
+    updateAssociation: (associationId: string, associationData: Partial<Association>) => Promise<void>;
     deleteAssociation: (associationId: string) => Promise<void>;
 
     loggedInUser: User | null;
@@ -88,27 +90,42 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
             
-            return { usersList, periodsList };
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
             toast({ variant: 'destructive', title: "Erro de Conexão", description: "Não foi possível carregar os dados. Verifique suas regras de segurança do Firestore." });
             setConnectionError(true);
-            return { usersList: [], periodsList: [] };
         } finally {
             setLoading(false);
         }
     }, [toast]);
     
-    const ensureAdminUserExists = React.useCallback(async (currentUsers: User[]) => {
+    // USERS
+    const addUser = React.useCallback(async (userData: Omit<User, 'id'>): Promise<string | null> => {
         try {
-            const adminCpf = '00000000000';
-            const adminExists = currentUsers.some(user => user.cpf === adminCpf);
+            const docRef = await addDoc(collection(db, 'users'), userData);
+            const newUser = { id: docRef.id, ...userData } as User;
+            setUsersState(prev => [...prev, newUser]);
+            return docRef.id;
+        } catch (error) {
+            console.error("Error adding user:", error);
+            toast({ variant: 'destructive', title: "Erro ao adicionar usuário" });
+            return null;
+        }
+    }, [toast]);
 
-            if (!adminExists) {
+    const ensureAdminUserExists = React.useCallback(async () => {
+        try {
+             const usersRef = collection(db, 'users');
+            const adminCpf = '00000000000';
+            const q = query(usersRef, where('cpf', '==', adminCpf));
+            const adminSnapshot = await getDocs(q);
+
+            if (adminSnapshot.empty) {
                 console.log("Admin user not found, creating one...");
                 const adminData = mockUsers.find(u => u.cpf === adminCpf);
                 if (adminData) {
-                    await addUser(adminData);
+                    await addDoc(collection(db, 'users'), adminData);
+                    await fetchData(); // Refetch data after creating admin
                 }
             }
         } catch (error) {
@@ -119,9 +136,126 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 description: "Não foi possível verificar ou criar o usuário administrador."
             });
         }
+    }, [toast, fetchData]);
+
+    React.useEffect(() => {
+        const initialize = async () => {
+            await fetchData();
+            await ensureAdminUserExists();
+        };
+        initialize();
+    }, [fetchData, ensureAdminUserExists]);
+
+
+    const updateUser = React.useCallback(async (userId: string, userData: Partial<User>): Promise<void> => {
+        try {
+            const userRef = doc(db, 'users', userId);
+            await updateDoc(userRef, userData);
+            
+            setUsersState(prev => prev.map(u => u.id === userId ? { ...u, ...userData } : u));
+            
+            if (loggedInUser?.id === userId) {
+                setLoggedInUser(prev => prev ? { ...prev, ...userData } : null);
+            }
+        } catch (error) {
+            console.error("Error updating user:", error);
+            toast({ variant: 'destructive', title: "Erro ao atualizar usuário" });
+        }
+    }, [toast, loggedInUser?.id]);
+
+     const toggleUserStatus = React.useCallback(async (userId: string, newStatus: 'Ativo' | 'Inativo'): Promise<void> => {
+        try {
+            await updateUser(userId, { status: newStatus });
+        } catch (error) {
+            console.error("Error toggling user status:", error);
+            toast({ variant: 'destructive', title: "Erro ao alterar status" });
+        }
+    }, [updateUser, toast]);
+
+    const deleteUser = React.useCallback(async (userId: string): Promise<void> => {
+        try {
+            const batch = writeBatch(db);
+
+            const activitiesRef = collection(db, "activities");
+            const userActivitiesQuery = query(activitiesRef, where("userId", "==", userId));
+            const userActivitiesSnapshot = await getDocs(userActivitiesQuery);
+            userActivitiesSnapshot.forEach(doc => {
+                batch.delete(doc.ref);
+            });
+
+            const associationsRef = collection(db, "associations");
+            const appraiseeQuery = query(associationsRef, where("appraiseeId", "==", userId));
+            const appraiserQuery = query(associationsRef, where("appraiserId", "==", userId));
+            const [appraiseeSnapshot, appraiserSnapshot] = await Promise.all([getDocs(appraiseeQuery), getDocs(appraiserQuery)]);
+            appraiseeSnapshot.forEach(doc => batch.delete(doc.ref));
+            appraiserSnapshot.forEach(doc => batch.delete(doc.ref));
+
+            const userRef = doc(db, 'users', userId);
+            batch.delete(userRef);
+
+            await batch.commit();
+
+            setUsersState(prev => prev.filter(u => u.id !== userId));
+            setActivitiesState(prev => prev.filter(a => a.userId !== userId));
+            setAssociationsState(prev => prev.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));
+
+        } catch (error) {
+            console.error("Error deleting user and their data:", error);
+            toast({ variant: 'destructive', title: "Erro ao Excluir Usuário", description: "Não foi possível remover o usuário e seus dados." });
+        }
+    }, [toast]);
+    
+    // ACTIVITIES
+    const addActivity = React.useCallback(async (activityData: Omit<Activity, 'id'>): Promise<Activity | null> => {
+        try {
+            const dataToSave = {
+                ...activityData,
+                startDate: Timestamp.fromDate(activityData.startDate as Date),
+            };
+            const docRef = await addDoc(collection(db, 'activities'), dataToSave);
+            const newActivity = { 
+                id: docRef.id, 
+                ...activityData 
+            } as Activity;
+            setActivitiesState(prev => [...prev, newActivity]);
+            return newActivity;
+        } catch (error) {
+            console.error("Error adding activity:", error);
+            toast({ variant: 'destructive', title: "Erro ao adicionar atividade" });
+            return null;
+        }
     }, [toast]);
 
-    const addEvaluationPeriod = async (periodData: Omit<EvaluationPeriod, 'id'>): Promise<string | null> => {
+    const updateActivity = React.useCallback(async (activityId: string, activityData: Partial<Activity>): Promise<void> => {
+        try {
+            const dataToUpdate: { [key: string]: any } = { ...activityData };
+            if (activityData.startDate) {
+                dataToUpdate.startDate = Timestamp.fromDate(activityData.startDate as Date);
+            }
+            const activityRef = doc(db, 'activities', activityId);
+            await updateDoc(activityRef, dataToUpdate);
+            const updatedActivity = { id: activityId, ...activityData };
+            setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...updatedActivity } : a));
+        } catch (error) {
+            console.error("Error updating activity:", error);
+            toast({ variant: 'destructive', title: "Erro ao atualizar atividade", description: error instanceof Error ? error.message : String(error) });
+        }
+    }, [toast]);
+    
+    const deleteActivity = React.useCallback(async (activityId: string): Promise<boolean> => {
+        try {
+            await deleteDoc(doc(db, "activities", activityId));
+            setActivitiesState((prev) => prev.filter((a) => a.id !== activityId));
+            return true;
+        } catch (error) {
+            console.error("Error deleting activity from Firestore:", error);
+            toast({ variant: 'destructive', title: "Erro ao Excluir", description: "Não foi possível remover a atividade do banco de dados." });
+            return false;
+        }
+    }, [toast]);
+
+    // EVALUATION PERIODS
+     const addEvaluationPeriod = React.useCallback(async (periodData: Omit<EvaluationPeriod, 'id'>): Promise<string | null> => {
         try {
             const dataToSave = {
                 ...periodData,
@@ -137,9 +271,37 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             toast({ variant: 'destructive', title: "Erro ao adicionar período" });
             return null;
         }
-    };
-    
-    const ensureCurrentEvaluationPeriodExists = React.useCallback(async () => {
+    }, [toast]);
+
+    const updateEvaluationPeriod = React.useCallback(async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
+        try {
+            const dataToUpdate: { [key: string]: any } = { ...periodData };
+            if (periodData.startDate) {
+                dataToUpdate.startDate = Timestamp.fromDate(periodData.startDate as Date);
+            }
+            if (periodData.endDate) {
+                dataToUpdate.endDate = Timestamp.fromDate(periodData.endDate as Date);
+            }
+            const periodRef = doc(db, 'evaluationPeriods', periodId);
+            await updateDoc(periodRef, dataToUpdate);
+            setEvaluationPeriodsState(prev => prev.map(p => p.id === periodId ? { ...p, ...periodData } : p));
+        } catch (error) {
+            console.error("Error updating period:", error);
+            toast({ variant: 'destructive', title: "Erro ao atualizar período" });
+        }
+    }, [toast]);
+
+    const deleteEvaluationPeriod = React.useCallback(async (periodId: string): Promise<void> => {
+        try {
+            await deleteDoc(doc(db, 'evaluationPeriods', periodId));
+            setEvaluationPeriodsState(prev => prev.filter(p => p.id !== periodId));
+        } catch (error) {
+            console.error("Error deleting period:", error);
+            toast({ variant: 'destructive', title: "Erro ao excluir período" });
+        }
+    }, [toast]);
+
+     const ensureCurrentEvaluationPeriodExists = React.useCallback(async () => {
         try {
             const now = new Date();
             const currentYear = now.getFullYear();
@@ -178,162 +340,11 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
                 description: "Não foi possível verificar ou criar o período de avaliação."
             });
         }
-    }, [toast]);
+    }, [toast, addEvaluationPeriod]);
 
-
-    React.useEffect(() => {
-        const initialize = async () => {
-            const { usersList } = await fetchData();
-            await ensureAdminUserExists(usersList);
-        };
-        initialize();
-    }, [fetchData, ensureAdminUserExists]);
-
-    // --- CRUD Functions ---
-
-    // USERS
-    const addUser = async (userData: Omit<User, 'id'>): Promise<string | null> => {
-        try {
-            const docRef = await addDoc(collection(db, 'users'), userData);
-            const newUser = { id: docRef.id, ...userData } as User;
-            setUsersState(prev => [...prev, newUser]);
-            return docRef.id;
-        } catch (error) {
-            console.error("Error adding user:", error);
-            toast({ variant: 'destructive', title: "Erro ao adicionar usuário" });
-            return null;
-        }
-    };
-
-    const updateUser = async (userId: string, userData: Partial<User>): Promise<void> => {
-        try {
-            const userRef = doc(db, 'users', userId);
-            await updateDoc(userRef, userData);
-            const updatedUser = { id: userId, ...userData }
-            setUsersState(prev => prev.map(u => u.id === userId ? { ...u, ...updatedUser } : u));
-            if (loggedInUser?.id === userId) {
-                setLoggedInUser(prev => prev ? { ...prev, ...updatedUser } : null);
-            }
-        } catch (error) {
-            console.error("Error updating user:", error);
-            toast({ variant: 'destructive', title: "Erro ao atualizar usuário" });
-        }
-    };
-
-    const deleteUser = async (userId: string): Promise<void> => {
-        try {
-            const batch = writeBatch(db);
-
-            const activitiesRef = collection(db, "activities");
-            const userActivitiesQuery = query(activitiesRef, where("userId", "==", userId));
-            const userActivitiesSnapshot = await getDocs(userActivitiesQuery);
-            userActivitiesSnapshot.forEach(doc => {
-                batch.delete(doc.ref);
-            });
-
-            const associationsRef = collection(db, "associations");
-            const appraiseeQuery = query(associationsRef, where("appraiseeId", "==", userId));
-            const appraiserQuery = query(associationsRef, where("appraiserId", "==", userId));
-            const [appraiseeSnapshot, appraiserSnapshot] = await Promise.all([getDocs(appraiseeQuery), getDocs(appraiserQuery)]);
-            appraiseeSnapshot.forEach(doc => batch.delete(doc.ref));
-            appraiserSnapshot.forEach(doc => batch.delete(doc.ref));
-
-            const userRef = doc(db, 'users', userId);
-            batch.delete(userRef);
-
-            await batch.commit();
-
-            setUsersState(prev => prev.filter(u => u.id !== userId));
-            setActivitiesState(prev => prev.filter(a => a.userId !== userId));
-            setAssociationsState(prev => prev.filter(a => a.appraiseeId !== userId && a.appraiserId !== userId));
-
-        } catch (error) {
-            console.error("Error deleting user and their data:", error);
-            toast({ variant: 'destructive', title: "Erro ao Excluir Usuário", description: "Não foi possível remover o usuário e seus dados." });
-        }
-    };
-    
-    // ACTIVITIES
-    const addActivity = async (activityData: Omit<Activity, 'id'>): Promise<Activity | null> => {
-        try {
-            const dataToSave = {
-                ...activityData,
-                startDate: Timestamp.fromDate(activityData.startDate as Date),
-            };
-            const docRef = await addDoc(collection(db, 'activities'), dataToSave);
-            const newActivity = { 
-                id: docRef.id, 
-                ...activityData 
-            } as Activity;
-            setActivitiesState(prev => [...prev, newActivity]);
-            return newActivity;
-        } catch (error) {
-            console.error("Error adding activity:", error);
-            toast({ variant: 'destructive', title: "Erro ao adicionar atividade" });
-            return null;
-        }
-    };
-
-    const updateActivity = async (activityId: string, activityData: Partial<Activity>): Promise<void> => {
-        try {
-            const dataToUpdate: { [key: string]: any } = { ...activityData };
-            if (activityData.startDate) {
-                dataToUpdate.startDate = Timestamp.fromDate(activityData.startDate as Date);
-            }
-            const activityRef = doc(db, 'activities', activityId);
-            await updateDoc(activityRef, dataToUpdate);
-            const updatedActivity = { id: activityId, ...activityData };
-            setActivitiesState(prev => prev.map(a => a.id === activityId ? { ...a, ...updatedActivity } : a));
-        } catch (error) {
-            console.error("Error updating activity:", error);
-            toast({ variant: 'destructive', title: "Erro ao atualizar atividade", description: error instanceof Error ? error.message : String(error) });
-        }
-    };
-    
-    const deleteActivity = async (activityId: string): Promise<boolean> => {
-        try {
-            await deleteDoc(doc(db, "activities", activityId));
-            setActivitiesState((prev) => prev.filter((a) => a.id !== activityId));
-            return true;
-        } catch (error) {
-            console.error("Error deleting activity from Firestore:", error);
-            toast({ variant: 'destructive', title: "Erro ao Excluir", description: "Não foi possível remover a atividade do banco de dados." });
-            return false;
-        }
-    };
-
-    // EVALUATION PERIODS
-    const updateEvaluationPeriod = async (periodId: string, periodData: Partial<EvaluationPeriod>): Promise<void> => {
-        try {
-            const dataToUpdate: { [key: string]: any } = { ...periodData };
-            if (periodData.startDate) {
-                dataToUpdate.startDate = Timestamp.fromDate(periodData.startDate as Date);
-            }
-            if (periodData.endDate) {
-                dataToUpdate.endDate = Timestamp.fromDate(periodData.endDate as Date);
-            }
-            const periodRef = doc(db, 'evaluationPeriods', periodId);
-            await updateDoc(periodRef, dataToUpdate);
-            const updatedPeriod = { id: periodId, ...periodData };
-            setEvaluationPeriodsState(prev => prev.map(p => p.id === periodId ? { ...p, ...updatedPeriod } : p));
-        } catch (error) {
-            console.error("Error updating period:", error);
-            toast({ variant: 'destructive', title: "Erro ao atualizar período" });
-        }
-    };
-
-    const deleteEvaluationPeriod = async (periodId: string): Promise<void> => {
-        try {
-            await deleteDoc(doc(db, 'evaluationPeriods', periodId));
-            setEvaluationPeriodsState(prev => prev.filter(p => p.id !== periodId));
-        } catch (error) {
-            console.error("Error deleting period:", error);
-            toast({ variant: 'destructive', title: "Erro ao excluir período" });
-        }
-    };
 
     // ASSOCIATIONS
-    const addAssociation = async (associationData: Omit<Association, 'id'>): Promise<string | null> => {
+    const addAssociation = React.useCallback(async (associationData: Omit<Association, 'id'>): Promise<string | null> => {
         try {
             const docRef = await addDoc(collection(db, 'associations'), associationData);
             const newAssociation = { id: docRef.id, ...associationData } as Association;
@@ -344,9 +355,20 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             toast({ variant: 'destructive', title: "Erro ao adicionar associação" });
             return null;
         }
-    };
+    }, [toast]);
+    
+    const updateAssociation = React.useCallback(async (associationId: string, associationData: Partial<Association>): Promise<void> => {
+        try {
+            const associationRef = doc(db, 'associations', associationId);
+            await updateDoc(associationRef, associationData);
+            setAssociationsState(prev => prev.map(a => a.id === associationId ? { ...a, ...associationData } as Association : a));
+        } catch (error) {
+            console.error("Error updating association:", error);
+            toast({ variant: 'destructive', title: "Erro ao atualizar associação" });
+        }
+    }, [toast]);
 
-    const deleteAssociation = async (associationId: string): Promise<void> => {
+    const deleteAssociation = React.useCallback(async (associationId: string): Promise<void> => {
         try {
             await deleteDoc(doc(db, 'associations', associationId));
             setAssociationsState(prev => prev.filter(a => a.id !== associationId));
@@ -354,13 +376,14 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             console.error("Error deleting association:", error);
             toast({ variant: 'destructive', title: "Erro ao excluir associação" });
         }
-    };
+    }, [toast]);
 
     const contextValue: DataContextProps = {
         users,
         addUser,
         updateUser,
         deleteUser,
+        toggleUserStatus,
         activities,
         addActivity,
         updateActivity,
@@ -372,6 +395,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         ensureCurrentEvaluationPeriodExists,
         associations,
         addAssociation,
+        updateAssociation,
         deleteAssociation,
         loggedInUser,
         setLoggedInUser,
@@ -394,3 +418,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    

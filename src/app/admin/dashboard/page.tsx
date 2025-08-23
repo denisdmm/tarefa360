@@ -62,6 +62,7 @@ import { useDataContext } from "@/context/DataContext";
 import { UserFormModal, type UserFormData } from "./UserFormModal";
 import { NewAppraiserFormModal } from "./NewAppraiserFormModal";
 import { cn } from "@/lib/utils";
+import { StatusToggleSwitch } from "@/components/ui/StatusToggleSwitch";
 
 
 const PeriodFormModal = ({
@@ -70,7 +71,7 @@ const PeriodFormModal = ({
   onClose,
 }: {
   period: EvaluationPeriod | null;
-  onSave: (period: EvaluationPeriod) => Promise<void>;
+  onSave: (period: Omit<EvaluationPeriod, 'id'>) => Promise<void>;
   onClose: () => void;
 }) => {
   const [name, setName] = React.useState('');
@@ -107,8 +108,7 @@ const PeriodFormModal = ({
       return;
     }
     
-    const savedPeriod: EvaluationPeriod = {
-      id: period?.id || `period-${Date.now()}`,
+    const savedPeriod: Omit<EvaluationPeriod, 'id'> = {
       name,
       startDate: new Date(`${startDate}T12:00:00`),
       endDate: new Date(`${endDate}T12:00:00`),
@@ -174,6 +174,8 @@ export default function AdminDashboard() {
     deleteEvaluationPeriod,
     addAssociation,
     deleteAssociation,
+    updateAssociation,
+    toggleUserStatus,
    } = useDataContext();
 
   const [selectedUser, setSelectedUser] = React.useState<User | null>(null);
@@ -195,15 +197,39 @@ export default function AdminDashboard() {
 
   const handleSaveUser = async (formData: UserFormData) => {
       if (formData.mode === 'edit' && formData.user) {
-        const updatedUserData: User = {
-          ...formData.user,
-          ...formData.data,
-        };
-        await updateUser(updatedUserData.id, updatedUserData);
-        toast({
-            title: "Usuário Atualizado",
-            description: "Os dados foram salvos com sucesso.",
-        });
+        await updateUser(formData.user.id, formData.data);
+         if (formData.data.role === 'appraisee' && formData.appraiserId) {
+            const existingAssociation = associations.find(a => a.appraiseeId === formData.user!.id);
+            if (existingAssociation) {
+                if (existingAssociation.appraiserId !== formData.appraiserId) {
+                    await updateAssociation(existingAssociation.id, { appraiseeId: existingAssociation.appraiseeId, appraiserId: formData.appraiserId });
+                    toast({
+                        title: "Usuário e Associação Atualizados",
+                        description: "Os dados do usuário e o avaliador responsável foram atualizados.",
+                    });
+                } else {
+                     toast({
+                        title: "Usuário Atualizado",
+                        description: "Os dados foram salvos com sucesso.",
+                    });
+                }
+            } else {
+                 const newAssociation: Omit<Association, 'id'> = {
+                    appraiseeId: formData.user.id,
+                    appraiserId: formData.appraiserId,
+                };
+                await addAssociation(newAssociation);
+                toast({
+                    title: "Usuário Atualizado e Associação Criada",
+                    description: "Os dados do usuário foram atualizados e uma nova associação foi criada.",
+                });
+            }
+        } else {
+            toast({
+                title: "Usuário Atualizado",
+                description: "Os dados foram salvos com sucesso.",
+            });
+        }
       } else {
         // Create mode
         const newUser: Omit<User, 'id'> = {
@@ -211,7 +237,7 @@ export default function AdminDashboard() {
           avatarUrl: 'https://placehold.co/100x100' // Default avatar
         };
 
-        const newUserId = await addUser(newUser as User);
+        const newUserId = await addUser(newUser);
         if(!newUserId) return;
 
 
@@ -245,6 +271,15 @@ export default function AdminDashboard() {
         });
     };
 
+    const handleToggleUserStatus = async (user: User) => {
+        const newStatus = user.status === 'Ativo' ? 'Inativo' : 'Ativo';
+        await toggleUserStatus(user.id, newStatus);
+        toast({
+            title: "Status Alterado",
+            description: `O status de ${user.name} foi alterado para ${newStatus}.`,
+        });
+    };
+
     const handleResetPassword = async (userToReset: User) => {
         if (!userToReset.cpf || !userToReset.nomeDeGuerra) {
              toast({
@@ -270,13 +305,12 @@ export default function AdminDashboard() {
         });
     };
 
-  const handleSavePeriod = async (periodToSave: EvaluationPeriod) => {
-    const isEditing = evaluationPeriods.some(p => p.id === periodToSave.id);
-    if (isEditing) {
-        await updateEvaluationPeriod(periodToSave.id, periodToSave);
+  const handleSavePeriod = async (periodData: Omit<EvaluationPeriod, 'id'>) => {
+    if (selectedPeriod) { // Editing existing period
+        await updateEvaluationPeriod(selectedPeriod.id, periodData);
         toast({ title: "Período Atualizado", description: "O período de avaliação foi atualizado." });
-    } else {
-        await addEvaluationPeriod(periodToSave);
+    } else { // Creating new period
+        await addEvaluationPeriod(periodData);
         toast({ title: "Período Criado", description: "O novo período de avaliação foi criado." });
     }
     setPeriodModalOpen(false);
@@ -303,14 +337,14 @@ export default function AdminDashboard() {
     }
     
     const isAlreadyAssociated = associations.some(
-        a => a.appraiseeId === selectedAppraisee && a.appraiserId === selectedAppraiser
+        a => a.appraiseeId === selectedAppraisee
     );
 
     if (isAlreadyAssociated) {
         toast({
             variant: "destructive",
             title: "Associação Existente",
-            description: "Este avaliado já está associado a este avaliador.",
+            description: "Este avaliado já está associado a um avaliador. Use a edição de usuário para trocá-lo.",
         });
         return;
     }
@@ -363,19 +397,28 @@ export default function AdminDashboard() {
 
   const openUserModal = (user: User | null, mode: 'create' | 'edit') => {
     setUserModalMode(mode);
-    setSelectedUser(user);
-    if(mode === 'create') {
+    if (mode === 'create') {
+        setSelectedUser(null);
         setNewlyCreatedAppraiserId('');
+    } else {
+        setSelectedUser(user);
     }
     setUserModalOpen(true);
   }
+  
+  const handleEditAssociation = (association: Association) => {
+    const appraiseeUser = users.find(u => u.id === association.appraiseeId);
+    if (appraiseeUser) {
+        openUserModal(appraiseeUser, 'edit');
+    }
+  };
 
   const openPeriodModal = (period: EvaluationPeriod | null) => {
     setSelectedPeriod(period);
     setPeriodModalOpen(true);
   }
   
-  const handleSaveNewAppraiser = async (newUser: User) => {
+  const handleSaveNewAppraiser = async (newUser: Omit<User, 'id'>) => {
     const newId = await addUser(newUser);
     if (newId) {
         setNewlyCreatedAppraiserId(newId);
@@ -413,6 +456,7 @@ export default function AdminDashboard() {
           user={selectedUser} 
           users={users}
           appraisers={appraisers}
+          associations={associations}
           onSave={handleSaveUser}
           onClose={() => setUserModalOpen(false)}
           onOpenNewAppraiserModal={() => setNewAppraiserModalOpen(true)}
@@ -503,12 +547,11 @@ export default function AdminDashboard() {
                           <TableCell>{user.postoGrad} {user.nomeDeGuerra}</TableCell>
                           <TableCell className="hidden md:table-cell">{user.cpf || 'N/A'}</TableCell>
                           <TableCell><Badge variant="secondary">{translateRole(user.role)}</Badge></TableCell>
-                           <TableCell>
-                            <Badge className={cn(
-                                user.status === 'Ativo' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                            )}>
-                                {user.status}
-                            </Badge>
+                          <TableCell>
+                            <StatusToggleSwitch
+                              status={user.status ?? 'Inativo'}
+                              onToggle={() => handleToggleUserStatus(user)}
+                            />
                           </TableCell>
                           <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openUserModal(user, 'edit')}>
@@ -535,7 +578,7 @@ export default function AdminDashboard() {
                               </AlertDialog>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -586,14 +629,10 @@ export default function AdminDashboard() {
                           <TableCell className="hidden sm:table-cell">{format(new Date(period.startDate as any), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="hidden sm:table-cell">{format(new Date(period.endDate as any), "dd/MM/yyyy")}</TableCell>
                           <TableCell>
-                            <Button 
-                              variant={period.status === 'Ativo' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => handleTogglePeriodStatus(period.id)}
-                              className="w-24"
-                            >
-                                {period.status}
-                            </Button>
+                            <StatusToggleSwitch
+                              status={period.status}
+                              onToggle={() => handleTogglePeriodStatus(period.id)}
+                            />
                           </TableCell>
                           <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}>
@@ -601,7 +640,7 @@ export default function AdminDashboard() {
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -672,15 +711,18 @@ export default function AdminDashboard() {
                           <TableCell>{getUserDisplayById(assoc.appraiseeId)}</TableCell>
                           <TableCell>{getUserDisplayById(assoc.appraiserId)}</TableCell>
                           <TableCell className="text-center">
+                             <Button variant="ghost" size="icon" onClick={() => handleEditAssociation(assoc)}>
+                                <Edit className="h-4 w-4" />
+                             </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
                                         <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                                         <AlertDialogDescription>
-                                            Tem certeza que deseja excluir esta associação?
+                                            Tem certeza que deseja excluir esta associação? O avaliado ficará sem um avaliador responsável.
                                         </AlertDialogDescription>
                                     </AlertDialogHeader>
                                     <AlertDialogFooter>
@@ -703,3 +745,7 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
+
+    
