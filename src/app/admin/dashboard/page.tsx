@@ -578,7 +578,7 @@ export default function AdminDashboard() {
                               </AlertDialog>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -640,7 +640,7 @@ export default function AdminDashboard() {
                               </Button>
                               <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
@@ -716,7 +716,7 @@ export default function AdminDashboard() {
                              </Button>
                             <AlertDialog>
                                 <AlertDialogTrigger asChild>
-                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive"><Trash2 className="h-4 w-4" /></Button>
+                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80"><Trash2 className="h-4 w-4" /></Button>
                                 </AlertDialogTrigger>
                                 <AlertDialogContent>
                                     <AlertDialogHeader>
