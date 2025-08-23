@@ -202,7 +202,7 @@ export default function AdminDashboard() {
             const existingAssociation = associations.find(a => a.appraiseeId === formData.user!.id);
             if (existingAssociation) {
                 if (existingAssociation.appraiserId !== formData.appraiserId) {
-                    await updateAssociation(existingAssociation.id, { id: existingAssociation.id, appraiseeId: existingAssociation.appraiseeId, appraiserId: formData.appraiserId });
+                    await updateAssociation(existingAssociation.id, { appraiseeId: existingAssociation.appraiseeId, appraiserId: formData.appraiserId });
                     toast({
                         title: "Usuário e Associação Atualizados",
                         description: "Os dados do usuário e o avaliador responsável foram atualizados.",
@@ -629,14 +629,10 @@ export default function AdminDashboard() {
                           <TableCell className="hidden sm:table-cell">{format(new Date(period.startDate as any), "dd/MM/yyyy")}</TableCell>
                           <TableCell className="hidden sm:table-cell">{format(new Date(period.endDate as any), "dd/MM/yyyy")}</TableCell>
                           <TableCell>
-                            <Button 
-                              variant={period.status === 'Ativo' ? 'default' : 'outline'}
-                              size="sm"
-                              onClick={() => handleTogglePeriodStatus(period.id)}
-                              className="w-24"
-                            >
-                                {period.status}
-                            </Button>
+                            <StatusToggleSwitch
+                              status={period.status}
+                              onToggle={() => handleTogglePeriodStatus(period.id)}
+                            />
                           </TableCell>
                           <TableCell className="text-center">
                               <Button variant="ghost" size="icon" onClick={() => openPeriodModal(period)}>
@@ -749,5 +745,7 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
 
     
