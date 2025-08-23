@@ -70,7 +70,7 @@ const PeriodFormModal = ({
   onClose,
 }: {
   period: EvaluationPeriod | null;
-  onSave: (period: EvaluationPeriod) => Promise<void>;
+  onSave: (period: Omit<EvaluationPeriod, 'id'>) => Promise<void>;
   onClose: () => void;
 }) => {
   const [name, setName] = React.useState('');
@@ -107,8 +107,7 @@ const PeriodFormModal = ({
       return;
     }
     
-    const savedPeriod: EvaluationPeriod = {
-      id: period?.id || `period-${Date.now()}`,
+    const savedPeriod: Omit<EvaluationPeriod, 'id'> = {
       name,
       startDate: new Date(`${startDate}T12:00:00`),
       endDate: new Date(`${endDate}T12:00:00`),
@@ -207,7 +206,7 @@ export default function AdminDashboard() {
           avatarUrl: 'https://placehold.co/100x100' // Default avatar
         };
 
-        const newUserId = await addUser(newUser as User);
+        const newUserId = await addUser(newUser);
         if(!newUserId) return;
 
 
@@ -266,13 +265,12 @@ export default function AdminDashboard() {
         });
     };
 
-  const handleSavePeriod = async (periodToSave: EvaluationPeriod) => {
-    const isEditing = evaluationPeriods.some(p => p.id === periodToSave.id);
-    if (isEditing) {
-        await updateEvaluationPeriod(periodToSave.id, periodToSave);
+  const handleSavePeriod = async (periodData: Omit<EvaluationPeriod, 'id'>) => {
+    if (selectedPeriod) { // Editing existing period
+        await updateEvaluationPeriod(selectedPeriod.id, periodData);
         toast({ title: "Período Atualizado", description: "O período de avaliação foi atualizado." });
-    } else {
-        await addEvaluationPeriod(periodToSave);
+    } else { // Creating new period
+        await addEvaluationPeriod(periodData);
         toast({ title: "Período Criado", description: "O novo período de avaliação foi criado." });
     }
     setPeriodModalOpen(false);
@@ -359,9 +357,11 @@ export default function AdminDashboard() {
 
   const openUserModal = (user: User | null, mode: 'create' | 'edit') => {
     setUserModalMode(mode);
-    setSelectedUser(user);
-    if(mode === 'create') {
+    if (mode === 'create') {
+        setSelectedUser(null);
         setNewlyCreatedAppraiserId('');
+    } else {
+        setSelectedUser(user);
     }
     setUserModalOpen(true);
   }
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
     setPeriodModalOpen(true);
   }
   
-  const handleSaveNewAppraiser = async (newUser: User) => {
+  const handleSaveNewAppraiser = async (newUser: Omit<User, 'id'>) => {
     const newId = await addUser(newUser);
     if (newId) {
         setNewlyCreatedAppraiserId(newId);
@@ -699,3 +699,5 @@ export default function AdminDashboard() {
     </>
   );
 }
+
+    
