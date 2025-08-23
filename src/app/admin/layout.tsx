@@ -16,9 +16,8 @@ import {
   SidebarTrigger,
   SidebarRail,
 } from "@/components/ui/sidebar";
-import { LogOut, LayoutDashboard, User, Users } from "lucide-react";
+import { LogOut, LayoutDashboard, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
@@ -47,29 +46,13 @@ const AdminSidebarContent = () => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/appraiser/dashboard")} tooltip="Painel do Avaliador">
-              <Link href="/appraiser/dashboard">
-                <Users />
-                {sidebarState === 'expanded' && <span className="truncate">Painel do Avaliador</span>}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton asChild isActive={isActive("/admin/profile")} tooltip="Meu Perfil">
-              <Link href="/admin/profile">
-                <User />
-                {sidebarState === 'expanded' && <span className="truncate">Meu Perfil</span>}
-              </Link>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
         </SidebarMenu>
       </SidebarContent>
       <SidebarFooter>
         <div className="flex items-center gap-2 p-2 border-t">
            <Avatar className="h-9 w-9">
             <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
-            <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{loggedInUser?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           {sidebarState === 'expanded' && (
             <div className="flex flex-col overflow-hidden">
