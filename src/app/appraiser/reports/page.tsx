@@ -59,13 +59,13 @@ export default function AppraiserReports() {
 
   return (
     <div className="flex flex-col h-full">
-      <header className="bg-card border-b p-2 md:p-4">
-        <h1 className="text-3xl font-bold font-headline">Relatórios Gerenciais</h1>
-        <p className="text-muted-foreground">
-          Visualize ou imprima relatórios de avaliação.
-        </p>
-      </header>
       <main className="flex-1 p-2 md:p-6 overflow-auto">
+        <div className="mb-6">
+            <h1 className="text-3xl font-bold font-headline">Relatórios Gerenciais</h1>
+            <p className="text-muted-foreground">
+            Visualize ou imprima relatórios de avaliação.
+            </p>
+        </div>
         <Tabs defaultValue="appraisees">
           <TabsList className="mb-4">
             <TabsTrigger value="appraisees">Relatórios dos Avaliados</TabsTrigger>
