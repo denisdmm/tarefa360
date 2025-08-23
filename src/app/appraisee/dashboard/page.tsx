@@ -113,6 +113,19 @@ export default function AppraiseeDashboard() {
   const [activityToDeleteId, setActivityToDeleteId] = React.useState<string | null>(null);
   const [viewMode, setViewMode] = React.useState<'card' | 'list'>('card');
 
+  // Load view mode from localStorage on mount
+  React.useEffect(() => {
+    const savedViewMode = localStorage.getItem('appraiseeViewMode') as 'card' | 'list';
+    if (savedViewMode) {
+      setViewMode(savedViewMode);
+    }
+  }, []);
+
+  // Save view mode to localStorage on change
+  React.useEffect(() => {
+    localStorage.setItem('appraiseeViewMode', viewMode);
+  }, [viewMode]);
+
 
   const getLatestProgress = (activity: Activity) => {
     const { progressHistory } = activity;
@@ -369,3 +382,5 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
+
+    
