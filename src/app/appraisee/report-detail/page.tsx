@@ -1,7 +1,7 @@
 
 "use client";
 
-import AppraiseeDetailView from "@/app/appraiser/appraisee/[id]/page";
+import { AppraiseeDetailView } from "@/app/shared/AppraiseeDetailView";
 import { useDataContext } from "@/context/DataContext";
 import * as React from "react";
 
@@ -13,5 +13,5 @@ export default function AppraiseeReportDetail() {
     }
 
     // We pass the logged-in user's ID to the generic detail view component
-    return <AppraiseeDetailView params={{ id: loggedInUser.id }} />;
+    return <AppraiseeDetailView userId={loggedInUser.id} />;
 }
