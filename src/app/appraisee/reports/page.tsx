@@ -11,23 +11,11 @@ import { Badge } from "@/components/ui/badge";
 import { Eye } from "lucide-react";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 
 export default function ReportsPage() {
-    const router = useRouter();
-    const { evaluationPeriods, loggedInUser } = useDataContext();
-
-    const handleView = (periodId: string) => {
-        if (!loggedInUser) return;
-        
-        // Appraisee can only see their own report. The appraiser detail view is used for this.
-        let reportUrl = `/appraiser/appraisee/${loggedInUser.id}`;
-        
-        if(reportUrl) {
-            router.push(reportUrl);
-        }
-    };
+    const { evaluationPeriods } = useDataContext();
 
     return (
         <div className="flex flex-col h-full">
@@ -62,9 +50,11 @@ export default function ReportsPage() {
                                             <Badge variant={period.status === 'Ativo' ? 'default' : 'outline'}>{period.status}</Badge>
                                         </TableCell>
                                         <TableCell className="text-center">
-                                            <Button onClick={() => handleView(period.id)}>
-                                                <Eye className="mr-2 h-4 w-4" />
-                                                Visualizar
+                                            <Button asChild>
+                                                <Link href="/appraisee/report-detail">
+                                                    <Eye className="mr-2 h-4 w-4" />
+                                                    Visualizar
+                                                </Link>
                                             </Button>
                                         </TableCell>
                                     </TableRow>
