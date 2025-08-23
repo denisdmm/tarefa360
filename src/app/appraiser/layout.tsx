@@ -21,7 +21,6 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
-import { AppraiseeSidebarContent } from "../appraisee/layout";
 
 
 const AppraiserSidebarContent = () => {
@@ -103,12 +102,10 @@ const AppraiserSidebarContent = () => {
 }
 
 export default function AppraiserLayout({ children }: { children: React.ReactNode }) {
-  const { loggedInUser } = useDataContext();
-
   return (
     <SidebarProvider>
       <Sidebar collapsible="icon">
-        {loggedInUser?.role === 'appraiser' ? <AppraiserSidebarContent /> : <AppraiseeSidebarContent />}
+        <AppraiserSidebarContent />
         <SidebarRail />
       </Sidebar>
       <SidebarInset>
