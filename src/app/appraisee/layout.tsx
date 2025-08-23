@@ -69,7 +69,7 @@ export const AppraiseeSidebarContent = () => {
                 <div className="flex items-center gap-2 p-2 border-t">
                 <Avatar className="h-9 w-9">
                     <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
-                    <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
+                    <AvatarFallback>{loggedInUser?.name?.charAt(0) ?? ''}</AvatarFallback>
                 </Avatar>
                 {sidebarState === 'expanded' && (
                     <div className="flex flex-col overflow-hidden">
