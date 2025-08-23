@@ -90,7 +90,7 @@ const ActivityCard = ({
             <Edit className="mr-2 h-4 w-4" />
             Editar/Progresso
         </Button>
-        <Button variant="destructive" size="icon" title="Excluir a Atividade" onClick={() => onDelete(activity.id)}>
+        <Button variant="ghost" size="icon" title="Excluir a Atividade" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80" onClick={() => onDelete(activity.id)}>
             <Trash2 className="h-4 w-4" />
         </Button>
       </CardFooter>
@@ -266,7 +266,7 @@ export default function AppraiseeDashboard() {
                                                         <Edit className="mr-2 h-4 w-4" />
                                                         Editar
                                                     </Button>
-                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80" onClick={() => handleDeleteRequest(activity.id)}>
+                                                    <Button variant="ghost" size="icon" className="text-destructive hover:text-destructive/80 dark:text-foreground dark:hover:text-foreground/80" onClick={() => handleDeleteRequest(activity.id)}>
                                                         <Trash2 className="h-4 w-4" />
                                                     </Button>
                                                 </TableCell>
