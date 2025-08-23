@@ -145,7 +145,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
         return;
     }
 
-    const finalCpf = cpf || (mode === 'create' ? "99999999999" : "");
+    const finalCpf = cpf || (mode === 'create' ? "88888888888" : "");
     
     let formData: UserFormData;
 

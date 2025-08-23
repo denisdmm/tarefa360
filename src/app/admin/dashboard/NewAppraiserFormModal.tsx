@@ -60,7 +60,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         return;
     }
     
-    const finalCpf = cpf || "99999999999";
+    const finalCpf = cpf || "88888888888";
 
     if (finalCpf.length !== 11) {
         toast({
@@ -107,7 +107,7 @@ export const NewAppraiserFormModal = ({ isOpen, onClose, onSave, existingUsers }
         <DialogContent className="sm:max-w-[625px]">
         <DialogHeader>
             <DialogTitle>Cadastrar Novo Avaliador</DialogTitle>
-            <DialogDescription>Preencha os dados do novo avaliador. Se o CPF não for informado, a conta será criada com o CPF padrão '99999999999'.</DialogDescription>
+            <DialogDescription>Preencha os dados do novo avaliador. Se o CPF não for informado, a conta será criada com o CPF padrão '88888888888'.</DialogDescription>
         </DialogHeader>
         <div className="grid gap-4 py-4">
             <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
