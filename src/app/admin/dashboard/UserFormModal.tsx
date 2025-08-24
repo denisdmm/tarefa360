@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import * as bcrypt from 'bcryptjs';
 import {
   DialogContent,
   DialogDescription,
@@ -23,6 +22,15 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import type { User, Role, Association } from "@/lib/types";
+
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export interface UserFormData {
   mode: 'create' | 'edit';
@@ -160,7 +168,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
 
     if (mode === 'create') {
         const rawPassword = finalCpf ? `${finalCpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
-        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+        const hashedPassword = await sha256(rawPassword);
 
         formData = {
             mode,
@@ -320,5 +328,3 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
     </DialogContent>
   );
 };
-
-    

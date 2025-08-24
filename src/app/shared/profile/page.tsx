@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import * as bcrypt from 'bcryptjs';
 import {
   Card,
   CardContent,
@@ -23,6 +22,14 @@ import { useRouter } from "next/navigation";
 import { ThemeSwitcher } from "@/components/theme-switcher";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
   const { users, updateUser, associations, addAssociation, updateAssociation } = useDataContext();
@@ -134,7 +141,8 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         return;
     }
 
-    const passwordMatches = await bcrypt.compare(currentPassword, currentUser.password);
+    const currentPasswordHash = await sha256(currentPassword);
+    const passwordMatches = currentPasswordHash === currentUser.password;
 
     if (!passwordMatches) {
       toast({
@@ -163,7 +171,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         return;
     }
 
-    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    const hashedNewPassword = await sha256(newPassword);
     
     const updatedData: Partial<User> = {
         password: hashedNewPassword,

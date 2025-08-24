@@ -3,7 +3,6 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import * as bcrypt from 'bcryptjs';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -22,6 +21,18 @@ import { collection, getDocs, query, where, Timestamp } from "firebase/firestore
 import { db } from "@/lib/firebase";
 import { Eye, EyeOff } from "lucide-react";
 
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  // encode as UTF-8
+  const msgBuffer = new TextEncoder().encode(message);
+  // hash the message
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  // convert ArrayBuffer to Array
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  // convert bytes to hex string
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export default function LoginPage() {
   const [cpf, setCpf] = React.useState("");
@@ -65,7 +76,8 @@ export default function LoginPage() {
             ...convertTimestamps(userData) 
         } as User;
         
-        const passwordMatches = user.password ? await bcrypt.compare(password, user.password) : false;
+        const passwordHash = await sha256(password);
+        const passwordMatches = user.password === passwordHash;
 
         if (user && passwordMatches) {
             setLoggedInUser(user);
@@ -169,5 +181,3 @@ export default function LoginPage() {
     </div>
   );
 }
-
-    

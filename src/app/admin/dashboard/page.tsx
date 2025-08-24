@@ -2,7 +2,6 @@
 "use client";
 
 import * as React from "react";
-import * as bcrypt from 'bcryptjs';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -65,6 +64,15 @@ import { NewAppraiserFormModal } from "./NewAppraiserFormModal";
 import { cn } from "@/lib/utils";
 import { StatusToggleSwitch } from "@/components/ui/StatusToggleSwitch";
 
+
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 const PeriodFormModal = ({
   period,
@@ -292,7 +300,7 @@ export default function AdminDashboard() {
         }
 
         const newPasswordRaw = `${userToReset.cpf.substring(0, 4)}${userToReset.nomeDeGuerra}`;
-        const hashedPassword = await bcrypt.hash(newPasswordRaw, 10);
+        const hashedPassword = await sha256(newPasswordRaw);
         
         const updatedUserData: Partial<User> = {
             password: hashedPassword,
@@ -747,7 +755,3 @@ export default function AdminDashboard() {
     </>
   );
 }
-
-    
-
-    
