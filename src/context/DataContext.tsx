@@ -52,6 +52,9 @@ interface DataContextProps {
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
+// Flag to ensure the password migration runs only once per session
+let passwordMigrationHasRun = false;
+
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [users, setUsersState] = React.useState<User[]>([]);
     const [activities, setActivitiesState] = React.useState<Activity[]>([]);
@@ -61,6 +64,34 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(true);
     const [connectionError, setConnectionError] = React.useState(false);
     const { toast } = useToast();
+
+    const runPasswordMigration = React.useCallback(async () => {
+        if (passwordMigrationHasRun) return;
+        passwordMigrationHasRun = true;
+
+        console.log("Checking if password migration is needed...");
+        const usersRef = collection(db, "users");
+        // Check for users that still don't have forcePasswordChange set to true
+        const q = query(usersRef, where("forcePasswordChange", "==", false));
+        const usersToUpdateSnapshot = await getDocs(q);
+
+        if (!usersToUpdateSnapshot.empty) {
+            console.log(`Found ${usersToUpdateSnapshot.docs.length} users to migrate.`);
+            const batch = writeBatch(db);
+            usersToUpdateSnapshot.forEach((userDoc) => {
+                const userRef = doc(db, "users", userDoc.id);
+                batch.update(userRef, { forcePasswordChange: true });
+            });
+            await batch.commit();
+            console.log("Password migration complete. All users will be forced to change their password on next login.");
+            toast({
+                title: "Atualização de Segurança",
+                description: "Todos os usuários precisarão redefinir a senha no próximo login.",
+            });
+        } else {
+            console.log("No users needed password migration.");
+        }
+    }, [toast]);
 
     const fetchData = React.useCallback(async () => {
         setLoading(true);
@@ -89,6 +120,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
+
+            // After fetching data, run the migration
+            await runPasswordMigration();
             
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
@@ -97,7 +131,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast]);
+    }, [toast, runPasswordMigration]);
     
     // USERS
     const addUser = React.useCallback(async (userData: Omit<User, 'id'>): Promise<string | null> => {

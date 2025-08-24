@@ -3,6 +3,7 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
+import * as bcrypt from 'bcryptjs';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -63,9 +64,10 @@ export default function LoginPage() {
             id: userDoc.id, 
             ...convertTimestamps(userData) 
         } as User;
+        
+        const passwordMatches = user.password ? await bcrypt.compare(password, user.password) : false;
 
-
-        if (user && user.password === password) {
+        if (user && passwordMatches) {
             setLoggedInUser(user);
             await ensureCurrentEvaluationPeriodExists();
 

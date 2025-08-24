@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import * as bcrypt from 'bcryptjs';
 import {
   Card,
   CardContent,
@@ -128,26 +129,20 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   };
 
   const handleUpdatePassword = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.password) {
+        toast({ variant: "destructive", title: "Erro", description: "Usuário não encontrado ou senha não configurada." });
+        return;
+    }
 
-    // Check if the current password matches (only if it's not the first login)
-    if (!currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
-       toast({
+    const passwordMatches = await bcrypt.compare(currentPassword, currentUser.password);
+
+    if (!passwordMatches) {
+      toast({
         variant: "destructive",
-        title: "Senha Atual Incorreta",
-        description: "A senha atual informada não confere.",
+        title: currentUser.forcePasswordChange ? "Senha Temporária Incorreta" : "Senha Atual Incorreta",
+        description: "A senha informada não confere.",
       });
       return;
-    }
-    
-    // On first login, the password is the `nomeDeGuerra` or the default one set by admin
-    if (currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
-        toast({
-            variant: "destructive",
-            title: "Senha Temporária Incorreta",
-            description: "A senha temporária informada não confere.",
-        });
-        return;
     }
 
     if (!newPassword || newPassword !== confirmPassword) {
@@ -167,9 +162,11 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         });
         return;
     }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
     
     const updatedData: Partial<User> = {
-        password: newPassword,
+        password: hashedNewPassword,
         forcePasswordChange: false
     };
 

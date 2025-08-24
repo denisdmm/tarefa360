@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import * as bcrypt from 'bcryptjs';
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -290,10 +291,11 @@ export default function AdminDashboard() {
             return;
         }
 
-        const newPassword = `${userToReset.cpf.substring(0, 4)}${userToReset.nomeDeGuerra}`;
+        const newPasswordRaw = `${userToReset.cpf.substring(0, 4)}${userToReset.nomeDeGuerra}`;
+        const hashedPassword = await bcrypt.hash(newPasswordRaw, 10);
         
         const updatedUserData: Partial<User> = {
-            password: newPassword,
+            password: hashedPassword,
             forcePasswordChange: true,
         };
 

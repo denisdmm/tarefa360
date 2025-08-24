@@ -2,6 +2,7 @@
 "use client";
 
 import * as React from "react";
+import * as bcrypt from 'bcryptjs';
 import {
   DialogContent,
   DialogDescription,
@@ -158,7 +159,9 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
     let formData: UserFormData;
 
     if (mode === 'create') {
-        const newPassword = finalCpf ? `${finalCpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+        const rawPassword = finalCpf ? `${finalCpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+        const hashedPassword = await bcrypt.hash(rawPassword, 10);
+
         formData = {
             mode,
             user: null,
@@ -172,7 +175,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
                 jobTitle,
                 role,
                 status: finalCpf ? 'Ativo' : 'Inativo',
-                password: newPassword,
+                password: hashedPassword,
                 forcePasswordChange: true
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,
