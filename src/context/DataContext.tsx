@@ -6,7 +6,6 @@ import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types'
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { mockUsers } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -139,7 +138,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             setAssociationsState(associationsList);
 
             // After fetching data, run the migration
-            await runPasswordMigration();
+            // await runPasswordMigration();
             
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
@@ -148,7 +147,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         } finally {
             setLoading(false);
         }
-    }, [toast, runPasswordMigration]);
+    }, [toast]);
     
     // USERS
     const addUser = React.useCallback(async (userData: Omit<User, 'id'>): Promise<string | null> => {
@@ -166,20 +165,47 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const ensureAdminUserExists = React.useCallback(async () => {
         try {
-             const usersRef = collection(db, 'users');
+            const usersRef = collection(db, 'users');
             const adminCpf = '00000000000';
             const q = query(usersRef, where('cpf', '==', adminCpf));
             const adminSnapshot = await getDocs(q);
 
+            const newPassword = "qwerty123";
+            const newHashedPassword = await sha256(newPassword);
+
             if (adminSnapshot.empty) {
                 console.log("Admin user not found, creating one...");
-                const adminData = mockUsers.find(u => u.cpf === adminCpf);
-                if (adminData) {
-                    const hashedPassword = await sha256(adminData.password!);
-                    await addDoc(collection(db, 'users'), { ...adminData, password: hashedPassword });
-                    await fetchData(); // Refetch data after creating admin
+                const adminData = {
+                    cpf: '00000000000',
+                    name: 'Administrador do Sistema',
+                    nomeDeGuerra: 'Admin',
+                    postoGrad: 'Cel',
+                    email: 'admin@tarefa360.mil.br',
+                    role: 'admin' as const,
+                    jobTitle: 'Administrador',
+                    sector: 'TI',
+                    avatarUrl: 'https://placehold.co/100x100',
+                    password: newHashedPassword,
+                    status: 'Ativo' as const,
+                    forcePasswordChange: false,
+                };
+                await addDoc(collection(db, 'users'), adminData);
+            } else {
+                const adminDoc = adminSnapshot.docs[0];
+                const adminData = adminDoc.data() as User;
+                // Check if password needs to be updated
+                if (adminData.password !== newHashedPassword) {
+                    console.log("Admin password is not up to date, updating...");
+                    await updateDoc(doc(db, 'users', adminDoc.id), {
+                        password: newHashedPassword,
+                    });
+                     toast({
+                        title: "Senha do Admin Atualizada",
+                        description: "A senha do administrador foi redefinida para 'qwerty123'.",
+                    });
                 }
             }
+            await fetchData(); // Refetch data to ensure consistency
         } catch (error) {
             console.error("Error ensuring admin user exists:", error);
             toast({
@@ -470,3 +496,5 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
+
+    
