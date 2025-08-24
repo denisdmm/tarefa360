@@ -6,7 +6,6 @@ import type { User, Activity, EvaluationPeriod, Association } from '@/lib/types'
 import { db } from '@/lib/firebase';
 import { collection, getDocs, doc, setDoc, addDoc, deleteDoc, updateDoc, Timestamp, query, where, writeBatch } from 'firebase/firestore';
 import { useToast } from '@/hooks/use-toast';
-import { mockUsers } from '@/lib/mock-data';
 
 // Helper function to convert Firestore Timestamps to Dates
 const convertTimestamps = (data: any) => {
@@ -52,6 +51,18 @@ interface DataContextProps {
 
 const DataContext = React.createContext<DataContextProps | undefined>(undefined);
 
+// Flag to ensure the password migration runs only once per session
+let passwordMigrationHasRun = false;
+
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
+
 export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [users, setUsersState] = React.useState<User[]>([]);
     const [activities, setActivitiesState] = React.useState<Activity[]>([]);
@@ -61,6 +72,42 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
     const [loading, setLoading] = React.useState(true);
     const [connectionError, setConnectionError] = React.useState(false);
     const { toast } = useToast();
+
+    const runPasswordMigration = React.useCallback(async () => {
+        if (passwordMigrationHasRun) return;
+        passwordMigrationHasRun = true;
+
+        console.log("Checking if password migration to SHA256 is needed...");
+        const usersRef = collection(db, "users");
+        
+        // Find users who are not admins and need their password updated
+        const q = query(usersRef, where("role", "!=", "admin"));
+        const usersToUpdateSnapshot = await getDocs(q);
+
+        if (!usersToUpdateSnapshot.empty) {
+            console.log(`Found ${usersToUpdateSnapshot.docs.length} users to migrate.`);
+            const batch = writeBatch(db);
+            const newPasswordHash = await sha256("mudar123");
+
+            usersToUpdateSnapshot.forEach((userDoc) => {
+                const userRef = doc(db, "users", userDoc.id);
+                // We update password to the hash of "mudar123" and set forcePasswordChange to false
+                batch.update(userRef, { 
+                    password: newPasswordHash,
+                    forcePasswordChange: false 
+                });
+            });
+
+            await batch.commit();
+            console.log("Password migration to SHA256 complete.");
+            toast({
+                title: "Atualização de Segurança",
+                description: "As senhas de todos os avaliadores e avaliados foram atualizadas para o padrão 'mudar123'.",
+            });
+        } else {
+            console.log("No users needed password migration.");
+        }
+    }, [toast]);
 
     const fetchData = React.useCallback(async () => {
         setLoading(true);
@@ -89,6 +136,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
             
             const associationsList = associationsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as Association));
             setAssociationsState(associationsList);
+
+            // After fetching data, run the migration
+            // await runPasswordMigration();
             
         } catch (error) {
             console.error("Error fetching data from Firestore: ", error);
@@ -115,19 +165,47 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
 
     const ensureAdminUserExists = React.useCallback(async () => {
         try {
-             const usersRef = collection(db, 'users');
+            const usersRef = collection(db, 'users');
             const adminCpf = '00000000000';
             const q = query(usersRef, where('cpf', '==', adminCpf));
             const adminSnapshot = await getDocs(q);
 
+            const newPassword = "qwerty123";
+            const newHashedPassword = await sha256(newPassword);
+
             if (adminSnapshot.empty) {
                 console.log("Admin user not found, creating one...");
-                const adminData = mockUsers.find(u => u.cpf === adminCpf);
-                if (adminData) {
-                    await addDoc(collection(db, 'users'), adminData);
-                    await fetchData(); // Refetch data after creating admin
+                const adminData = {
+                    cpf: '00000000000',
+                    name: 'Administrador do Sistema',
+                    nomeDeGuerra: 'Admin',
+                    postoGrad: 'Cel',
+                    email: 'admin@tarefa360.mil.br',
+                    role: 'admin' as const,
+                    jobTitle: 'Administrador',
+                    sector: 'TI',
+                    avatarUrl: 'https://placehold.co/100x100',
+                    password: newHashedPassword,
+                    status: 'Ativo' as const,
+                    forcePasswordChange: false,
+                };
+                await addDoc(collection(db, 'users'), adminData);
+            } else {
+                const adminDoc = adminSnapshot.docs[0];
+                const adminData = adminDoc.data() as User;
+                // Check if password needs to be updated
+                if (adminData.password !== newHashedPassword) {
+                    console.log("Admin password is not up to date, updating...");
+                    await updateDoc(doc(db, 'users', adminDoc.id), {
+                        password: newHashedPassword,
+                    });
+                     toast({
+                        title: "Senha do Admin Atualizada",
+                        description: "A senha do administrador foi redefinida para 'qwerty123'.",
+                    });
                 }
             }
+            await fetchData(); // Refetch data to ensure consistency
         } catch (error) {
             console.error("Error ensuring admin user exists:", error);
             toast({
