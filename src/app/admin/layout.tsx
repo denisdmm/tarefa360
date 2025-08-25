@@ -18,14 +18,13 @@ import {
 } from "@/components/ui/sidebar";
 import { LogOut, LayoutDashboard, User } from "lucide-react";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
 import { Logo } from "@/components/logo";
 import { useDataContext } from "@/context/DataContext";
 import { useSidebar } from "@/components/ui/sidebar";
 
 const AdminSidebarContent = () => {
   const pathname = usePathname();
-  const isActive = (path: string) => pathname === path;
+  const isActive = (path: string) => pathname.startsWith(path);
   const { loggedInUser } = useDataContext();
   const { state: sidebarState } = useSidebar();
 
@@ -47,7 +46,7 @@ const AdminSidebarContent = () => {
               </Link>
             </SidebarMenuButton>
           </SidebarMenuItem>
-          <SidebarMenuItem>
+           <SidebarMenuItem>
             <SidebarMenuButton asChild isActive={isActive("/admin/profile")} tooltip="Meu Perfil">
               <Link href="/admin/profile">
                 <User />
@@ -61,7 +60,7 @@ const AdminSidebarContent = () => {
         <div className="flex items-center gap-2 p-2 border-t">
            <Avatar className="h-9 w-9">
             <AvatarImage src={loggedInUser?.avatarUrl} alt={loggedInUser?.name} />
-            <AvatarFallback>{loggedInUser?.name.charAt(0)}</AvatarFallback>
+            <AvatarFallback>{loggedInUser?.name?.charAt(0)}</AvatarFallback>
           </Avatar>
           {sidebarState === 'expanded' && (
             <div className="flex flex-col overflow-hidden">

@@ -20,10 +20,19 @@ import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { ThemeSwitcher } from "@/components/theme-switcher";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
-  const { users, updateUser } = useDataContext();
+  const { users, updateUser, associations, addAssociation, updateAssociation } = useDataContext();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -38,6 +47,9 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   const [currentPassword, setCurrentPassword] = React.useState('');
   const [newPassword, setNewPassword] = React.useState('');
   const [confirmPassword, setConfirmPassword] = React.useState('');
+  
+  const [appraisers, setAppraisers] = React.useState<User[]>([]);
+  const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
 
   React.useEffect(() => {
     const user = users.find(u => u.id === loggedInUserId);
@@ -47,9 +59,18 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       setNomeDeGuerra(user.nomeDeGuerra);
       setPostoGrad(user.postoGrad);
       setEmail(user.email);
-      setAvatarPreview(user.avatarUrl); // Initialize preview with current avatar
+      setAvatarPreview(user.avatarUrl);
+
+      if (user.role === 'appraisee') {
+        const availableAppraisers = users.filter(u => u.role === 'appraiser' && u.status === 'Ativo');
+        setAppraisers(availableAppraisers);
+        const currentAssociation = associations.find(a => a.appraiseeId === user.id);
+        if (currentAssociation) {
+            setSelectedAppraiser(currentAssociation.appraiserId);
+        }
+      }
     }
-  }, [loggedInUserId, users]);
+  }, [loggedInUserId, users, associations]);
 
   const translateRole = (role: User['role']) => {
     const roles: Record<User['role'], string> = {
@@ -93,6 +114,20 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     };
 
     await updateUser(currentUser.id, updatedData);
+    
+    // Handle Appraiser Association update
+    if (currentUser.role === 'appraisee' && selectedAppraiser) {
+        const currentAssociation = associations.find(a => a.appraiseeId === currentUser.id);
+        if (currentAssociation) {
+            // If association exists and appraiser is different, update it
+            if (currentAssociation.appraiserId !== selectedAppraiser) {
+                await updateAssociation(currentAssociation.id, { appraiseeId: currentUser.id, appraiserId: selectedAppraiser });
+            }
+        } else {
+            // If no association exists, create a new one
+            await addAssociation({ appraiseeId: currentUser.id, appraiserId: selectedAppraiser });
+        }
+    }
 
     toast({
       title: "Perfil Atualizado",
@@ -101,26 +136,21 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   };
 
   const handleUpdatePassword = async () => {
-    if (!currentUser) return;
+    if (!currentUser || !currentUser.password) {
+        toast({ variant: "destructive", title: "Erro", description: "Usuário não encontrado ou senha não configurada." });
+        return;
+    }
 
-    // Check if the current password matches (only if it's not the first login)
-    if (!currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
-       toast({
+    const currentPasswordHash = await sha256(currentPassword);
+    const passwordMatches = currentPasswordHash === currentUser.password;
+
+    if (!passwordMatches) {
+      toast({
         variant: "destructive",
-        title: "Senha Atual Incorreta",
-        description: "A senha atual informada não confere.",
+        title: currentUser.forcePasswordChange ? "Senha Temporária Incorreta" : "Senha Atual Incorreta",
+        description: "A senha informada não confere.",
       });
       return;
-    }
-    
-    // On first login, the password is the `nomeDeGuerra` or the default one set by admin
-    if (currentUser.forcePasswordChange && currentPassword !== currentUser.password) {
-        toast({
-            variant: "destructive",
-            title: "Senha Temporária Incorreta",
-            description: "A senha temporária informada não confere.",
-        });
-        return;
     }
 
     if (!newPassword || newPassword !== confirmPassword) {
@@ -140,9 +170,11 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
         });
         return;
     }
+
+    const hashedNewPassword = await sha256(newPassword);
     
     const updatedData: Partial<User> = {
-        password: newPassword,
+        password: hashedNewPassword,
         forcePasswordChange: false
     };
 
@@ -267,6 +299,37 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
             </div>
           </CardContent>
         </Card>
+        
+        {currentUser.role === 'appraisee' && (
+             <Card>
+                <CardHeader>
+                    <CardTitle>Avaliador Responsável</CardTitle>
+                    <CardDescription>
+                    Selecione o avaliador responsável por acompanhar suas atividades.
+                    </CardDescription>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                    <div className="space-y-2">
+                        <Label htmlFor="appraiser-select">Avaliador</Label>
+                        <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
+                            <SelectTrigger id="appraiser-select">
+                                <SelectValue placeholder="Selecione um avaliador" />
+                            </SelectTrigger>
+                            <SelectContent>
+                                {appraisers.length > 0 ? appraisers.map(appraiser => (
+                                    <SelectItem key={appraiser.id} value={appraiser.id}>
+                                        {appraiser.postoGrad} {appraiser.nomeDeGuerra}
+                                    </SelectItem>
+                                )) : <SelectItem value="none" disabled>Nenhum avaliador disponível</SelectItem>}
+                            </SelectContent>
+                        </Select>
+                    </div>
+                     <div className="flex justify-end pt-2 border-t">
+                        <Button onClick={handleUpdateProfile}>Salvar Alterações</Button>
+                    </div>
+                </CardContent>
+             </Card>
+        )}
 
         <Card>
           <CardHeader>

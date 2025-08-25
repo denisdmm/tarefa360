@@ -21,7 +21,16 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import type { User, Role } from "@/lib/types";
+import type { User, Role, Association } from "@/lib/types";
+
+// SHA-256 Helper
+async function sha256(message: string): Promise<string> {
+  const msgBuffer = new TextEncoder().encode(message);
+  const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+  const hashArray = Array.from(new Uint8Array(hashBuffer));
+  const hashHex = hashArray.map(b => b.toString(16).padStart(2, '0')).join('');
+  return hashHex;
+}
 
 export interface UserFormData {
   mode: 'create' | 'edit';
@@ -35,13 +44,14 @@ interface UserFormModalProps {
   user: User | null;
   users: User[];
   appraisers: User[];
+  associations: Association[];
   onSave: (formData: UserFormData) => Promise<void>;
   onClose: () => void;
   onOpenNewAppraiserModal: () => void;
   newlyCreatedAppraiserId?: string;
 }
 
-export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
+export const UserFormModal = ({ mode, user, users, appraisers, associations, onSave, onClose, onOpenNewAppraiserModal, newlyCreatedAppraiserId }: UserFormModalProps) => {
   const [cpf, setCpf] = React.useState('');
   const [name, setName] = React.useState('');
   const [nomeDeGuerra, setNomeDeGuerra] = React.useState('');
@@ -84,10 +94,17 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
         setJobTitle(user.jobTitle || '');
         setRole(user.role || 'appraisee');
         setStatus(user.status || 'Inativo');
+        
+        if (user.role === 'appraisee') {
+            const currentAssociation = associations.find(a => a.appraiseeId === user.id);
+            setSelectedAppraiser(currentAssociation?.appraiserId || '');
+        } else {
+            setSelectedAppraiser('');
+        }
     } else {
         resetForm();
     }
-  }, [user, mode, resetForm]);
+  }, [user, mode, resetForm, associations]);
   
   React.useEffect(() => {
     if(newlyCreatedAppraiserId) {
@@ -136,26 +153,28 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
     }
 
 
-    if (role === 'appraisee' && mode === 'create' && !selectedAppraiser) {
+    if (role === 'appraisee' && !selectedAppraiser) {
        toast({
             variant: "destructive",
             title: "Avaliador Necessário",
-            description: "É necessário selecionar um avaliador responsável para criar um usuário com perfil 'Avaliado'.",
+            description: "É necessário selecionar um avaliador responsável para um usuário com perfil 'Avaliado'.",
         });
         return;
     }
 
-    const finalStatus = cpf ? 'Ativo' : 'Inativo';
+    const finalCpf = cpf || (mode === 'create' ? "88888888888" : "");
     
     let formData: UserFormData;
 
     if (mode === 'create') {
-        const newPassword = cpf ? `${cpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+        const rawPassword = finalCpf ? `${finalCpf.substring(0, 4)}${nomeDeGuerra}` : nomeDeGuerra;
+        const hashedPassword = await sha256(rawPassword);
+
         formData = {
             mode,
             user: null,
             data: {
-                cpf,
+                cpf: finalCpf,
                 name,
                 nomeDeGuerra,
                 postoGrad,
@@ -163,8 +182,8 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
                 sector,
                 jobTitle,
                 role,
-                status: finalStatus,
-                password: newPassword,
+                status: finalCpf ? 'Ativo' : 'Inativo',
+                password: hashedPassword,
                 forcePasswordChange: true
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,
@@ -174,7 +193,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
             mode,
             user,
             data: {
-                cpf,
+                cpf: finalCpf,
                 name,
                 nomeDeGuerra,
                 postoGrad,
@@ -182,7 +201,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
                 sector,
                 jobTitle,
                 role,
-                status: finalStatus,
+                status,
             },
             appraiserId: role === 'appraisee' ? selectedAppraiser : null,
         };
@@ -197,7 +216,7 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
   const title = mode === 'edit' ? 'Editar Usuário' : 'Criar Nova Conta';
   const description = mode === 'edit' 
     ? 'Atualize os dados do usuário. Para ativar uma conta inativa, basta preencher o CPF.' 
-    : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa.';
+    : 'Preencha os dados para uma nova conta de usuário. Deixar o CPF em branco criará uma conta inativa com um CPF padrão.';
 
   return (
     <DialogContent className="sm:max-w-[625px]">
@@ -263,7 +282,25 @@ export const UserFormModal = ({ mode, user, users, appraisers, onSave, onClose, 
             </SelectContent>
           </Select>
         </div>
-        {mode === 'create' && role === 'appraisee' && (
+        
+        {mode === 'edit' && (
+          <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
+            <Label htmlFor="status" className="md:text-right">
+              Status
+            </Label>
+            <Select value={status} onValueChange={value => setStatus(value as 'Ativo' | 'Inativo')}>
+              <SelectTrigger className="col-span-1 md:col-span-3">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="Ativo">Ativo</SelectItem>
+                <SelectItem value="Inativo">Inativo</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {role === 'appraisee' && (
           <div className="grid grid-cols-1 md:grid-cols-4 items-center gap-4">
             <Label htmlFor="appraiser" className="md:text-right">
               Avaliador Responsável

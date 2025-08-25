@@ -1,7 +1,8 @@
 
 import { User } from './types';
 
-// --- USERS ---
+// This file is now only used as a reference for creating the admin user in DataContext.
+// The password here is irrelevant as it's immediately replaced by the hashed one in DataContext.
 export const mockUsers: Omit<User, 'id'>[] = [
   // Admin
   {
@@ -14,7 +15,7 @@ export const mockUsers: Omit<User, 'id'>[] = [
     jobTitle: 'Administrador',
     sector: 'TI',
     avatarUrl: 'https://placehold.co/100x100',
-    password: 'Admin1234',
+    password: 'will-be-overwritten',
     status: 'Ativo',
     forcePasswordChange: false,
   },

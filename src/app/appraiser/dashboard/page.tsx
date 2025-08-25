@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import Link from "next/link";
@@ -31,13 +32,21 @@ export default function AppraiserDashboard() {
 
   React.useEffect(() => {
       if (!loggedInUser) return;
-      // Find associations for the current appraiser
-      const myAppraiseeIds = associations
-          .filter(assoc => assoc.appraiserId === loggedInUser.id)
-          .map(assoc => assoc.appraiseeId);
+      
+      let appraiseeIds: string[] = [];
+
+      if(loggedInUser.role === 'admin') {
+        // Admin vê todos os avaliados
+        appraiseeIds = associations.map(assoc => assoc.appraiseeId);
+      } else {
+        // Avaliador vê apenas os seus
+        appraiseeIds = associations
+            .filter(assoc => assoc.appraiserId === loggedInUser.id)
+            .map(assoc => assoc.appraiseeId);
+      }
 
       // Find the user objects for those appraisee IDs
-      const foundAppraisees = users.filter(user => myAppraiseeIds.includes(user.id));
+      const foundAppraisees = users.filter(user => appraiseeIds.includes(user.id));
       
       setAppraisees(foundAppraisees);
 
@@ -56,9 +65,9 @@ export default function AppraiserDashboard() {
         </div>
         <Card>
           <CardHeader>
-            <CardTitle>Meus Avaliados</CardTitle>
+            <CardTitle>Avaliados</CardTitle>
             <CardDescription>
-              Uma lista de funcionários que você é responsável por avaliar.
+              Uma lista de funcionários sob avaliação.
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -67,43 +76,49 @@ export default function AppraiserDashboard() {
                 <TableRow>
                   <TableHead>Funcionário</TableHead>
                   <TableHead className="hidden md:table-cell">Função</TableHead>
-                  <TableHead className="hidden md:table-cell">Setor</TableHead>
+                  <TableHead className="hidden md:table-cell">Avaliador Responsável</TableHead>
                   <TableHead className="text-center">Ações</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {appraisees.length > 0 ? (
-                  appraisees.map((appraisee) => (
-                    <TableRow key={appraisee.id}>
-                      <TableCell>
-                        <div className="flex items-center gap-3">
-                          <Avatar>
-                            <AvatarImage src={appraisee.avatarUrl} alt={appraisee.name} />
-                            <AvatarFallback>
-                              {appraisee.name.charAt(0)}
-                            </AvatarFallback>
-                          </Avatar>
-                          <div className="flex flex-col">
-                              <span className="font-medium">{appraisee.postoGrad} {appraisee.nomeDeGuerra}</span>
-                              <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">{appraisee.email}</span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
-                      <TableCell className="hidden md:table-cell">{appraisee.sector}</TableCell>
-                      <TableCell className="text-center">
-                        <Button asChild size="sm" className="w-10 sm:w-auto p-0 sm:px-3 sm:py-2">
-                          <Link href={`/appraiser/appraisee/${appraisee.id}`}>
-                            <FileText className="h-4 w-4 sm:mr-2" />
-                            <span className="hidden sm:inline">Ver Atividades</span>
-                          </Link>
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
+                  appraisees.map((appraisee) => {
+                    const association = associations.find(a => a.appraiseeId === appraisee.id);
+                    const appraiser = users.find(u => u.id === association?.appraiserId);
+                    return (
+                        <TableRow key={appraisee.id}>
+                          <TableCell>
+                            <div className="flex items-center gap-3">
+                              <Avatar>
+                                <AvatarImage src={appraisee.avatarUrl} alt={appraisee.name} />
+                                <AvatarFallback>
+                                  {appraisee.name.charAt(0)}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex flex-col">
+                                  <span className="font-medium">{appraisee.postoGrad} {appraisee.nomeDeGuerra}</span>
+                                  <span className="text-sm text-muted-foreground truncate max-w-[150px] sm:max-w-none">{appraisee.email}</span>
+                              </div>
+                            </div>
+                          </TableCell>
+                          <TableCell className="hidden md:table-cell">{appraisee.jobTitle}</TableCell>
+                          <TableCell className="hidden md:table-cell">
+                            {appraiser ? `${appraiser.postoGrad} ${appraiser.nomeDeGuerra}` : 'N/A'}
+                          </TableCell>
+                          <TableCell className="text-center">
+                            <Button asChild size="sm" className="w-10 sm:w-auto p-0 sm:px-3 sm:py-2">
+                              <Link href={`/appraiser/appraisee/${appraisee.id}`}>
+                                <FileText className="h-4 w-4 sm:mr-2" />
+                                <span className="hidden sm:inline">Ver Atividades</span>
+                              </Link>
+                            </Button>
+                          </TableCell>
+                        </TableRow>
+                    )
+                  })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="h-24 text-center">Você não possui avaliados.</TableCell>
+                    <TableCell colSpan={4} className="h-24 text-center">Nenhum avaliado encontrado.</TableCell>
                   </TableRow>
                 )}
               </TableBody>
