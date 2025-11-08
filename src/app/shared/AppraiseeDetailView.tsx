@@ -31,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer, Eye } from "lucide-react";
 import Link from 'next/link';
-import { format, isWithinInterval } from 'date-fns';
+import { format, isWithinInterval, add } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -65,45 +65,60 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const relevantPeriods = React.useMemo(() => {
-    if (!loggedInUser || loggedInUser.role !== 'appraiser') {
+ const relevantPeriods = React.useMemo(() => {
+    if (!loggedInUser) return evaluationPeriods;
+
+    if (loggedInUser.role === 'admin' || loggedInUser.id === userId) {
+      // Admins and users viewing their own reports see all periods
       return evaluationPeriods;
     }
-
-    const myAppraiseeIds = associations
-      .filter(assoc => assoc.appraiserId === loggedInUser.id)
-      .map(assoc => assoc.appraiseeId);
     
-    myAppraiseeIds.push(loggedInUser.id); // Include appraiser's own activities
+    // For appraisers, filter periods
+    if (loggedInUser.role === 'appraiser') {
+      const myAppraiseeIds = associations
+        .filter(assoc => assoc.appraiserId === loggedInUser.id)
+        .map(assoc => assoc.appraiseeId);
+      
+      // Also include appraiser's own activities for period calculation
+      myAppraiseeIds.push(loggedInUser.id);
+  
+      const userActivities = activities.filter(act => myAppraiseeIds.includes(act.userId));
+      
+      const activeYears = new Set<number>();
+      userActivities.forEach(act => {
+          if (!act.startDate) return;
+          const startDate = (act.startDate as any).seconds 
+              ? (act.startDate as any).toDate() 
+              : new Date(act.startDate as any);
+          if (!isNaN(startDate.getTime())) {
+            activeYears.add(startDate.getFullYear());
+          }
+          
+          act.progressHistory.forEach(prog => {
+              activeYears.add(prog.year);
+          });
+      });
+      
+      const relevantEvalYears = new Set<number>();
+      activeYears.forEach(year => {
+          relevantEvalYears.add(year);
+          const activityDate = new Date(year, 11, 31); // Check end of year
+          const evalYearForActivity = (activityDate.getMonth() >= 10) ? activityDate.getFullYear() + 1 : activityDate.getFullYear();
+          relevantEvalYears.add(evalYearForActivity);
+      });
+  
+      return evaluationPeriods.filter(period => {
+          const periodNameMatch = period.name.match(/\d{4}/);
+          if (!periodNameMatch) return false;
+          const periodNameYear = parseInt(periodNameMatch[0]);
+          // Show only active and relevant periods to appraisers
+          return relevantEvalYears.has(periodNameYear) && period.status === 'Ativo';
+      });
+    }
 
-    const userActivities = activities.filter(act => myAppraiseeIds.includes(act.userId));
-    
-    const activeYears = new Set<number>();
-    userActivities.forEach(act => {
-        const startDate = (act.startDate as any).seconds 
-            ? (act.startDate as any).toDate() 
-            : new Date(act.startDate as any);
-        activeYears.add(startDate.getFullYear());
-        
-        act.progressHistory.forEach(prog => {
-            activeYears.add(prog.year);
-        });
-    });
-    
-    // An evaluation period (e.g., "Periodo 2024") runs from Nov 2023 to Oct 2024.
-    // So, an activity in 2023 could belong to the 2024 period.
-    const relevantEvalYears = new Set<number>();
-    activeYears.forEach(year => {
-        relevantEvalYears.add(year);
-        relevantEvalYears.add(year + 1); // An activity in Nov/Dec belongs to the next eval year
-    });
+    return evaluationPeriods;
 
-    return evaluationPeriods.filter(period => {
-        const periodNameYear = parseInt(period.name.split(' ')[3]);
-        return relevantEvalYears.has(periodNameYear);
-    });
-
-  }, [loggedInUser, activities, evaluationPeriods, associations]);
+  }, [loggedInUser, userId, activities, evaluationPeriods, associations]);
 
 
   const selectedPeriod = React.useMemo(() => {
@@ -136,12 +151,12 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     if (!selectedPeriod || !appraisee) return {};
 
     const periodInterval = {
-        start: new Date(selectedPeriod.startDate as any),
-        end: new Date(selectedPeriod.endDate as any),
+        start: (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any),
+        end: (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any),
     };
 
     const userActivities = activities.filter(a => {
-        if (a.userId !== appraisee.id) return false;
+        if (a.userId !== appraisee.id || !a.startDate) return false;
         const activityStartDate = (a.startDate as any).seconds 
             ? (a.startDate as any).toDate() 
             : new Date(a.startDate as any);
@@ -202,8 +217,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     setIsGeneratingPdf(true);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageWidth = pdf.internal.pageSize.getWidth();
-    const margin = 15;
     
     const monthsToRender = (monthFilter === 'all'
       ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
@@ -229,7 +242,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     }
 
     if (allRows.length === 0) {
-        pdf.text('Nenhuma atividade registrada para o período ou filtro selecionado.', margin, margin);
+        pdf.text('Nenhuma atividade registrada para o período ou filtro selecionado.', 15, 15);
         pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
         setIsGeneratingPdf(false);
         return;
@@ -252,8 +265,8 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             }
         },
         willDrawPage: function (data: any) {
-            // Header
-            let yPos = margin;
+            const pageWidth = pdf.internal.pageSize.getWidth();
+            let yPos = 15;
             pdf.setFontSize(12);
             pdf.setFont('helvetica', 'bold');
             pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
@@ -261,7 +274,11 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
             pdf.setFontSize(10);
             pdf.setFont('helvetica', 'normal');
-            pdf.text(`Período de Avaliação: ${selectedPeriod.name}`, pageWidth / 2, yPos, { align: 'center' });
+            
+            const startDate = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
+            const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
+            const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
+            pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
             yPos += 10;
             
             pdf.autoTable({
@@ -276,12 +293,11 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             data.settings.startY = pdf.lastAutoTable.finalY + 5;
         },
         didDrawPage: function(data: any) {
-            // Footer
             const pageCount = (pdf as any).internal.getNumberOfPages();
             pdf.setFontSize(8);
-            pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pageWidth - margin, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
+            pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
         },
-        margin: { top: margin + 35 } // Increased margin to avoid overlap
+        margin: { top: 15 + 35 } 
     });
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
