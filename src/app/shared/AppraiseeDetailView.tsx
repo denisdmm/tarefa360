@@ -78,10 +78,24 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     const userActivities = activities.filter(a => a.userId === appraisee.id);
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
+    const periodInterval = {
+      start: new Date(activePeriod.startDate as any),
+      end: new Date(activePeriod.endDate as any),
+    };
+
     userActivities.forEach(activity => {
+      // Ensure the activity itself started within the evaluation period
+      const activityStartDate = (activity.startDate as any).seconds
+          ? (activity.startDate as any).toDate()
+          : new Date(activity.startDate as any);
+
+      if (!isWithinInterval(activityStartDate, periodInterval)) {
+          return; // Skip this activity if it's not in the current period
+      }
+
       activity.progressHistory.forEach(progress => {
         const progressDate = new Date(progress.year, progress.month - 1);
-        if (isWithinInterval(progressDate, { start: new Date(activePeriod.startDate as any), end: new Date(activePeriod.endDate as any) })) {
+        if (isWithinInterval(progressDate, periodInterval)) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
           
           if (!monthlyData[monthYearKey]) {
@@ -218,7 +232,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         {isModalOpen && selectedActivity && appraisee && (
             <ActivityForm
               activity={selectedActivity}
-              onSave={() => {}} // No-op for read-only
+              onSave={() => Promise.resolve()} // No-op for read-only
               onClose={handleCloseModal}
               currentUserId={appraisee.id}
               isReadOnly={true}
@@ -387,3 +401,5 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     </>
   );
 }
+
+    
