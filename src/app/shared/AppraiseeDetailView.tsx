@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
-import type { Activity, User, ProgressEntry } from "@/lib/types";
+import type { Activity, User, ProgressEntry, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer, Eye } from "lucide-react";
 import Link from 'next/link';
 import { format, eachMonthOfInterval, startOfMonth, isWithinInterval } from 'date-fns';
@@ -57,6 +57,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const router = useRouter();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string | null>(null);
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showPdfPreview, setShowPdfPreview] = React.useState(false);
@@ -65,22 +66,37 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
+  const selectedPeriod = React.useMemo(() => {
+    if (!selectedPeriodId) return null;
+    return evaluationPeriods.find(p => p.id === selectedPeriodId);
+  }, [selectedPeriodId, evaluationPeriods]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
     setAppraisee(foundUser);
   }, [userId, users]);
 
+  React.useEffect(() => {
+    // Set the default selected period to the active one on initial load
+    if (evaluationPeriods.length > 0 && !selectedPeriodId) {
+      const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+      if (activePeriod) {
+        setSelectedPeriodId(activePeriod.id);
+      } else {
+        setSelectedPeriodId(evaluationPeriods[0].id); // Fallback to the first one if none are active
+      }
+    }
+  }, [evaluationPeriods, selectedPeriodId]);
+
   const getActivitiesByMonth = React.useCallback(() => {
-    if (!activePeriod || !appraisee) return {};
+    if (!selectedPeriod || !appraisee) return {};
 
     const userActivities = activities.filter(a => a.userId === appraisee.id);
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     const periodInterval = {
-      start: new Date(activePeriod.startDate as any),
-      end: new Date(activePeriod.endDate as any),
+      start: new Date(selectedPeriod.startDate as any),
+      end: new Date(selectedPeriod.endDate as any),
     };
 
     userActivities.forEach(activity => {
@@ -127,7 +143,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     }
 
     return finalMonthlyActivities;
-  }, [activities, appraisee, activePeriod]);
+  }, [activities, appraisee, selectedPeriod]);
 
 
   React.useEffect(() => {
@@ -154,11 +170,11 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
 
   const pdfMonths = React.useMemo(() => {
-    if (!activePeriod) return [];
+    if (!selectedPeriod) return [];
     
     const monthsInPeriod = eachMonthOfInterval({
-        start: startOfMonth(new Date(activePeriod.startDate as any)),
-        end: startOfMonth(new Date(activePeriod.endDate as any))
+        start: startOfMonth(new Date(selectedPeriod.startDate as any)),
+        end: startOfMonth(new Date(selectedPeriod.endDate as any))
     });
     
     // Sort ascending for PDF
@@ -169,7 +185,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     }
     
     return monthKeys.filter(key => key === monthFilter);
-  }, [activePeriod, monthFilter]);
+  }, [selectedPeriod, monthFilter]);
 
 
   const handleDownloadPdf = async () => {
@@ -219,7 +235,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   };
 
 
-  if (!appraisee || !loggedInUser) {
+  if (!appraisee || !loggedInUser || !selectedPeriod) {
     return <div className="p-6">Carregando dados do relatório...</div>;
   }
   
@@ -262,7 +278,15 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={monthFilter} onValueChange={setMonthFilter}>
+                <Select value={selectedPeriodId} onValueChange={(value) => setSelectedPeriodId(value)}>
+                  <SelectTrigger className="w-full sm:w-[200px]">
+                    <SelectValue placeholder="Filtrar por período" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {evaluationPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+                 <Select value={monthFilter} onValueChange={setMonthFilter}>
                   <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrar por mês" />
                   </SelectTrigger>
@@ -362,9 +386,9 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
               <div className="text-center p-2 border-b border-black">
                   <p className="font-bold uppercase">Principais Atividades Desenvolvidas no Período de Avaliação</p>
               </div>
-              {activePeriod && (
+              {selectedPeriod && (
                   <div className="text-center p-1 border-b border-black font-bold uppercase">
-                      <span>{format(new Date(activePeriod.startDate as any), 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(new Date(activePeriod.endDate as any), 'MMM yyyy', {locale: ptBR})}</span>
+                      <span>{format(new Date(selectedPeriod.startDate as any), 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(new Date(selectedPeriod.endDate as any), 'MMM yyyy', {locale: ptBR})}</span>
                   </div>
               )}
 
