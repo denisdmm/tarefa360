@@ -28,7 +28,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
-import type { Activity, User, ProgressEntry, EvaluationPeriod } from "@/lib/types";
+import type { Activity, User, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer, Eye } from "lucide-react";
 import Link from 'next/link';
 import { format, isWithinInterval } from 'date-fns';
@@ -68,7 +68,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const selectedPeriod = React.useMemo(() => {
     if (!selectedPeriodId) {
       const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
-      return activePeriod ?? evaluationPeriods[0] ?? null;
+      return activePeriod ?? (evaluationPeriods.length > 0 ? evaluationPeriods[0] : null);
     }
     return evaluationPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, evaluationPeriods]);
@@ -229,7 +229,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                 styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
                 headStyles: { fillColor: [220, 220, 220], textColor: 0 },
             });
-            // This sets the startY for the main table
+            
             data.settings.startY = pdf.lastAutoTable.finalY + 5;
         },
         didDrawPage: function(data: any) {
@@ -238,7 +238,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             pdf.setFontSize(8);
             pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pageWidth - margin, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
         },
-        margin: { top: margin + 25 }
+        margin: { top: margin + 35 } // Increased margin to avoid overlap
     });
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
