@@ -66,7 +66,10 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const selectedPeriod = React.useMemo(() => {
-    if (!selectedPeriodId) return null;
+    if (!selectedPeriodId) {
+      const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+      return activePeriod ?? evaluationPeriods[0] ?? null;
+    }
     return evaluationPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, evaluationPeriods]);
 
@@ -158,32 +161,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     const pdf = new jsPDF('p', 'mm', 'a4');
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 15;
-    let yPos = margin;
-
-    const addHeader = (doc: jsPDF, period: EvaluationPeriod) => {
-        doc.setFontSize(12);
-        doc.setFont('helvetica', 'bold');
-        doc.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
-        yPos += 8;
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text(`Período de Avaliação: ${period.name}`, pageWidth / 2, yPos, { align: 'center' });
-        yPos += 10;
-        
-        doc.autoTable({
-            startY: yPos,
-            head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
-            body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
-            theme: 'grid',
-            styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
-            headStyles: { fillColor: [220, 220, 220], textColor: 0 },
-        });
-        yPos = doc.lastAutoTable.finalY + 5;
-    };
     
-    addHeader(pdf, selectedPeriod);
-
     const monthsToRender = (monthFilter === 'all'
       ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
       : [monthFilter]
@@ -195,7 +173,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             const [year, month] = monthKey.split('-').map(Number);
             const monthTitle = format(new Date(year, month - 1), "MMMM 'de' yyyy", { locale: ptBR });
             
-            // Add month group header
             allRows.push([{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230], textColor: 0, fontStyle: 'bold' } }]);
             
             const activitiesForMonth = monthlyActivities[monthKey];
@@ -208,35 +185,61 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         });
     }
 
-    if (allRows.length > 0) {
-        pdf.autoTable({
-            startY: yPos,
-            head: [['Progresso', 'Atividade e Comentários']],
-            body: allRows,
-            theme: 'grid',
-            headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
-            columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
-            didDrawPage: (data) => {
-                // Redraw header on each new page
-                yPos = margin;
-                addHeader(pdf, selectedPeriod!);
-                
-                // Redraw table header
-                data.cursor.y = pdf.lastAutoTable.finalY;
+    if (allRows.length === 0) {
+        pdf.text('Nenhuma atividade registrada para o período ou filtro selecionado.', margin, margin);
+        pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
+        setIsGeneratingPdf(false);
+        return;
+    }
+
+    pdf.autoTable({
+        body: allRows,
+        columns: [
+            { header: 'Progresso', dataKey: 0 },
+            { header: 'Atividade e Comentários', dataKey: 1 },
+        ],
+        columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
+        didParseCell: function (data: any) {
+            // This ensures our month headers get the correct styles
+            if (data.row.raw.length === 1 && data.row.raw[0].colSpan) {
+                data.cell.styles.fillColor = [230, 230, 230];
+                data.cell.styles.textColor = 0;
+                data.cell.styles.fontStyle = 'bold';
+                data.cell.styles.halign = 'center';
             }
-        });
-    } else {
-        pdf.setFontSize(10);
-        pdf.text('Nenhuma atividade registrada para o período.', margin, yPos);
-    }
-    
-    // Add page numbers
-    const pageCount = (pdf as any).internal.getNumberOfPages();
-    pdf.setFontSize(8);
-    for (let i = 1; i <= pageCount; i++) {
-        pdf.setPage(i);
-        pdf.text(`Página ${i} de ${pageCount}`, pageWidth - margin, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
-    }
+        },
+        willDrawPage: function (data: any) {
+            // Header
+            let yPos = margin;
+            pdf.setFontSize(12);
+            pdf.setFont('helvetica', 'bold');
+            pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
+            yPos += 8;
+
+            pdf.setFontSize(10);
+            pdf.setFont('helvetica', 'normal');
+            pdf.text(`Período de Avaliação: ${selectedPeriod.name}`, pageWidth / 2, yPos, { align: 'center' });
+            yPos += 10;
+            
+            pdf.autoTable({
+                startY: yPos,
+                head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
+                body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
+                theme: 'grid',
+                styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
+                headStyles: { fillColor: [220, 220, 220], textColor: 0 },
+            });
+            // This sets the startY for the main table
+            data.settings.startY = pdf.lastAutoTable.finalY + 5;
+        },
+        didDrawPage: function(data: any) {
+            // Footer
+            const pageCount = (pdf as any).internal.getNumberOfPages();
+            pdf.setFontSize(8);
+            pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pageWidth - margin, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
+        },
+        margin: { top: margin + 25 }
+    });
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
     setIsGeneratingPdf(false);
