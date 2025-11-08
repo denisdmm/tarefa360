@@ -78,7 +78,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     }
     
     if (loggedInUser.role === 'appraiser') {
-      // Find years where the logged-in appraiser was associated with THIS specific appraisee
       const relevantYears = new Set<number>();
       associations.forEach(assoc => {
           if (assoc.appraiserId === loggedInUser.id && assoc.appraiseeId === userId) {
@@ -86,12 +85,10 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
           }
       });
       
-      // Appraisers should only see active periods they are associated with for the user
       return evaluationPeriods.filter(period => {
           const periodYear = getEvaluationYearFromPeriodName(period.name);
           if (!periodYear) return false;
-          // Show only ACTIVE periods that are relevant to the association
-          return relevantYears.has(periodYear) && period.status === 'Ativo';
+          return relevantYears.has(periodYear);
       });
     }
 
@@ -101,11 +98,9 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
 
   const selectedPeriod = React.useMemo(() => {
-    // If there are specific relevant periods, use them. Otherwise, default to all periods.
     const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
     if (!selectedPeriodId && periodsToConsider.length > 0) {
       const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
-      // Default to the active period, or the first one in the list if none are active
       return activePeriod ?? periodsToConsider[0];
     }
     return periodsToConsider.find(p => p.id === selectedPeriodId) ?? null;
@@ -116,7 +111,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     setAppraisee(foundUser);
   }, [userId, users]);
 
-  // Effect to set the initial selected period
   React.useEffect(() => {
     const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
     if (periodsToConsider.length > 0 && !selectedPeriodId) {
@@ -124,7 +118,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
       } else if (periodsToConsider[0]) {
-        // Fallback to the first available period if no active one is found
         setSelectedPeriodId(periodsToConsider[0].id);
       }
     }
@@ -231,6 +224,38 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         setIsGeneratingPdf(false);
         return;
     }
+    
+    const pageContent = (data: any) => {
+        const pageWidth = pdf.internal.pageSize.getWidth();
+        let yPos = 15;
+        pdf.setFontSize(12);
+        pdf.setFont('helvetica', 'bold');
+        pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
+        yPos += 8;
+
+        pdf.setFontSize(10);
+        pdf.setFont('helvetica', 'normal');
+        
+        const startDate = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
+        const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
+        const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
+        pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
+        
+        pdf.autoTable({
+            startY: yPos,
+            head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
+            body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
+            theme: 'grid',
+            styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
+            headStyles: { fillColor: [220, 220, 220], textColor: 0 },
+        });
+
+        const pageCount = (pdf as any).internal.getNumberOfPages();
+        pdf.setFontSize(8);
+        pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
+    };
+
 
     pdf.autoTable({
         body: allRows,
@@ -240,7 +265,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         ],
         columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
         didParseCell: function (data: any) {
-            // This ensures our month headers get the correct styles
             if (data.row.raw.length === 1 && data.row.raw[0].colSpan) {
                 data.cell.styles.fillColor = [230, 230, 230];
                 data.cell.styles.textColor = 0;
@@ -248,40 +272,11 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                 data.cell.styles.halign = 'center';
             }
         },
-        willDrawPage: function (data: any) {
-            const pageWidth = pdf.internal.pageSize.getWidth();
-            let yPos = 15;
-            pdf.setFontSize(12);
-            pdf.setFont('helvetica', 'bold');
-            pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
-            yPos += 8;
-
-            pdf.setFontSize(10);
-            pdf.setFont('helvetica', 'normal');
-            
-            const startDate = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
-            const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
-            const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
-            pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
-            yPos += 10;
-            
-            pdf.autoTable({
-                startY: yPos,
-                head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
-                body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
-                theme: 'grid',
-                styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
-                headStyles: { fillColor: [220, 220, 220], textColor: 0 },
-            });
-            
-            data.settings.startY = pdf.lastAutoTable.finalY + 5;
+        willDrawPage: function(data) {
+            pageContent(data);
+            data.settings.margin.top = pdf.lastAutoTable.finalY + 5;
         },
-        didDrawPage: function(data: any) {
-            const pageCount = (pdf as any).internal.getNumberOfPages();
-            pdf.setFontSize(8);
-            pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
-        },
-        margin: { top: 15 + 35 } 
+        margin: { top: 15 } 
     });
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
@@ -310,6 +305,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
   const displayPeriods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+  const periodYear = selectedPeriod ? getEvaluationYearFromPeriodName(selectedPeriod.name) : '';
 
 
   return (
@@ -328,16 +324,15 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
       
       <div className="print:hidden flex flex-col h-full">
         <main className="flex-1 p-2 md:p-6 overflow-auto space-y-6">
-          <header className="flex flex-col md:flex-row justify-between md:items-center gap-4 mb-6">
-            <div>
-              <Button variant="ghost" asChild className="mb-2 -ml-4">
+          <header className="space-y-4 mb-6">
+            <div className="space-y-2">
+              <Button variant="ghost" asChild className="-ml-4">
                  <Link href={backLink}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> 
                     Voltar
                  </Link>
               </Button>
-              <h1 className="text-3xl font-bold font-headline">Relatório de Atividades</h1>
-              <div className="flex items-center gap-2 mt-1">
+              <div className="flex items-center gap-2">
                 <Avatar className="h-8 w-8">
                   <AvatarImage src={appraisee.avatarUrl} />
                   <AvatarFallback>{appraisee.name.charAt(0)}</AvatarFallback>
@@ -345,7 +340,10 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                 <p className="text-muted-foreground font-medium">{appraisee.postoGrad} {appraisee.name}</p>
               </div>
             </div>
-            <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+
+             <h1 className="text-3xl font-bold font-headline">Relatório de Atividades {periodYear && `de ${periodYear}`}</h1>
+
+             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
@@ -431,5 +429,3 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     </>
   );
 }
-
-    
