@@ -95,6 +95,8 @@ export const UserFormModal = ({ mode, user, users, appraisers, associations, onS
         setRole(user.role || 'appraisee');
         setStatus(user.status || 'Inativo');
         
+        // This modal is simple and only handles a single association.
+        // The more complex year-based association is handled in the profile page.
         if (user.role === 'appraisee') {
             const currentAssociation = associations.find(a => a.appraiseeId === user.id);
             setSelectedAppraiser(currentAssociation?.appraiserId || '');

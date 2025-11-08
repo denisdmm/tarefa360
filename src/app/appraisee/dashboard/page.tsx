@@ -101,7 +101,7 @@ const ActivityCard = ({
 
 export default function AppraiseeDashboard() {
   const { toast } = useToast();
-  const { activities, loggedInUser, addActivity, updateActivity, deleteActivity } = useDataContext();
+  const { activities, loggedInUser, addActivity, updateActivity, deleteActivity, evaluationPeriods } = useDataContext();
   
   const userActivities = loggedInUser ? activities.filter(a => a.userId === loggedInUser.id) : [];
 
@@ -112,6 +112,9 @@ export default function AppraiseeDashboard() {
   const [isDeleteAlertOpen, setDeleteAlertOpen] = React.useState(false);
   const [activityToDeleteId, setActivityToDeleteId] = React.useState<string | null>(null);
   const [viewMode, setViewMode] = React.useState<'card' | 'list'>('card');
+  
+  const activePeriod = React.useMemo(() => evaluationPeriods.find(p => p.status === 'Ativo'), [evaluationPeriods]);
+
 
   // Load view mode from localStorage on mount
   React.useEffect(() => {
@@ -296,7 +299,12 @@ export default function AppraiseeDashboard() {
               <Card>
                 <CardHeader>
                   <CardTitle>Histórico de Atividades</CardTitle>
-                  <CardDescription>Atividades que você já finalizou.</CardDescription>
+                  <CardDescription>
+                    {activePeriod 
+                        ? `Atividades concluídas para o período de ${activePeriod.name}.`
+                        : "Atividades que você já finalizou."
+                    }
+                  </CardDescription>
                 </CardHeader>
                 <CardContent>
                   <Table>
@@ -382,7 +390,3 @@ export default function AppraiseeDashboard() {
     </>
   );
 }
-
-    
-
-    

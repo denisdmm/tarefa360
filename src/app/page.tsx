@@ -40,7 +40,7 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = React.useState(false);
   const router = useRouter();
   const { toast } = useToast();
-  const { setLoggedInUser, ensureCurrentEvaluationPeriodExists } = useDataContext();
+  const { setLoggedInUser, ensureEvaluationPeriodsExist } = useDataContext();
 
   const handleLogin = async () => {
     try {
@@ -81,7 +81,7 @@ export default function LoginPage() {
 
         if (user && passwordMatches) {
             setLoggedInUser(user);
-            await ensureCurrentEvaluationPeriodExists();
+            await ensureEvaluationPeriodsExist();
 
             if (user.forcePasswordChange) {
                 toast({

@@ -47,4 +47,5 @@ export interface Association {
     id: string;
     appraiseeId: string;
     appraiserId: string;
+    evaluationYear: number;
 }
