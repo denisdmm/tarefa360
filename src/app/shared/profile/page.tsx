@@ -1,4 +1,3 @@
-
 "use client";
 
 import * as React from "react";
@@ -86,10 +85,10 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   
   const [appraisers, setAppraisers] = React.useState<User[]>([]);
   const [associationForCurrentPeriod, setAssociationForCurrentPeriod] = React.useState<Partial<Association>>({});
-  const [associationForNextPeriod, setAssociationForNextPeriod] = React.useState<Partial<Association>>({});
+  const [associationForPreviousPeriod, setAssociationForPreviousPeriod] = React.useState<Partial<Association>>({});
 
   const [currentEvalPeriod, setCurrentEvalPeriod] = React.useState<{ name: string, year: number } | null>(null);
-  const [nextEvalPeriod, setNextEvalPeriod] = React.useState<{ name: string, year: number } | null>(null);
+  const [previousEvalPeriod, setPreviousEvalPeriod] = React.useState<{ name: string, year: number } | null>(null);
 
 
   React.useEffect(() => {
@@ -114,13 +113,13 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 const currentAssociation = associations.find(a => a.appraiseeId === user.id && a.evaluationYear === year);
                 setAssociationForCurrentPeriod(currentAssociation || { appraiseeId: user.id, evaluationYear: year });
 
-                // Find next period
-                const nextYear = year + 1;
-                const nextPeriod = evaluationPeriods.find(p => getEvaluationYearFromPeriodName(p.name) === nextYear);
-                if (nextPeriod) {
-                    setNextEvalPeriod({ name: nextPeriod.name, year: nextYear });
-                    const nextAssociation = associations.find(a => a.appraiseeId === user.id && a.evaluationYear === nextYear);
-                    setAssociationForNextPeriod(nextAssociation || { appraiseeId: user.id, evaluationYear: nextYear });
+                // Find previous period
+                const previousYear = year - 1;
+                const previousPeriod = evaluationPeriods.find(p => getEvaluationYearFromPeriodName(p.name) === previousYear);
+                if (previousPeriod) {
+                    setPreviousEvalPeriod({ name: previousPeriod.name, year: previousYear });
+                    const previousAssociation = associations.find(a => a.appraiseeId === user.id && a.evaluationYear === previousYear);
+                    setAssociationForPreviousPeriod(previousAssociation || { appraiseeId: user.id, evaluationYear: previousYear });
                 }
             }
         }
@@ -172,7 +171,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
     await updateUser(currentUser.id, updatedData);
     
     // Handle Association updates
-    const associationsToSave = [associationForCurrentPeriod, associationForNextPeriod];
+    const associationsToSave = [associationForCurrentPeriod, associationForPreviousPeriod];
     for (const assoc of associationsToSave) {
         if (assoc.appraiserId && assoc.evaluationYear && assoc.appraiseeId) {
             if (assoc.id) { // Existing association, update it
@@ -359,7 +358,7 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <CardHeader>
                     <CardTitle>Avaliador Responsável</CardTitle>
                     <CardDescription>
-                        Defina o avaliador responsável para o período de avaliação atual e para o próximo.
+                        Defina o avaliador responsável para o período de avaliação atual e para o anterior.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -371,12 +370,12 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                             onAppraiserChange={(appraiserId) => setAssociationForCurrentPeriod(prev => ({...prev, appraiserId}))}
                         />
                     )}
-                    {nextEvalPeriod && (
+                    {previousEvalPeriod && (
                          <AssociationSelector 
-                            periodName={nextEvalPeriod.name}
+                            periodName={previousEvalPeriod.name}
                             appraisers={appraisers}
-                            selectedAppraiser={associationForNextPeriod.appraiserId || ''}
-                            onAppraiserChange={(appraiserId) => setAssociationForNextPeriod(prev => ({...prev, appraiserId}))}
+                            selectedAppraiser={associationForPreviousPeriod.appraiserId || ''}
+                            onAppraiserChange={(appraiserId) => setAssociationForPreviousPeriod(prev => ({...prev, appraiserId}))}
                         />
                     )}
                      <div className="flex justify-end pt-2 border-t">
