@@ -47,6 +47,7 @@ declare module 'jspdf' {
 }
 
 const getEvaluationYearFromPeriodName = (name: string): number | null => {
+    if(!name) return null;
     const match = name.match(/\d{4}/);
     return match ? parseInt(match[0]) : null;
 };
