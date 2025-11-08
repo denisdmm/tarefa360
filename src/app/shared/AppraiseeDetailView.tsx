@@ -57,18 +57,17 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const router = useRouter();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
-  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string | null>(null);
+  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>('');
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   const [showPdfPreview, setShowPdfPreview] = React.useState(false);
-  const [monthlyActivities, setMonthlyActivities] = React.useState<Record<string, MonthlyActivity[]>>({});
   
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const selectedPeriod = React.useMemo(() => {
     if (!selectedPeriodId) return null;
-    return evaluationPeriods.find(p => p.id === selectedPeriodId);
+    return evaluationPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, evaluationPeriods]);
 
   React.useEffect(() => {
@@ -82,13 +81,13 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
       const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
-      } else {
+      } else if (evaluationPeriods[0]) {
         setSelectedPeriodId(evaluationPeriods[0].id); // Fallback to the first one if none are active
       }
     }
   }, [evaluationPeriods, selectedPeriodId]);
 
-  const getActivitiesByMonth = React.useCallback(() => {
+  const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
 
     const userActivities = activities.filter(a => a.userId === appraisee.id);
@@ -101,10 +100,10 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
     userActivities.forEach(activity => {
       // Ensure the activity itself started within the evaluation period
-      const activityStartDate = (activity.startDate as any).seconds
-          ? (activity.startDate as any).toDate()
+      const activityStartDate = (activity.startDate as any).seconds 
+          ? (activity.startDate as any).toDate() 
           : new Date(activity.startDate as any);
-
+          
       if (!isWithinInterval(activityStartDate, periodInterval)) {
           return; // Skip this activity if it's not in the current period
       }
@@ -129,7 +128,8 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             };
           }
           
-          monthlyData[monthYearKey][activity.id].totalPercentage += progress.percentage;
+          // Use latest percentage for the month, not sum
+          monthlyData[monthYearKey][activity.id].totalPercentage = progress.percentage;
           if (progress.comment) {
             monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
           }
@@ -141,14 +141,9 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     for (const monthKey in monthlyData) {
         finalMonthlyActivities[monthKey] = Object.values(monthlyData[monthKey]);
     }
-
+    
     return finalMonthlyActivities;
   }, [activities, appraisee, selectedPeriod]);
-
-
-  React.useEffect(() => {
-      setMonthlyActivities(getActivitiesByMonth());
-  }, [getActivitiesByMonth]);
 
   const filteredMonths = React.useMemo(() => {
     const allKeys = Object.keys(monthlyActivities).sort().reverse(); // Sort descending for on-screen view
@@ -234,6 +229,11 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     setSelectedActivity(null);
   };
 
+  const handlePeriodChange = (periodId: string) => {
+    setSelectedPeriodId(periodId);
+    setMonthFilter('all'); // Reset month filter when period changes
+  }
+
 
   if (!appraisee || !loggedInUser || !selectedPeriod) {
     return <div className="p-6">Carregando dados do relatório...</div>;
@@ -278,7 +278,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedPeriodId} onValueChange={(value) => setSelectedPeriodId(value)}>
+                <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
                   <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
@@ -425,5 +425,3 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     </>
   );
 }
-
-    
