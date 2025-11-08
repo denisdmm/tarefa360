@@ -51,7 +51,7 @@ export default function ReportsPage() {
                                         </TableCell>
                                         <TableCell className="text-center">
                                             <Button asChild>
-                                                <Link href="/appraisee/report-detail">
+                                                <Link href={{ pathname: '/appraisee/report-detail', query: { periodId: period.id } }}>
                                                     <Eye className="mr-2 h-4 w-4" />
                                                     Visualizar
                                                 </Link>

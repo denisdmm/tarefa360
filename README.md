@@ -1,4 +1,4 @@
-# Documentação do Aplicativo: Tarefa360 Companion
+resto# Documentação do Aplicativo: Tarefa360 Companion
 
 ## 1. Visão Geral
 
