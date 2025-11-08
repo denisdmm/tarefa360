@@ -35,7 +35,7 @@ interface DataContextProps {
     addEvaluationPeriod: (periodData: Omit<EvaluationPeriod, 'id'>) => Promise<string | null>;
     updateEvaluationPeriod: (periodId: string, periodData: Partial<EvaluationPeriod>) => Promise<void>;
     deleteEvaluationPeriod: (periodId: string) => Promise<void>;
-    ensureCurrentEvaluationPeriodExists: () => Promise<void>;
+    ensureEvaluationPeriodsExist: () => Promise<void>;
 
     associations: Association[];
     addAssociation: (associationData: Omit<Association, 'id'>) => Promise<string | null>;
@@ -216,15 +216,6 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast, fetchData]);
 
-    React.useEffect(() => {
-        const initialize = async () => {
-            await fetchData();
-            await ensureAdminUserExists();
-        };
-        initialize();
-    }, [fetchData, ensureAdminUserExists]);
-
-
     const updateUser = React.useCallback(async (userId: string, userData: Partial<User>): Promise<void> => {
         try {
             const userRef = doc(db, 'users', userId);
@@ -379,43 +370,53 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast]);
 
-     const ensureCurrentEvaluationPeriodExists = React.useCallback(async () => {
+    const ensureEvaluationPeriodsExist = React.useCallback(async () => {
         try {
             const now = new Date();
             const currentYear = now.getFullYear();
             const currentMonth = now.getMonth(); // 0-11
-
-            const periodYear = (currentMonth >= 10) ? currentYear + 1 : currentYear; // >= 10 means Nov or Dec
-
-            const startDate = new Date(periodYear - 1, 10, 1); // Nov 1st of previous year
-            const endDate = new Date(periodYear, 9, 31);   // Oct 31st of current year
-
+    
+            // Define current and next evaluation years
+            const currentEvalYear = (currentMonth >= 10) ? currentYear + 1 : currentYear; // Nov/Dec belongs to next eval year
+            const nextEvalYear = currentEvalYear + 1;
+    
+            const periodsToEnsure = [
+                { year: currentEvalYear, status: 'Ativo' as const },
+                { year: nextEvalYear, status: 'Inativo' as const }
+            ];
+    
             const periodsRef = collection(db, "evaluationPeriods");
-            const q = query(periodsRef, 
-                where('startDate', '==', Timestamp.fromDate(startDate)),
-                where('endDate', '==', Timestamp.fromDate(endDate))
-            );
-
-            const existingPeriodSnapshot = await getDocs(q);
-
-            if (existingPeriodSnapshot.empty) {
-                console.log(`Evaluation period for ${periodYear} not found, creating one...`);
-
-                const newPeriodData = {
-                    name: `Período de Avaliação ${periodYear}`,
-                    startDate,
-                    endDate,
-                    status: 'Ativo' as 'Ativo' | 'Inativo',
-                };
-                
-                await addEvaluationPeriod(newPeriodData);
+            
+            for (const periodInfo of periodsToEnsure) {
+                const startDate = new Date(periodInfo.year - 1, 10, 1); // Nov 1st
+                const endDate = new Date(periodInfo.year, 9, 31);   // Oct 31st
+    
+                const q = query(periodsRef, 
+                    where('startDate', '==', Timestamp.fromDate(startDate)),
+                    where('endDate', '==', Timestamp.fromDate(endDate))
+                );
+    
+                const existingPeriodSnapshot = await getDocs(q);
+    
+                if (existingPeriodSnapshot.empty) {
+                    console.log(`Evaluation period for ${periodInfo.year} not found, creating one...`);
+    
+                    const newPeriodData = {
+                        name: `Período de Avaliação ${periodInfo.year}`,
+                        startDate,
+                        endDate,
+                        status: periodInfo.status,
+                    };
+                    
+                    await addEvaluationPeriod(newPeriodData);
+                }
             }
         } catch (error) {
-             console.error("Error ensuring evaluation period exists:", error);
+             console.error("Error ensuring evaluation periods exist:", error);
              toast({
                 variant: "destructive",
                 title: "Erro Crítico",
-                description: "Não foi possível verificar ou criar o período de avaliação."
+                description: "Não foi possível verificar ou criar os períodos de avaliação."
             });
         }
     }, [toast, addEvaluationPeriod]);
@@ -456,6 +457,19 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         }
     }, [toast]);
 
+    React.useEffect(() => {
+        const initialize = async () => {
+            setLoading(true);
+            await ensureAdminUserExists();
+            await fetchData();
+            await ensureEvaluationPeriodsExist();
+            await fetchData(); // Refetch to get the newly created periods in the state
+            setLoading(false);
+        };
+        initialize();
+    }, []);
+
+
     const contextValue: DataContextProps = {
         users,
         addUser,
@@ -470,7 +484,7 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         addEvaluationPeriod,
         updateEvaluationPeriod,
         deleteEvaluationPeriod,
-        ensureCurrentEvaluationPeriodExists,
+        ensureEvaluationPeriodsExist,
         associations,
         addAssociation,
         updateAssociation,
@@ -496,5 +510,3 @@ export const useDataContext = (): DataContextProps => {
     }
     return context;
 };
-
-    
