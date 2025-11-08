@@ -29,9 +29,9 @@ import {
 } from "@/components/ui/table";
 import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, EvaluationPeriod } from "@/lib/types";
-import { ArrowLeft, Filter, Printer, Eye } from "lucide-react";
+import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, isWithinInterval, add } from 'date-fns';
+import { format, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -44,6 +44,11 @@ declare module 'jspdf' {
     lastAutoTable: { finalY: number };
   }
 }
+
+const getEvaluationYearFromPeriodName = (name: string): number | null => {
+    const match = name.match(/\d{4}/);
+    return match ? parseInt(match[0]) : null;
+};
 
 type MonthlyActivity = {
     id: string;
@@ -65,69 +70,45 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
- const relevantPeriods = React.useMemo(() => {
+  const relevantPeriods = React.useMemo(() => {
     if (!loggedInUser) return evaluationPeriods;
 
     if (loggedInUser.role === 'admin' || loggedInUser.id === userId) {
-      // Admins and users viewing their own reports see all periods
       return evaluationPeriods;
     }
     
-    // For appraisers, filter periods
     if (loggedInUser.role === 'appraiser') {
-      const myAppraiseeIds = associations
-        .filter(assoc => assoc.appraiserId === loggedInUser.id)
-        .map(assoc => assoc.appraiseeId);
-      
-      // Also include appraiser's own activities for period calculation
-      myAppraiseeIds.push(loggedInUser.id);
-  
-      const userActivities = activities.filter(act => myAppraiseeIds.includes(act.userId));
-      
-      const activeYears = new Set<number>();
-      userActivities.forEach(act => {
-          if (!act.startDate) return;
-          const startDate = (act.startDate as any).seconds 
-              ? (act.startDate as any).toDate() 
-              : new Date(act.startDate as any);
-          if (!isNaN(startDate.getTime())) {
-            activeYears.add(startDate.getFullYear());
+      // Find years where the logged-in appraiser was associated with THIS specific appraisee
+      const relevantYears = new Set<number>();
+      associations.forEach(assoc => {
+          if (assoc.appraiserId === loggedInUser.id && assoc.appraiseeId === userId) {
+              relevantYears.add(assoc.evaluationYear);
           }
-          
-          act.progressHistory.forEach(prog => {
-              activeYears.add(prog.year);
-          });
       });
       
-      const relevantEvalYears = new Set<number>();
-      activeYears.forEach(year => {
-          relevantEvalYears.add(year);
-          const activityDate = new Date(year, 11, 31); // Check end of year
-          const evalYearForActivity = (activityDate.getMonth() >= 10) ? activityDate.getFullYear() + 1 : activityDate.getFullYear();
-          relevantEvalYears.add(evalYearForActivity);
-      });
-  
+      // Appraisers should only see active periods they are associated with for the user
       return evaluationPeriods.filter(period => {
-          const periodNameMatch = period.name.match(/\d{4}/);
-          if (!periodNameMatch) return false;
-          const periodNameYear = parseInt(periodNameMatch[0]);
-          // Show only active and relevant periods to appraisers
-          return relevantEvalYears.has(periodNameYear) && period.status === 'Ativo';
+          const periodYear = getEvaluationYearFromPeriodName(period.name);
+          if (!periodYear) return false;
+          // Show only ACTIVE periods that are relevant to the association
+          return relevantYears.has(periodYear) && period.status === 'Ativo';
       });
     }
 
     return evaluationPeriods;
 
-  }, [loggedInUser, userId, activities, evaluationPeriods, associations]);
+  }, [loggedInUser, userId, associations, evaluationPeriods]);
 
 
   const selectedPeriod = React.useMemo(() => {
-    const periods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
-    if (!selectedPeriodId) {
-      const activePeriod = periods.find(p => p.status === 'Ativo');
-      return activePeriod ?? (periods.length > 0 ? periods[0] : null);
+    // If there are specific relevant periods, use them. Otherwise, default to all periods.
+    const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+    if (!selectedPeriodId && periodsToConsider.length > 0) {
+      const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
+      // Default to the active period, or the first one in the list if none are active
+      return activePeriod ?? periodsToConsider[0];
     }
-    return periods.find(p => p.id === selectedPeriodId) ?? null;
+    return periodsToConsider.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, relevantPeriods, evaluationPeriods]);
 
   React.useEffect(() => {
@@ -135,17 +116,20 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     setAppraisee(foundUser);
   }, [userId, users]);
 
+  // Effect to set the initial selected period
   React.useEffect(() => {
-    const periods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
-    if (periods.length > 0 && !selectedPeriodId) {
-      const activePeriod = periods.find(p => p.status === 'Ativo');
+    const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+    if (periodsToConsider.length > 0 && !selectedPeriodId) {
+      const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
-      } else if (periods[0]) {
-        setSelectedPeriodId(periods[0].id);
+      } else if (periodsToConsider[0]) {
+        // Fallback to the first available period if no active one is found
+        setSelectedPeriodId(periodsToConsider[0].id);
       }
     }
   }, [relevantPeriods, evaluationPeriods, selectedPeriodId]);
+
 
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
@@ -447,3 +431,5 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     </>
   );
 }
+
+    
