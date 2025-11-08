@@ -14,7 +14,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { useDataContext } from "@/context/DataContext";
 import { useToast } from "@/hooks/use-toast";
-import type { User } from "@/lib/types";
+import type { User, Association } from "@/lib/types";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Terminal } from "lucide-react";
@@ -31,8 +31,44 @@ async function sha256(message: string): Promise<string> {
   return hashHex;
 }
 
+const getEvaluationYearFromPeriodName = (name: string): number | null => {
+    const match = name.match(/\d{4}/);
+    return match ? parseInt(match[0]) : null;
+};
+
+const AssociationSelector = ({
+    periodName,
+    appraisers,
+    selectedAppraiser,
+    onAppraiserChange
+}: {
+    periodName: string;
+    appraisers: User[];
+    selectedAppraiser: string;
+    onAppraiserChange: (appraiserId: string) => void;
+}) => {
+    return (
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+            <Label htmlFor={`appraiser-select-${periodName}`}>{periodName}</Label>
+            <Select value={selectedAppraiser} onValueChange={onAppraiserChange}>
+                <SelectTrigger id={`appraiser-select-${periodName}`}>
+                    <SelectValue placeholder="Selecione um avaliador" />
+                </SelectTrigger>
+                <SelectContent>
+                    {appraisers.length > 0 ? appraisers.map(appraiser => (
+                        <SelectItem key={appraiser.id} value={appraiser.id}>
+                            {appraiser.postoGrad} {appraiser.nomeDeGuerra}
+                        </SelectItem>
+                    )) : <SelectItem value="none" disabled>Nenhum avaliador disponível</SelectItem>}
+                </SelectContent>
+            </Select>
+        </div>
+    );
+};
+
+
 export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string }) {
-  const { users, updateUser, associations, addAssociation, updateAssociation } = useDataContext();
+  const { users, updateUser, associations, addAssociation, updateAssociation, evaluationPeriods } = useDataContext();
   const { toast } = useToast();
   const router = useRouter();
   
@@ -49,7 +85,12 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
   const [confirmPassword, setConfirmPassword] = React.useState('');
   
   const [appraisers, setAppraisers] = React.useState<User[]>([]);
-  const [selectedAppraiser, setSelectedAppraiser] = React.useState<string>('');
+  const [associationForCurrentPeriod, setAssociationForCurrentPeriod] = React.useState<Partial<Association>>({});
+  const [associationForNextPeriod, setAssociationForNextPeriod] = React.useState<Partial<Association>>({});
+
+  const [currentEvalPeriod, setCurrentEvalPeriod] = React.useState<{ name: string, year: number } | null>(null);
+  const [nextEvalPeriod, setNextEvalPeriod] = React.useState<{ name: string, year: number } | null>(null);
+
 
   React.useEffect(() => {
     const user = users.find(u => u.id === loggedInUserId);
@@ -64,13 +105,28 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
       if (user.role === 'appraisee') {
         const availableAppraisers = users.filter(u => u.role === 'appraiser' && u.status === 'Ativo');
         setAppraisers(availableAppraisers);
-        const currentAssociation = associations.find(a => a.appraiseeId === user.id);
-        if (currentAssociation) {
-            setSelectedAppraiser(currentAssociation.appraiserId);
+
+        const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+        if (activePeriod) {
+            const year = getEvaluationYearFromPeriodName(activePeriod.name);
+            if(year) {
+                setCurrentEvalPeriod({ name: activePeriod.name, year });
+                const currentAssociation = associations.find(a => a.appraiseeId === user.id && a.evaluationYear === year);
+                setAssociationForCurrentPeriod(currentAssociation || { appraiseeId: user.id, evaluationYear: year });
+
+                // Find next period
+                const nextYear = year + 1;
+                const nextPeriod = evaluationPeriods.find(p => getEvaluationYearFromPeriodName(p.name) === nextYear);
+                if (nextPeriod) {
+                    setNextEvalPeriod({ name: nextPeriod.name, year: nextYear });
+                    const nextAssociation = associations.find(a => a.appraiseeId === user.id && a.evaluationYear === nextYear);
+                    setAssociationForNextPeriod(nextAssociation || { appraiseeId: user.id, evaluationYear: nextYear });
+                }
+            }
         }
       }
     }
-  }, [loggedInUserId, users, associations]);
+  }, [loggedInUserId, users, associations, evaluationPeriods]);
 
   const translateRole = (role: User['role']) => {
     const roles: Record<User['role'], string> = {
@@ -115,17 +171,15 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
 
     await updateUser(currentUser.id, updatedData);
     
-    // Handle Appraiser Association update
-    if (currentUser.role === 'appraisee' && selectedAppraiser) {
-        const currentAssociation = associations.find(a => a.appraiseeId === currentUser.id);
-        if (currentAssociation) {
-            // If association exists and appraiser is different, update it
-            if (currentAssociation.appraiserId !== selectedAppraiser) {
-                await updateAssociation(currentAssociation.id, { appraiseeId: currentUser.id, appraiserId: selectedAppraiser });
+    // Handle Association updates
+    const associationsToSave = [associationForCurrentPeriod, associationForNextPeriod];
+    for (const assoc of associationsToSave) {
+        if (assoc.appraiserId && assoc.evaluationYear && assoc.appraiseeId) {
+            if (assoc.id) { // Existing association, update it
+                await updateAssociation(assoc.id, assoc);
+            } else { // New association, create it
+                await addAssociation(assoc as Omit<Association, 'id'>);
             }
-        } else {
-            // If no association exists, create a new one
-            await addAssociation({ appraiseeId: currentUser.id, appraiserId: selectedAppraiser });
         }
     }
 
@@ -305,27 +359,28 @@ export default function ProfilePage({ loggedInUserId }: { loggedInUserId: string
                 <CardHeader>
                     <CardTitle>Avaliador Responsável</CardTitle>
                     <CardDescription>
-                    Selecione o avaliador responsável por acompanhar suas atividades.
+                        Defina o avaliador responsável para o período de avaliação atual e para o próximo.
                     </CardDescription>
                 </CardHeader>
                 <CardContent className="space-y-4">
-                    <div className="space-y-2">
-                        <Label htmlFor="appraiser-select">Avaliador</Label>
-                        <Select value={selectedAppraiser} onValueChange={setSelectedAppraiser}>
-                            <SelectTrigger id="appraiser-select">
-                                <SelectValue placeholder="Selecione um avaliador" />
-                            </SelectTrigger>
-                            <SelectContent>
-                                {appraisers.length > 0 ? appraisers.map(appraiser => (
-                                    <SelectItem key={appraiser.id} value={appraiser.id}>
-                                        {appraiser.postoGrad} {appraiser.nomeDeGuerra}
-                                    </SelectItem>
-                                )) : <SelectItem value="none" disabled>Nenhum avaliador disponível</SelectItem>}
-                            </SelectContent>
-                        </Select>
-                    </div>
+                    {currentEvalPeriod && (
+                        <AssociationSelector 
+                            periodName={currentEvalPeriod.name}
+                            appraisers={appraisers}
+                            selectedAppraiser={associationForCurrentPeriod.appraiserId || ''}
+                            onAppraiserChange={(appraiserId) => setAssociationForCurrentPeriod(prev => ({...prev, appraiserId}))}
+                        />
+                    )}
+                    {nextEvalPeriod && (
+                         <AssociationSelector 
+                            periodName={nextEvalPeriod.name}
+                            appraisers={appraisers}
+                            selectedAppraiser={associationForNextPeriod.appraiserId || ''}
+                            onAppraiserChange={(appraiserId) => setAssociationForNextPeriod(prev => ({...prev, appraiserId}))}
+                        />
+                    )}
                      <div className="flex justify-end pt-2 border-t">
-                        <Button onClick={handleUpdateProfile}>Salvar Alterações</Button>
+                        <Button onClick={handleUpdateProfile}>Salvar Associações</Button>
                     </div>
                 </CardContent>
              </Card>
