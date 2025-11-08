@@ -1,4 +1,5 @@
 
+
 "use client";
 
 import * as React from 'react';
@@ -59,11 +60,11 @@ type MonthlyActivity = {
     originalActivity: Activity;
 };
 
-export function AppraiseeDetailView({ userId }: { userId: string }) {
+export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: string, initialPeriodId?: string }) {
   const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
-  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>('');
+  const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>(initialPeriodId || '');
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
   
@@ -72,24 +73,24 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
   const relevantPeriods = React.useMemo(() => {
     if (!loggedInUser) return evaluationPeriods;
-
     if (loggedInUser.role === 'admin' || loggedInUser.id === userId) {
       return evaluationPeriods;
     }
     
     if (loggedInUser.role === 'appraiser') {
-      const relevantYears = new Set<number>();
-      associations.forEach(assoc => {
-          if (assoc.appraiserId === loggedInUser.id && assoc.appraiseeId === userId) {
-              relevantYears.add(assoc.evaluationYear);
-          }
-      });
-      
-      return evaluationPeriods.filter(period => {
-          const periodYear = getEvaluationYearFromPeriodName(period.name);
-          if (!periodYear) return false;
-          return relevantYears.has(periodYear);
-      });
+       const relevantYears = new Set<number>();
+        associations.forEach(assoc => {
+            if (assoc.appraiserId === loggedInUser.id && assoc.appraiseeId === userId) {
+                relevantYears.add(assoc.evaluationYear);
+            }
+        });
+
+        return evaluationPeriods.filter(period => {
+            const periodYear = getEvaluationYearFromPeriodName(period.name);
+            if (!periodYear) return false;
+            // Show only active periods for the relevant years
+            return relevantYears.has(periodYear) && period.status === 'Ativo';
+        });
     }
 
     return evaluationPeriods;
@@ -112,6 +113,10 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   }, [userId, users]);
 
   React.useEffect(() => {
+    if (initialPeriodId) {
+        setSelectedPeriodId(initialPeriodId);
+        return;
+    }
     const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
     if (periodsToConsider.length > 0 && !selectedPeriodId) {
       const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
@@ -121,7 +126,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         setSelectedPeriodId(periodsToConsider[0].id);
       }
     }
-  }, [relevantPeriods, evaluationPeriods, selectedPeriodId]);
+  }, [relevantPeriods, evaluationPeriods, selectedPeriodId, initialPeriodId]);
 
 
   const monthlyActivities = React.useMemo(() => {
@@ -240,10 +245,9 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
         const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
         pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
-        yPos += 10;
         
         pdf.autoTable({
-            startY: yPos,
+            startY: yPos + 5,
             head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
             body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
             theme: 'grid',
@@ -251,6 +255,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             headStyles: { fillColor: [220, 220, 220], textColor: 0 },
         });
 
+        // Footer
         const pageCount = (pdf as any).internal.getNumberOfPages();
         pdf.setFontSize(8);
         pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
@@ -272,10 +277,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                 data.cell.styles.halign = 'center';
             }
         },
-        willDrawPage: function(data) {
-            pageContent(data);
-            data.settings.margin.top = pdf.lastAutoTable.finalY + 5;
-        },
+        willDrawPage: pageContent,
         margin: { top: 15 } 
     });
 
@@ -346,7 +348,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
+                <Select value={selectedPeriod?.id || ''} onValueChange={handlePeriodChange}>
                   <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
