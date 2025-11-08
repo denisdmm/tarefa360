@@ -72,41 +72,36 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const relevantPeriods = React.useMemo(() => {
+  const displayPeriods = React.useMemo(() => {
     return evaluationPeriods;
   }, [evaluationPeriods]);
 
 
   const selectedPeriod = React.useMemo(() => {
-    const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
-    if (!selectedPeriodId && periodsToConsider.length > 0) {
-      const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
-      return activePeriod ?? periodsToConsider[0];
-    }
-    return periodsToConsider.find(p => p.id === selectedPeriodId) ?? null;
-  }, [selectedPeriodId, relevantPeriods, evaluationPeriods]);
+    return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
+  }, [selectedPeriodId, displayPeriods]);
 
-  React.useEffect(() => {
-    const foundUser = users.find(u => u.id === userId) || null;
-    setAppraisee(foundUser);
-  }, [userId, users]);
 
   React.useEffect(() => {
     if (initialPeriodId) {
         setSelectedPeriodId(initialPeriodId);
         return;
     }
-    const periodsToConsider = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
-    if (periodsToConsider.length > 0 && !selectedPeriodId) {
-      const activePeriod = periodsToConsider.find(p => p.status === 'Ativo');
+    if (displayPeriods.length > 0 && !selectedPeriodId) {
+      const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
-      } else if (periodsToConsider[0]) {
-        setSelectedPeriodId(periodsToConsider[0].id);
+      } else if (displayPeriods[0]) {
+        setSelectedPeriodId(displayPeriods[0].id);
       }
     }
-  }, [relevantPeriods, evaluationPeriods, selectedPeriodId, initialPeriodId]);
+  }, [displayPeriods, selectedPeriodId, initialPeriodId]);
 
+
+  React.useEffect(() => {
+    const foundUser = users.find(u => u.id === userId) || null;
+    setAppraisee(foundUser);
+  }, [userId, users]);
 
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
@@ -288,7 +283,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   }
   
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
-  const displayPeriods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
   const periodYear = selectedPeriod ? getEvaluationYearFromPeriodName(selectedPeriod.name) : '';
 
 
@@ -330,7 +324,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedPeriod?.id || ''} onValueChange={handlePeriodChange}>
+                <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
                   <SelectTrigger className="w-full sm:w-[200px]">
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
