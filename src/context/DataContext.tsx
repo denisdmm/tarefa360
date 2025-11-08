@@ -374,10 +374,9 @@ export const DataProvider = ({ children }: { children: React.ReactNode }) => {
         try {
             const now = new Date();
             const currentYear = now.getFullYear();
-            const currentMonth = now.getMonth(); // 0-11
     
             // Define current and next evaluation years
-            const currentEvalYear = (currentMonth >= 10) ? currentYear + 1 : currentYear; // Nov/Dec belongs to next eval year
+            const currentEvalYear = currentYear;
             const nextEvalYear = currentEvalYear + 1;
     
             const periodsToEnsure = [
