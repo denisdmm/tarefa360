@@ -37,7 +37,6 @@ import jsPDF from 'jspdf';
 import html2canvas from 'html2canvas';
 import { Dialog } from '@/components/ui/dialog';
 import { ActivityForm } from '@/app/shared/ActivityForm';
-import { cn } from '@/lib/utils';
 import { useRouter } from 'next/navigation';
 
 type MonthlyActivity = {
@@ -46,12 +45,9 @@ type MonthlyActivity = {
     description: string;
     totalPercentage: number;
     comments: string[];
-    // Include the original activity for the modal
     originalActivity: Activity;
 };
 
-// This is a shared component to display the detail view for an appraisee.
-// It can be used by the appraiser (viewing someone else) or the appraisee (viewing their own report).
 export function AppraiseeDetailView({ userId }: { userId: string }) {
   const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
   const router = useRouter();
@@ -60,7 +56,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>('');
   const [monthFilter, setMonthFilter] = React.useState('all');
   const [isGeneratingPdf, setIsGeneratingPdf] = React.useState(false);
-  const [showPdfPreview, setShowPdfPreview] = React.useState(false);
   
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
@@ -76,13 +71,12 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   }, [userId, users]);
 
   React.useEffect(() => {
-    // Set the default selected period to the active one on initial load
     if (evaluationPeriods.length > 0 && !selectedPeriodId) {
       const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
       } else if (evaluationPeriods[0]) {
-        setSelectedPeriodId(evaluationPeriods[0].id); // Fallback to the first one if none are active
+        setSelectedPeriodId(evaluationPeriods[0].id);
       }
     }
   }, [evaluationPeriods, selectedPeriodId]);
@@ -92,21 +86,17 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
     const userActivities = activities.filter(a => {
         if (a.userId !== appraisee.id) return false;
-
         const activityStartDate = (a.startDate as any).seconds 
             ? (a.startDate as any).toDate() 
             : new Date(a.startDate as any);
-
         const periodInterval = {
             start: new Date(selectedPeriod.startDate as any),
             end: new Date(selectedPeriod.endDate as any),
         };
-
         return isWithinInterval(activityStartDate, periodInterval);
     });
 
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
-
     const periodInterval = {
       start: new Date(selectedPeriod.startDate as any),
       end: new Date(selectedPeriod.endDate as any),
@@ -117,11 +107,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         const progressDate = new Date(progress.year, progress.month - 1);
         if (isWithinInterval(progressDate, periodInterval)) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
-          
-          if (!monthlyData[monthYearKey]) {
-              monthlyData[monthYearKey] = {};
-          }
-          
+          if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = {};
           if (!monthlyData[monthYearKey][activity.id]) {
             monthlyData[monthYearKey][activity.id] = {
                 id: activity.id,
@@ -132,12 +118,8 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                 originalActivity: activity
             };
           }
-          
-          // Use latest percentage for the month, not sum
           monthlyData[monthYearKey][activity.id].totalPercentage = progress.percentage;
-          if (progress.comment) {
-            monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
-          }
+          if (progress.comment) monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
         }
       });
     });
@@ -146,106 +128,152 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     for (const monthKey in monthlyData) {
         finalMonthlyActivities[monthKey] = Object.values(monthlyData[monthKey]);
     }
-    
     return finalMonthlyActivities;
   }, [activities, appraisee, selectedPeriod]);
 
   const filteredMonths = React.useMemo(() => {
-    const allKeys = Object.keys(monthlyActivities).sort().reverse(); // Sort descending for on-screen view
-    if (monthFilter === 'all') {
-      return allKeys;
-    }
+    const allKeys = Object.keys(monthlyActivities).sort().reverse();
+    if (monthFilter === 'all') return allKeys;
     return allKeys.filter(key => key === monthFilter);
   }, [monthlyActivities, monthFilter]);
   
   const allMonthsOptions = React.useMemo(() => {
-      if (!selectedPeriod) return [];
-      return Object.keys(monthlyActivities).map(key => {
-        const [year, month] = key.split('-').map(Number);
-        return {
-            value: key,
-            label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
-        };
-      }).sort((a,b) => b.value.localeCompare(a.value)); // Descending for the dropdown
+    if (!selectedPeriod) return [];
+    return Object.keys(monthlyActivities).map(key => {
+      const [year, month] = key.split('-').map(Number);
+      return {
+          value: key,
+          label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
+      };
+    }).sort((a,b) => b.value.localeCompare(a.value));
   }, [monthlyActivities, selectedPeriod]);
 
-
-  const pdfMonths = React.useMemo(() => {
-    if (!selectedPeriod) return [];
-    
-    const monthsInPeriod = eachMonthOfInterval({
-        start: startOfMonth(new Date(selectedPeriod.startDate as any)),
-        end: startOfMonth(new Date(selectedPeriod.endDate as any))
-    });
-    
-    // Sort ascending for PDF
-    const monthKeys = monthsInPeriod.map(date => format(date, 'yyyy-MM')).sort((a, b) => a.localeCompare(b));
-
-    if (monthFilter === 'all') {
-      return monthKeys; 
-    }
-    
-    return monthKeys.filter(key => key === monthFilter);
-  }, [selectedPeriod, monthFilter]);
-
-
   const handleDownloadPdf = async () => {
-    const reportElement = document.getElementById('print-content');
-    if (!reportElement) return;
-
+    if (!appraisee || !selectedPeriod) return;
     setIsGeneratingPdf(true);
 
-    const wasHidden = reportElement.classList.contains('hidden');
-    if (wasHidden) {
-        reportElement.classList.remove('hidden');
-    }
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    const pageHeight = pdf.internal.pageSize.getHeight();
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const margin = 15;
+    let yPos = margin;
+    let pageNum = 1;
 
-    // A4 page dimensions in mm
-    const a4WidthMm = 210;
-    const a4HeightMm = 297;
+    const addHeader = (pdfInstance: jsPDF, period: EvaluationPeriod) => {
+        pdfInstance.setFontSize(12);
+        pdfInstance.setFont('helvetica', 'bold');
+        pdfInstance.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
+        yPos += 8;
+
+        pdfInstance.setFontSize(10);
+        pdfInstance.setFont('helvetica', 'normal');
+        pdfInstance.text(`Período de Avaliação: ${period.name}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 10;
+
+        const headerData = [
+            ["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"],
+            [`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]
+        ];
+
+        (pdf as any).autoTable({
+            startY: yPos,
+            head: headerData.slice(0, 1),
+            body: headerData.slice(1),
+            theme: 'grid',
+            styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
+            headStyles: { fillColor: [220, 220, 220], textColor: 0 },
+            didDrawPage: (data: any) => { yPos = data.cursor.y; }
+        });
+        yPos += 5; 
+    };
+
+    const addFooter = (pdfInstance: jsPDF, currentPage: number, totalPages: number) => {
+        pdfInstance.setFontSize(8);
+        pdfInstance.text(`Página ${currentPage} de ${totalPages}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
+    };
+
+    addHeader(pdf, selectedPeriod);
+
+    const monthsToRender = (monthFilter === 'all'
+      ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
+      : [monthFilter]
+    ).filter(key => monthlyActivities[key] && monthlyActivities[key].length > 0);
     
-    const canvas = await html2canvas(reportElement, {
-        scale: 2, // Higher scale for better quality
-        useCORS: true,
-        windowWidth: reportElement.scrollWidth,
-        windowHeight: reportElement.scrollHeight
-    });
+    // Pre-calculate total pages
+    const tempPdf = new jsPDF('p', 'mm', 'a4');
+    let tempYPos = yPos;
+    let totalPages = 1;
 
-    if (wasHidden) {
-        reportElement.classList.add('hidden');
+    for (const monthKey of monthsToRender) {
+      const [year, month] = monthKey.split('-').map(Number);
+      const monthTitle = format(new Date(year, month - 1), "MMMM 'de' yyyy", { locale: ptBR });
+      const activitiesForMonth = monthlyActivities[monthKey];
+
+      const bodyData = activitiesForMonth.map(activity => [
+          `${activity.totalPercentage}%`,
+          `${activity.title.toUpperCase()} - ${activity.comments.join('; ') || 'Nenhum comentário.'}`
+      ]);
+
+      (tempPdf as any).autoTable({
+          startY: tempYPos,
+          head: [[{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230] } }]],
+          body: bodyData,
+          theme: 'grid',
+          columnStyles: { 0: { cellWidth: 25, halign: 'center' } },
+          didDrawPage: (data: any) => {
+              if (data.pageNumber > totalPages) {
+                  totalPages = data.pageNumber;
+              }
+              tempYPos = data.cursor.y;
+          },
+      });
+      tempYPos = (tempPdf as any).lastAutoTable.finalY + 2;
     }
+    // End of pre-calculation
 
-    const imgData = canvas.toDataURL('image/png');
-    const imgWidth = canvas.width;
-    const imgHeight = canvas.height;
+    for (const monthKey of monthsToRender) {
+        const [year, month] = monthKey.split('-').map(Number);
+        const monthTitle = format(new Date(year, month - 1), "MMMM 'de' yyyy", { locale: ptBR });
+        const activitiesForMonth = monthlyActivities[monthKey];
 
-    // Convert canvas dimensions to mm
-    const imgWidthMm = (imgWidth / canvas.width) * a4WidthMm;
-    const imgHeightMm = (imgHeight / canvas.width) * a4WidthMm;
-
-    const pdf = new jsPDF({
-        orientation: 'p',
-        unit: 'mm',
-        format: 'a4',
-    });
-
-    let position = 0;
-    const pageHeightMm = a4HeightMm - 20; // A4 height with margin
-
-    pdf.addImage(imgData, 'PNG', 10, position, imgWidthMm - 20, imgHeightMm);
-    let heightLeft = imgHeightMm;
-
-    while (heightLeft > pageHeightMm) {
-        position = heightLeft - imgHeightMm;
-        pdf.addPage();
-        pdf.addImage(imgData, 'PNG', 10, position, imgWidthMm - 20, imgHeightMm);
-        heightLeft -= pageHeightMm;
+        const bodyData = activitiesForMonth.map(activity => [
+            `${activity.totalPercentage}%`,
+            `${activity.title.toUpperCase()} - ${activity.comments.join('; ') || 'Nenhum comentário.'}`
+        ]);
+        
+        (pdf as any).autoTable({
+            startY: yPos,
+            head: [[{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230], textColor: 0, fontStyle: 'bold' } }]],
+            body: bodyData,
+            theme: 'grid',
+            columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
+            willDrawPage: (data: any) => {
+               addFooter(pdf, data.pageNumber, totalPages);
+            },
+            didDrawPage: (data: any) => {
+                if (data.pageNumber > pageNum) {
+                    pageNum = data.pageNumber;
+                    yPos = margin;
+                    addHeader(pdf, selectedPeriod);
+                    yPos = (pdf as any).lastAutoTable.finalY;
+                } else {
+                   yPos = data.cursor.y;
+                }
+            }
+        });
+        yPos = (pdf as any).lastAutoTable.finalY + 2;
     }
-
-    pdf.save(`relatorio-${appraisee?.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
     
+    // Add footer to the last page if it wasn't added
+    if((pdf as any).internal.getCurrentPageInfo().pageNumber === totalPages){
+       addFooter(pdf, totalPages, totalPages);
+    }
+
+
+    pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
     setIsGeneratingPdf(false);
   };
+
 
   const handleOpenModal = (activity: Activity) => {
     setSelectedActivity(activity);
@@ -259,15 +287,13 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
   const handlePeriodChange = (periodId: string) => {
     setSelectedPeriodId(periodId);
-    setMonthFilter('all'); // Reset month filter when period changes
+    setMonthFilter('all');
   }
-
 
   if (!appraisee || !loggedInUser || !selectedPeriod) {
     return <div className="p-6">Carregando dados do relatório...</div>;
   }
   
-  const canGoBack = loggedInUser.role === 'appraiser';
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
 
   return (
@@ -276,7 +302,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
         {isModalOpen && selectedActivity && appraisee && (
             <ActivityForm
               activity={selectedActivity}
-              onSave={() => Promise.resolve()} // No-op for read-only
+              onSave={() => Promise.resolve()}
               onClose={handleCloseModal}
               currentUserId={appraisee.id}
               isReadOnly={true}
@@ -291,7 +317,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
               <Button variant="ghost" asChild className="mb-2 -ml-4">
                  <Link href={backLink}>
                     <ArrowLeft className="mr-2 h-4 w-4" /> 
-                    {canGoBack ? 'Voltar ao Painel' : 'Voltar aos Relatórios'}
+                    Voltar
                  </Link>
               </Button>
               <h1 className="text-3xl font-bold font-headline">Relatório de Atividades</h1>
@@ -324,10 +350,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={() => setShowPdfPreview(!showPdfPreview)} variant="outline" className="w-full sm:w-auto">
-                <Eye className="mr-2 h-4 w-4" />
-                {showPdfPreview ? 'Ocultar Mock' : 'Mostrar Mock do PDF'}
-              </Button>
               <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="w-full sm:w-auto">
                 <Printer className="mr-2 h-4 w-4" />
                 {isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
@@ -389,66 +411,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             </div>
           )}
         </main>
-      </div>
-
-      {/* Content for PDF Generation */}
-      <div id="print-content" className={cn("print:block p-8 bg-white", !showPdfPreview && "hidden")} style={{ fontFamily: '"Times New Roman", Times, serif', fontSize: '12pt', color: 'black' }}>
-          <div className="text-center mb-6">
-              <h1 className="text-xl font-bold uppercase">Ficha de Registro de Trabalhos Realizados</h1>
-          </div>
-          
-          <table className="w-full border-collapse border border-black mb-6">
-              <tbody>
-                  <tr>
-                      <td className="border border-black p-2 font-bold text-center uppercase">Posto/Grad. e Nome do Avaliado</td>
-                      <td className="border border-black p-2 font-bold text-center uppercase">Cargo/Função</td>
-                  </tr>
-                  <tr>
-                      <td className="border border-black p-2 text-center uppercase">{appraisee.postoGrad} {appraisee.name}</td>
-                      <td className="border border-black p-2 text-center uppercase">{appraisee.jobTitle}</td>
-                  </tr>
-              </tbody>
-          </table>
-
-          <div className="border border-black">
-              <div className="text-center p-2 border-b border-black">
-                  <p className="font-bold uppercase">Principais Atividades Desenvolvidas no Período de Avaliação</p>
-              </div>
-              {selectedPeriod && (
-                  <div className="text-center p-1 border-b border-black font-bold uppercase">
-                      <span>{format(new Date(selectedPeriod.startDate as any), 'MMM yyyy', {locale: ptBR})}</span> a <span>{format(new Date(selectedPeriod.endDate as any), 'MMM yyyy', {locale: ptBR})}</span>
-                  </div>
-              )}
-
-              {pdfMonths.map(monthKey => {
-                const activitiesForMonth = monthlyActivities[monthKey];
-                if (!activitiesForMonth || activitiesForMonth.length === 0) {
-                    return null; // Omit month if no activities
-                }
-
-                const [year, month] = monthKey.split('-').map(Number);
-                return (
-                  <div key={`${monthKey}-pdf`}>
-                    <div className="text-center p-1 border-b border-black font-bold bg-gray-200 uppercase">
-                      {format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})}
-                    </div>
-                    <table className="w-full" style={{borderCollapse: 'collapse'}}>
-                    <tbody>
-                    {activitiesForMonth.map(activity => (
-                        <tr key={`${activity.id}-${monthKey}-pdf`}>
-                        <td className="w-[15%] p-2 pb-5 border border-black text-center uppercase">{activity.totalPercentage}%</td>
-                        <td className="p-2 pb-5 border border-black text-justify uppercase">{activity.title} - <i>{activity.comments.join('; ') || 'Nenhum comentário.'}</i></td>
-                        </tr>
-                    ))}
-                    </tbody>
-                    </table>
-                  </div>
-                )
-              })}
-              {pdfMonths.every(monthKey => !monthlyActivities[monthKey] || monthlyActivities[monthKey].length === 0) && (
-                  <div className="text-center p-4 uppercase">Nenhuma atividade registrada para o período.</div>
-              )}
-          </div>
       </div>
     </>
   );
