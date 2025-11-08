@@ -55,7 +55,7 @@ type MonthlyActivity = {
 };
 
 export function AppraiseeDetailView({ userId }: { userId: string }) {
-  const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
+  const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>('');
@@ -65,13 +65,55 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const selectedPeriod = React.useMemo(() => {
-    if (!selectedPeriodId) {
-      const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
-      return activePeriod ?? (evaluationPeriods.length > 0 ? evaluationPeriods[0] : null);
+  const relevantPeriods = React.useMemo(() => {
+    if (!loggedInUser || loggedInUser.role !== 'appraiser') {
+      return evaluationPeriods;
     }
-    return evaluationPeriods.find(p => p.id === selectedPeriodId) ?? null;
-  }, [selectedPeriodId, evaluationPeriods]);
+
+    const myAppraiseeIds = associations
+      .filter(assoc => assoc.appraiserId === loggedInUser.id)
+      .map(assoc => assoc.appraiseeId);
+    
+    myAppraiseeIds.push(loggedInUser.id); // Include appraiser's own activities
+
+    const userActivities = activities.filter(act => myAppraiseeIds.includes(act.userId));
+    
+    const activeYears = new Set<number>();
+    userActivities.forEach(act => {
+        const startDate = (act.startDate as any).seconds 
+            ? (act.startDate as any).toDate() 
+            : new Date(act.startDate as any);
+        activeYears.add(startDate.getFullYear());
+        
+        act.progressHistory.forEach(prog => {
+            activeYears.add(prog.year);
+        });
+    });
+    
+    // An evaluation period (e.g., "Periodo 2024") runs from Nov 2023 to Oct 2024.
+    // So, an activity in 2023 could belong to the 2024 period.
+    const relevantEvalYears = new Set<number>();
+    activeYears.forEach(year => {
+        relevantEvalYears.add(year);
+        relevantEvalYears.add(year + 1); // An activity in Nov/Dec belongs to the next eval year
+    });
+
+    return evaluationPeriods.filter(period => {
+        const periodNameYear = parseInt(period.name.split(' ')[3]);
+        return relevantEvalYears.has(periodNameYear);
+    });
+
+  }, [loggedInUser, activities, evaluationPeriods, associations]);
+
+
+  const selectedPeriod = React.useMemo(() => {
+    const periods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+    if (!selectedPeriodId) {
+      const activePeriod = periods.find(p => p.status === 'Ativo');
+      return activePeriod ?? (periods.length > 0 ? periods[0] : null);
+    }
+    return periods.find(p => p.id === selectedPeriodId) ?? null;
+  }, [selectedPeriodId, relevantPeriods, evaluationPeriods]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
@@ -79,15 +121,16 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   }, [userId, users]);
 
   React.useEffect(() => {
-    if (evaluationPeriods.length > 0 && !selectedPeriodId) {
-      const activePeriod = evaluationPeriods.find(p => p.status === 'Ativo');
+    const periods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+    if (periods.length > 0 && !selectedPeriodId) {
+      const activePeriod = periods.find(p => p.status === 'Ativo');
       if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
-      } else if (evaluationPeriods[0]) {
-        setSelectedPeriodId(evaluationPeriods[0].id);
+      } else if (periods[0]) {
+        setSelectedPeriodId(periods[0].id);
       }
     }
-  }, [evaluationPeriods, selectedPeriodId]);
+  }, [relevantPeriods, evaluationPeriods, selectedPeriodId]);
 
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
@@ -266,6 +309,8 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   }
   
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
+  const displayPeriods = relevantPeriods.length > 0 ? relevantPeriods : evaluationPeriods;
+
 
   return (
     <>
@@ -308,7 +353,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
                   <SelectContent>
-                    {evaluationPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
+                    {displayPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
                   </SelectContent>
                 </Select>
                  <Select value={monthFilter} onValueChange={setMonthFilter}>
