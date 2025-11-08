@@ -76,20 +76,17 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     return evaluationPeriods;
   }, [evaluationPeriods]);
 
-
   const selectedPeriod = React.useMemo(() => {
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, displayPeriods]);
 
 
   React.useEffect(() => {
-    if (initialPeriodId) {
-        setSelectedPeriodId(initialPeriodId);
-        return;
-    }
     if (displayPeriods.length > 0 && !selectedPeriodId) {
       const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
-      if (activePeriod) {
+      if (initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)) {
+        setSelectedPeriodId(initialPeriodId);
+      } else if (activePeriod) {
         setSelectedPeriodId(activePeriod.id);
       } else if (displayPeriods[0]) {
         setSelectedPeriodId(displayPeriods[0].id);
