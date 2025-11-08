@@ -90,7 +90,21 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
 
-    const userActivities = activities.filter(a => a.userId === appraisee.id);
+    const userActivities = activities.filter(a => {
+        if (a.userId !== appraisee.id) return false;
+
+        const activityStartDate = (a.startDate as any).seconds 
+            ? (a.startDate as any).toDate() 
+            : new Date(a.startDate as any);
+
+        const periodInterval = {
+            start: new Date(selectedPeriod.startDate as any),
+            end: new Date(selectedPeriod.endDate as any),
+        };
+
+        return isWithinInterval(activityStartDate, periodInterval);
+    });
+
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     const periodInterval = {
@@ -99,15 +113,6 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     };
 
     userActivities.forEach(activity => {
-      // Ensure the activity itself started within the evaluation period
-      const activityStartDate = (activity.startDate as any).seconds 
-          ? (activity.startDate as any).toDate() 
-          : new Date(activity.startDate as any);
-          
-      if (!isWithinInterval(activityStartDate, periodInterval)) {
-          return; // Skip this activity if it's not in the current period
-      }
-
       activity.progressHistory.forEach(progress => {
         const progressDate = new Date(progress.year, progress.month - 1);
         if (isWithinInterval(progressDate, periodInterval)) {
@@ -154,6 +159,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
   }, [monthlyActivities, monthFilter]);
   
   const allMonthsOptions = React.useMemo(() => {
+      if (!selectedPeriod) return [];
       return Object.keys(monthlyActivities).map(key => {
         const [year, month] = key.split('-').map(Number);
         return {
@@ -161,7 +167,7 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
             label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
         };
       }).sort((a,b) => b.value.localeCompare(a.value)); // Descending for the dropdown
-  }, [monthlyActivities]);
+  }, [monthlyActivities, selectedPeriod]);
 
 
   const pdfMonths = React.useMemo(() => {
@@ -189,31 +195,53 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
 
     setIsGeneratingPdf(true);
 
-    // Temporarily make it visible for capture if it was hidden
     const wasHidden = reportElement.classList.contains('hidden');
     if (wasHidden) {
         reportElement.classList.remove('hidden');
     }
+
+    // A4 page dimensions in mm
+    const a4WidthMm = 210;
+    const a4HeightMm = 297;
     
     const canvas = await html2canvas(reportElement, {
-      scale: 2,
-      useCORS: true,
+        scale: 2, // Higher scale for better quality
+        useCORS: true,
+        windowWidth: reportElement.scrollWidth,
+        windowHeight: reportElement.scrollHeight
     });
-    
+
     if (wasHidden) {
         reportElement.classList.add('hidden');
     }
 
     const imgData = canvas.toDataURL('image/png');
+    const imgWidth = canvas.width;
+    const imgHeight = canvas.height;
+
+    // Convert canvas dimensions to mm
+    const imgWidthMm = (imgWidth / canvas.width) * a4WidthMm;
+    const imgHeightMm = (imgHeight / canvas.width) * a4WidthMm;
+
     const pdf = new jsPDF({
-      orientation: 'p',
-      unit: 'mm',
-      format: 'a4',
+        orientation: 'p',
+        unit: 'mm',
+        format: 'a4',
     });
 
-    const pdfWidth = pdf.internal.pageSize.getWidth();
-    const pdfHeight = (canvas.height * pdfWidth) / canvas.width;
-    pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+    let position = 0;
+    const pageHeightMm = a4HeightMm - 20; // A4 height with margin
+
+    pdf.addImage(imgData, 'PNG', 10, position, imgWidthMm - 20, imgHeightMm);
+    let heightLeft = imgHeightMm;
+
+    while (heightLeft > pageHeightMm) {
+        position = heightLeft - imgHeightMm;
+        pdf.addPage();
+        pdf.addImage(imgData, 'PNG', 10, position, imgWidthMm - 20, imgHeightMm);
+        heightLeft -= pageHeightMm;
+    }
+
     pdf.save(`relatorio-${appraisee?.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
     
     setIsGeneratingPdf(false);
