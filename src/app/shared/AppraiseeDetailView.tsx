@@ -38,6 +38,13 @@ import 'jspdf-autotable';
 import { Dialog } from '@/components/ui/dialog';
 import { ActivityForm } from '@/app/shared/ActivityForm';
 
+declare module 'jspdf' {
+  interface jsPDF {
+    autoTable: (options: any) => jsPDF;
+    lastAutoTable: { finalY: number };
+  }
+}
+
 type MonthlyActivity = {
     id: string;
     title: string;
@@ -143,92 +150,93 @@ export function AppraiseeDetailView({ userId }: { userId: string }) {
     }).sort((a,b) => b.value.localeCompare(a.value));
   }, [monthlyActivities, selectedPeriod]);
 
+
   const handleDownloadPdf = async () => {
     if (!appraisee || !selectedPeriod) return;
     setIsGeneratingPdf(true);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
-    const pageHeight = pdf.internal.pageSize.getHeight();
     const pageWidth = pdf.internal.pageSize.getWidth();
     const margin = 15;
     let yPos = margin;
 
-    const addHeader = (pdfInstance: jsPDF, period: EvaluationPeriod) => {
-        yPos = margin;
-        pdfInstance.setFontSize(12);
-        pdfInstance.setFont('helvetica', 'bold');
-        pdfInstance.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
+    const addHeader = (doc: jsPDF, period: EvaluationPeriod) => {
+        doc.setFontSize(12);
+        doc.setFont('helvetica', 'bold');
+        doc.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
         yPos += 8;
 
-        pdfInstance.setFontSize(10);
-        pdfInstance.setFont('helvetica', 'normal');
-        pdfInstance.text(`Período de Avaliação: ${period.name}`, pageWidth / 2, yPos, { align: 'center' });
+        doc.setFontSize(10);
+        doc.setFont('helvetica', 'normal');
+        doc.text(`Período de Avaliação: ${period.name}`, pageWidth / 2, yPos, { align: 'center' });
         yPos += 10;
-
-        const headerData = [
-            ["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"],
-            [`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]
-        ];
-
-        (pdf as any).autoTable({
+        
+        doc.autoTable({
             startY: yPos,
-            head: headerData.slice(0, 1),
-            body: headerData.slice(1),
+            head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
+            body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
             theme: 'grid',
             styles: { halign: 'center', fontStyle: 'bold', fontSize: 9 },
             headStyles: { fillColor: [220, 220, 220], textColor: 0 },
         });
-        yPos = (pdf as any).lastAutoTable.finalY + 5; 
-    };
-
-    const addFooter = (pdfInstance: jsPDF) => {
-        const pageCount = (pdfInstance as any).internal.getNumberOfPages();
-        pdfInstance.setFontSize(8);
-        for (let i = 1; i <= pageCount; i++) {
-            pdfInstance.setPage(i);
-            pdfInstance.text(`Página ${i} de ${pageCount}`, pageWidth - margin, pageHeight - 10, { align: 'right' });
-        }
+        yPos = doc.lastAutoTable.finalY + 5;
     };
     
     addHeader(pdf, selectedPeriod);
-    
+
     const monthsToRender = (monthFilter === 'all'
       ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
       : [monthFilter]
     ).filter(key => monthlyActivities[key] && monthlyActivities[key].length > 0);
+    
+    let allRows: any[] = [];
+    if (monthsToRender.length > 0) {
+        monthsToRender.forEach(monthKey => {
+            const [year, month] = monthKey.split('-').map(Number);
+            const monthTitle = format(new Date(year, month - 1), "MMMM 'de' yyyy", { locale: ptBR });
+            
+            // Add month group header
+            allRows.push([{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230], textColor: 0, fontStyle: 'bold' } }]);
+            
+            const activitiesForMonth = monthlyActivities[monthKey];
+            activitiesForMonth.forEach(activity => {
+                 allRows.push([
+                    `${activity.totalPercentage}%`,
+                    `${activity.title.toUpperCase()} - ${activity.comments.join('; ') || 'Nenhum comentário.'}`
+                ]);
+            });
+        });
+    }
 
-    for (const monthKey of monthsToRender) {
-      const [year, month] = monthKey.split('-').map(Number);
-      const monthTitle = format(new Date(year, month - 1), "MMMM 'de' yyyy", { locale: ptBR });
-      const activitiesForMonth = monthlyActivities[monthKey];
-
-      const bodyData = activitiesForMonth.map(activity => [
-          `${activity.totalPercentage}%`,
-          `${activity.title.toUpperCase()} - ${activity.comments.join('; ') || 'Nenhum comentário.'}`
-      ]);
-      
-      const tableHeight = (pdf as any).lastAutoTable.finalY;
-      if (yPos + tableHeight + 25 > pageHeight) {
-          pdf.addPage();
-          addHeader(pdf, selectedPeriod);
-      }
-
-      (pdf as any).autoTable({
-          startY: yPos,
-          head: [[{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230], textColor: 0, fontStyle: 'bold' } }]],
-          body: bodyData,
-          theme: 'grid',
-          columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
-          didDrawPage: (data: any) => {
-            if (data.pageNumber > 1) {
-              addHeader(pdf, selectedPeriod);
+    if (allRows.length > 0) {
+        pdf.autoTable({
+            startY: yPos,
+            head: [['Progresso', 'Atividade e Comentários']],
+            body: allRows,
+            theme: 'grid',
+            headStyles: { fillColor: [220, 220, 220], textColor: 0, fontStyle: 'bold' },
+            columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
+            didDrawPage: (data) => {
+                // Redraw header on each new page
+                yPos = margin;
+                addHeader(pdf, selectedPeriod!);
+                
+                // Redraw table header
+                data.cursor.y = pdf.lastAutoTable.finalY;
             }
-          }
-      });
-      yPos = (pdf as any).lastAutoTable.finalY + 2;
+        });
+    } else {
+        pdf.setFontSize(10);
+        pdf.text('Nenhuma atividade registrada para o período.', margin, yPos);
     }
     
-    addFooter(pdf);
+    // Add page numbers
+    const pageCount = (pdf as any).internal.getNumberOfPages();
+    pdf.setFontSize(8);
+    for (let i = 1; i <= pageCount; i++) {
+        pdf.setPage(i);
+        pdf.text(`Página ${i} de ${pageCount}`, pageWidth - margin, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
+    }
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
     setIsGeneratingPdf(false);
