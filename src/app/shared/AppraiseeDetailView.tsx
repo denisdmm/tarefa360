@@ -61,7 +61,7 @@ type MonthlyActivity = {
 };
 
 export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: string, initialPeriodId?: string }) {
-  const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
+  const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>(initialPeriodId || '');
@@ -72,30 +72,8 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const relevantPeriods = React.useMemo(() => {
-    if (!loggedInUser) return evaluationPeriods;
-    if (loggedInUser.role === 'admin' || loggedInUser.id === userId) {
-      return evaluationPeriods;
-    }
-    
-    if (loggedInUser.role === 'appraiser') {
-       const relevantYears = new Set<number>();
-        associations.forEach(assoc => {
-            if (assoc.appraiserId === loggedInUser.id && assoc.appraiseeId === userId) {
-                relevantYears.add(assoc.evaluationYear);
-            }
-        });
-
-        return evaluationPeriods.filter(period => {
-            const periodYear = getEvaluationYearFromPeriodName(period.name);
-            if (!periodYear) return false;
-            // Show only active periods for the relevant years
-            return relevantYears.has(periodYear) && period.status === 'Ativo';
-        });
-    }
-
     return evaluationPeriods;
-
-  }, [loggedInUser, userId, associations, evaluationPeriods]);
+  }, [evaluationPeriods]);
 
 
   const selectedPeriod = React.useMemo(() => {
@@ -224,10 +202,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     }
 
     if (allRows.length === 0) {
-        pdf.text('Nenhuma atividade registrada para o período ou filtro selecionado.', 15, 15);
-        pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
-        setIsGeneratingPdf(false);
-        return;
+        allRows.push([{ content: 'Nenhuma atividade registrada para o período ou filtro selecionado.', colSpan: 2, styles: { halign: 'center' } }]);
     }
     
     const pageContent = (data: any) => {
@@ -245,9 +220,10 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
         const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
         const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
         pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
+        yPos += 5;
         
         pdf.autoTable({
-            startY: yPos + 5,
+            startY: yPos,
             head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
             body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
             theme: 'grid',
@@ -255,10 +231,14 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             headStyles: { fillColor: [220, 220, 220], textColor: 0 },
         });
 
+        yPos = pdf.lastAutoTable.finalY + 2;
+
         // Footer
         const pageCount = (pdf as any).internal.getNumberOfPages();
         pdf.setFontSize(8);
         pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
+
+        return yPos;
     };
 
 
@@ -278,7 +258,8 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             }
         },
         willDrawPage: pageContent,
-        margin: { top: 15 } 
+        startY: 50,
+        margin: { top: 15, right: 15, bottom: 15, left: 15 } 
     });
 
     pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
