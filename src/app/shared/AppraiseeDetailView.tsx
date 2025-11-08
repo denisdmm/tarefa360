@@ -62,7 +62,7 @@ type MonthlyActivity = {
 };
 
 export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: string, initialPeriodId?: string }) {
-  const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
+  const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>(initialPeriodId || '');
@@ -73,8 +73,22 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const displayPeriods = React.useMemo(() => {
+    if (loggedInUser?.role === 'appraiser' && loggedInUser.id !== userId) {
+      // Find years where the logged-in appraiser was associated with the viewed appraisee
+      const relevantYears = associations
+        .filter(a => a.appraiserId === loggedInUser.id && a.appraiseeId === userId)
+        .map(a => a.evaluationYear);
+      
+      const uniqueYears = [...new Set(relevantYears)];
+
+      return evaluationPeriods.filter(p => {
+        const periodYear = getEvaluationYearFromPeriodName(p.name);
+        return periodYear ? uniqueYears.includes(periodYear) : false;
+      });
+    }
+    // For appraisees viewing their own reports or admins, show all periods
     return evaluationPeriods;
-  }, [evaluationPeriods]);
+  }, [evaluationPeriods, loggedInUser, userId, associations]);
 
   const selectedPeriod = React.useMemo(() => {
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
