@@ -31,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -109,17 +109,18 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
     const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
     
-    const periodStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
-    const periodEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
+    const periodStart = startOfMonth(start);
+    const periodEnd = endOfMonth(end);
 
     const userActivities = activities.filter(a => a.userId === appraisee.id);
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
+        // Garantindo que progress.year e progress.month gerem uma data comparável
         const progressDate = new Date(progress.year, progress.month - 1, 15);
         
-        if (progressDate >= periodStart && progressDate <= periodEnd) {
+        if (isWithinInterval(progressDate, { start: periodStart, end: periodEnd })) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
           if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = {};
           
@@ -147,9 +148,12 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     });
 
     const finalMonthlyActivities: Record<string, MonthlyActivity[]> = {};
-    for (const monthKey in monthlyData) {
+    const sortedMonthKeys = Object.keys(monthlyData).sort().reverse();
+    
+    sortedMonthKeys.forEach(monthKey => {
         finalMonthlyActivities[monthKey] = Object.values(monthlyData[monthKey]);
-    }
+    });
+
     return finalMonthlyActivities;
   }, [activities, appraisee, selectedPeriod]);
 
@@ -160,7 +164,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   }, [monthlyActivities, monthFilter]);
   
   const allMonthsOptions = React.useMemo(() => {
-    if (!selectedPeriod) return [];
     return Object.keys(monthlyActivities).map(key => {
       const [year, month] = key.split('-').map(Number);
       return {
@@ -168,7 +171,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
           label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
       };
     }).sort((a,b) => b.value.localeCompare(a.value));
-  }, [monthlyActivities, selectedPeriod]);
+  }, [monthlyActivities]);
 
   const handleDownloadPdf = async () => {
     if (!appraisee || !selectedPeriod) return;
