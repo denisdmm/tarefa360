@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -32,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, isWithinInterval } from 'date-fns';
+import { format, startOfMonth, endOfMonth, isWithinInterval } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -73,41 +72,31 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
   const displayPeriods = React.useMemo(() => {
-    if (loggedInUser?.role === 'appraiser' && loggedInUser.id !== userId) {
-      // Find years where the logged-in appraiser was associated with the viewed appraisee
-      const relevantYears = associations
-        .filter(a => a.appraiserId === loggedInUser.id && a.appraiseeId === userId)
-        .map(a => a.evaluationYear);
-      
-      const uniqueYears = [...new Set(relevantYears)];
-
-      return evaluationPeriods.filter(p => {
-        const periodYear = getEvaluationYearFromPeriodName(p.name);
-        return periodYear ? uniqueYears.includes(periodYear) : false;
-      });
+    if (!loggedInUser || !evaluationPeriods.length) return [];
+    
+    if (loggedInUser.role === 'appraiser') {
+        const myAssocYears = associations
+            .filter(a => a.appraiserId === loggedInUser.id && a.appraiseeId === userId)
+            .map(a => a.evaluationYear);
+        
+        return evaluationPeriods.filter(p => {
+            const year = getEvaluationYearFromPeriodName(p.name);
+            return year && myAssocYears.includes(year);
+        });
     }
-    // For appraisees viewing their own reports or admins, show all periods
     return evaluationPeriods;
-  }, [evaluationPeriods, loggedInUser, userId, associations]);
+  }, [loggedInUser, evaluationPeriods, associations, userId]);
+
+  React.useEffect(() => {
+    if (displayPeriods.length > 0 && !selectedPeriodId) {
+        const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
+        setSelectedPeriodId(initialPeriodId || activePeriod?.id || displayPeriods[0].id);
+    }
+  }, [displayPeriods, selectedPeriodId, initialPeriodId]);
 
   const selectedPeriod = React.useMemo(() => {
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, displayPeriods]);
-
-
-  React.useEffect(() => {
-    if (displayPeriods.length > 0 && !selectedPeriodId) {
-      const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
-      if (initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)) {
-        setSelectedPeriodId(initialPeriodId);
-      } else if (activePeriod) {
-        setSelectedPeriodId(activePeriod.id);
-      } else if (displayPeriods[0]) {
-        setSelectedPeriodId(displayPeriods[0].id);
-      }
-    }
-  }, [displayPeriods, selectedPeriodId, initialPeriodId]);
-
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
@@ -117,27 +106,26 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
 
-    const periodInterval = {
-        start: (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any),
-        end: (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any),
-    };
+    const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
+    const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
+    
+    const periodStart = startOfMonth(start);
+    const periodEnd = endOfMonth(end);
 
-    const userActivities = activities.filter(a => {
-        if (a.userId !== appraisee.id || !a.startDate) return false;
-        const activityStartDate = (a.startDate as any).seconds 
-            ? (a.startDate as any).toDate() 
-            : new Date(a.startDate as any);
-        return isWithinInterval(activityStartDate, periodInterval);
-    });
-
+    const userActivities = activities.filter(a => a.userId === appraisee.id);
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        const progressDate = new Date(progress.year, progress.month - 1);
-        if (isWithinInterval(progressDate, periodInterval)) {
+        // Garantindo que progress.year e progress.month sejam tratados como números
+        const year = Number(progress.year);
+        const month = Number(progress.month);
+        const progressDate = new Date(year, month - 1, 15);
+        
+        if (isWithinInterval(progressDate, { start: periodStart, end: periodEnd })) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
           if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = {};
+          
           if (!monthlyData[monthYearKey][activity.id]) {
             monthlyData[monthYearKey][activity.id] = {
                 id: activity.id,
@@ -148,16 +136,26 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                 originalActivity: activity
             };
           }
-          monthlyData[monthYearKey][activity.id].totalPercentage = progress.percentage;
-          if (progress.comment) monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
+          
+          monthlyData[monthYearKey][activity.id].totalPercentage = Math.max(
+            monthlyData[monthYearKey][activity.id].totalPercentage, 
+            progress.percentage
+          );
+          
+          if (progress.comment && !monthlyData[monthYearKey][activity.id].comments.includes(progress.comment)) {
+            monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
+          }
         }
       });
     });
 
     const finalMonthlyActivities: Record<string, MonthlyActivity[]> = {};
-    for (const monthKey in monthlyData) {
+    const sortedMonthKeys = Object.keys(monthlyData).sort().reverse();
+    
+    sortedMonthKeys.forEach(monthKey => {
         finalMonthlyActivities[monthKey] = Object.values(monthlyData[monthKey]);
-    }
+    });
+
     return finalMonthlyActivities;
   }, [activities, appraisee, selectedPeriod]);
 
@@ -168,7 +166,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   }, [monthlyActivities, monthFilter]);
   
   const allMonthsOptions = React.useMemo(() => {
-    if (!selectedPeriod) return [];
     return Object.keys(monthlyActivities).map(key => {
       const [year, month] = key.split('-').map(Number);
       return {
@@ -176,15 +173,13 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
           label: format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})
       };
     }).sort((a,b) => b.value.localeCompare(a.value));
-  }, [monthlyActivities, selectedPeriod]);
-
+  }, [monthlyActivities]);
 
   const handleDownloadPdf = async () => {
     if (!appraisee || !selectedPeriod) return;
     setIsGeneratingPdf(true);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
-    
     const monthsToRender = (monthFilter === 'all'
       ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
       : [monthFilter]
@@ -198,8 +193,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             
             allRows.push([{ content: monthTitle.toUpperCase(), colSpan: 2, styles: { halign: 'center', fillColor: [230, 230, 230], textColor: 0, fontStyle: 'bold' } }]);
             
-            const activitiesForMonth = monthlyActivities[monthKey];
-            activitiesForMonth.forEach(activity => {
+            monthlyActivities[monthKey].forEach(activity => {
                  allRows.push([
                     `${activity.totalPercentage}%`,
                     `${activity.title.toUpperCase()} - ${activity.comments.join('; ') || 'Nenhum comentário.'}`
@@ -209,28 +203,23 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     }
 
     if (allRows.length === 0) {
-        allRows.push([{ content: 'Nenhuma atividade registrada para o período ou filtro selecionado.', colSpan: 2, styles: { halign: 'center' } }]);
+        allRows.push([{ content: 'Nenhuma atividade registrada.', colSpan: 2, styles: { halign: 'center' } }]);
     }
     
     const pageContent = (data: any) => {
         const pageWidth = pdf.internal.pageSize.getWidth();
-        let yPos = 15;
         pdf.setFontSize(12);
         pdf.setFont('helvetica', 'bold');
-        pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, yPos, { align: 'center' });
-        yPos += 8;
-
+        pdf.text('FICHA DE REGISTRO DE TRABALHOS REALIZADOS', pageWidth / 2, 15, { align: 'center' });
+        
         pdf.setFontSize(10);
         pdf.setFont('helvetica', 'normal');
-        
-        const startDate = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
-        const endDate = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
-        const periodRange = `${format(startDate, "MMM yyyy", { locale: ptBR })} a ${format(endDate, "MMM yyyy", { locale: ptBR })}`;
-        pdf.text(`Período de Avaliação: ${periodRange}`, pageWidth / 2, yPos, { align: 'center' });
-        yPos += 5;
+        const s = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
+        const e = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
+        pdf.text(`Período: ${format(s, "MMM yyyy", { locale: ptBR })} a ${format(e, "MMM yyyy", { locale: ptBR })}`, pageWidth / 2, 23, { align: 'center' });
         
         pdf.autoTable({
-            startY: yPos,
+            startY: 28,
             head: [["POSTO/GRAD. E NOME DO AVALIADO", "CARGO/FUNÇÃO"]],
             body: [[`${appraisee.postoGrad} ${appraisee.name}`, appraisee.jobTitle]],
             theme: 'grid',
@@ -238,115 +227,66 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             headStyles: { fillColor: [220, 220, 220], textColor: 0 },
         });
 
-        yPos = pdf.lastAutoTable.finalY + 2;
-
-        // Footer
-        const pageCount = (pdf as any).internal.getNumberOfPages();
-        pdf.setFontSize(8);
-        pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
-
-        return yPos;
+        return pdf.lastAutoTable.finalY + 2;
     };
-
 
     pdf.autoTable({
         body: allRows,
-        columns: [
-            { header: 'Progresso', dataKey: 0 },
-            { header: 'Atividade e Comentários', dataKey: 1 },
-        ],
+        columns: [{ header: 'Progresso', dataKey: 0 }, { header: 'Atividade e Comentários', dataKey: 1 }],
         columnStyles: { 0: { cellWidth: 25, halign: 'center', fontStyle: 'bold' } },
-        didParseCell: function (data: any) {
-            if (data.row.raw.length === 1 && data.row.raw[0].colSpan) {
-                data.cell.styles.fillColor = [230, 230, 230];
-                data.cell.styles.textColor = 0;
-                data.cell.styles.fontStyle = 'bold';
-                data.cell.styles.halign = 'center';
-            }
-        },
         willDrawPage: pageContent,
         startY: 50,
         margin: { top: 15, right: 15, bottom: 15, left: 15 } 
     });
 
-    pdf.save(`relatorio-${appraisee.name.replace(/\s/g, '_')}-${new Date().toISOString().split('T')[0]}.pdf`);
+    pdf.save(`relatorio-${appraisee.nomeDeGuerra}.pdf`);
     setIsGeneratingPdf(false);
   };
 
-
-  const handleOpenModal = (activity: Activity) => {
-    setSelectedActivity(activity);
-    setIsModalOpen(true);
-  };
-  
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-    setSelectedActivity(null);
-  };
-
-  const handlePeriodChange = (periodId: string) => {
-    setSelectedPeriodId(periodId);
-    setMonthFilter('all');
-  }
-
   if (!appraisee || !loggedInUser) {
-    return <div className="p-6">Carregando dados do relatório...</div>;
+    return <div className="p-6">Carregando dados...</div>;
   }
   
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
   const periodYear = selectedPeriod ? getEvaluationYearFromPeriodName(selectedPeriod.name) : '';
 
-
   return (
     <>
       <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
-        {isModalOpen && selectedActivity && appraisee && (
+        {isModalOpen && selectedActivity && (
             <ActivityForm
               activity={selectedActivity}
               onSave={() => Promise.resolve()}
-              onClose={handleCloseModal}
+              onClose={() => setIsModalOpen(false)}
               currentUserId={appraisee.id}
               isReadOnly={true}
             />
         )}
       </Dialog>
       
-      <div className="print:hidden flex flex-col h-full">
+      <div className="flex flex-col h-full">
         <main className="flex-1 p-2 md:p-6 overflow-auto space-y-6">
           <header className="space-y-4 mb-6">
-            <div className="space-y-2">
-              <Button variant="ghost" asChild className="-ml-4">
-                 <Link href={backLink}>
-                    <ArrowLeft className="mr-2 h-4 w-4" /> 
-                    Voltar
-                 </Link>
-              </Button>
-              <div className="flex items-center gap-2">
-                <Avatar className="h-8 w-8">
-                  <AvatarImage src={appraisee.avatarUrl} />
-                  <AvatarFallback>{appraisee.name.charAt(0)}</AvatarFallback>
-                </Avatar>
-                <p className="text-muted-foreground font-medium">{appraisee.postoGrad} {appraisee.name}</p>
-              </div>
+            <Button variant="ghost" asChild className="-ml-4">
+                 <Link href={backLink}><ArrowLeft className="mr-2 h-4 w-4" />Voltar</Link>
+            </Button>
+            <div className="flex items-center gap-2">
+              <Avatar className="h-8 w-8">
+                <AvatarImage src={appraisee.avatarUrl} />
+                <AvatarFallback>{appraisee.nomeDeGuerra.charAt(0)}</AvatarFallback>
+              </Avatar>
+              <p className="font-medium">{appraisee.postoGrad} {appraisee.nomeDeGuerra}</p>
             </div>
-
-             <h1 className="text-3xl font-bold font-headline">Relatório de Atividades {periodYear && `de ${periodYear}`}</h1>
-
-             <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-              <div className="flex items-center gap-2 w-full sm:w-auto">
+            <h1 className="text-3xl font-bold font-headline">Relatório de Atividade {periodYear && `de ${periodYear}`}</h1>
+            <div className="flex flex-col sm:flex-row gap-2">
+              <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
-                <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Filtrar por período" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {displayPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}
-                  </SelectContent>
+                <Select value={selectedPeriodId} onValueChange={(val) => { setSelectedPeriodId(val); setMonthFilter('all'); }}>
+                  <SelectTrigger className="w-full sm:w-[250px]"><SelectValue placeholder="Período" /></SelectTrigger>
+                  <SelectContent>{displayPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
                  <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
-                    <SelectValue placeholder="Filtrar por mês" />
-                  </SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Meses</SelectItem>
                     {allMonthsOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
@@ -354,8 +294,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                 </Select>
               </div>
               <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="w-full sm:w-auto">
-                <Printer className="mr-2 h-4 w-4" />
-                {isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
+                <Printer className="mr-2 h-4 w-4" />{isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
               </Button>
             </div>
           </header>
@@ -365,53 +304,43 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
              return (
                 <Card key={monthKey}>
                     <CardHeader>
-                    <CardTitle>{format(new Date(year, month -1), "MMMM 'de' yyyy", {locale: ptBR})}</CardTitle>
-                    <CardDescription>
-                        Atividades com progresso registrado neste mês.
-                    </CardDescription>
+                    <CardTitle>{format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})}</CardTitle>
                     </CardHeader>
                     <CardContent>
                     <Table>
                         <TableHeader>
                         <TableRow>
                             <TableHead className="w-[40%]">Título</TableHead>
-                            <TableHead className="w-[40%] hidden sm:table-cell">Comentário do Mês</TableHead>
-                            <TableHead>Progresso no Mês</TableHead>
+                            <TableHead className="w-[40%] hidden sm:table-cell">Comentários</TableHead>
+                            <TableHead>Progresso</TableHead>
                         </TableRow>
                         </TableHeader>
                         <TableBody>
                          {monthlyActivities[monthKey]?.map(activity => (
-                            <TableRow key={`${activity.id}-${monthKey}`}>
+                            <TableRow key={activity.id}>
                             <TableCell className="font-medium">
-                                <button
-                                    className="text-left hover:underline"
-                                    onClick={() => handleOpenModal(activity.originalActivity)}
-                                >
+                                <button className="hover:underline text-left" onClick={() => { setSelectedActivity(activity.originalActivity); setIsModalOpen(true); }}>
                                     {activity.title}
                                 </button>
                             </TableCell>
-                            <TableCell className="text-muted-foreground italic hidden sm:table-cell">"{activity.comments.join('; ') || 'N/A'}"</TableCell>
+                            <TableCell className="text-muted-foreground italic hidden sm:table-cell">
+                                {activity.comments.length > 0 ? `"${activity.comments.join('; ')}"` : '-'}
+                            </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                <Progress value={activity.totalPercentage} className="w-[60%] md:w-[80%]" />
-                                <span className="text-xs md:text-sm">{activity.totalPercentage}%</span>
+                                    <Progress value={activity.totalPercentage} className="w-full sm:w-[80%]" />
+                                    <span className="text-xs">{activity.totalPercentage}%</span>
                                 </div>
                             </TableCell>
                             </TableRow>
-                        )) ?? (
-                            <TableRow>
-                                <TableCell colSpan={3} className="text-center h-24">Nenhuma atividade registrada para este mês.</TableCell>
-                           </TableRow>
-                        )}
+                        ))}
                         </TableBody>
                     </Table>
                     </CardContent>
                 </Card>
              )
           }) : (
-            <div className="text-center py-12 text-muted-foreground">
-                <p>Nenhuma atividade encontrada para o período ou filtro selecionado.</p>
-            </div>
+            <div className="text-center py-12 text-muted-foreground">Nenhuma atividade encontrada no período selecionado.</div>
           )}
         </main>
       </div>
