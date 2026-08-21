@@ -61,7 +61,7 @@ type MonthlyActivity = {
 };
 
 export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: string, initialPeriodId?: string }) {
-  const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
+  const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>(initialPeriodId || '');
@@ -71,27 +71,41 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Load all evaluation periods
-  const displayPeriods = evaluationPeriods;
+  // Filtragem de períodos baseada na associação do avaliador
+  const displayPeriods = React.useMemo(() => {
+    if (!loggedInUser || !evaluationPeriods.length) return [];
+    
+    // Se for avaliador, mostrar apenas períodos associados a este avaliado
+    if (loggedInUser.role === 'appraiser') {
+        const myAssocYears = associations
+            .filter(a => a.appraiserId === loggedInUser.id && a.appraiseeId === userId)
+            .map(a => a.evaluationYear);
+        
+        return evaluationPeriods.filter(p => {
+            const year = getEvaluationYearFromPeriodName(p.name);
+            return year && myAssocYears.includes(year);
+        });
+    }
+    
+    // Admin ou Avaliado vê todos os períodos
+    return evaluationPeriods;
+  }, [loggedInUser, evaluationPeriods, associations, userId]);
 
   const selectedPeriod = React.useMemo(() => {
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, displayPeriods]);
 
-
+  // Efeito para seleção inicial do período
   React.useEffect(() => {
     if (displayPeriods.length > 0 && !selectedPeriodId) {
-      const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
       if (initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)) {
         setSelectedPeriodId(initialPeriodId);
-      } else if (activePeriod) {
-        setSelectedPeriodId(activePeriod.id);
-      } else if (displayPeriods[0]) {
-        setSelectedPeriodId(displayPeriods[0].id);
+      } else {
+        const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
+        setSelectedPeriodId(activePeriod?.id || displayPeriods[0].id);
       }
     }
-  }, [displayPeriods, selectedPeriodId, initialPeriodId]);
-
+  }, [displayPeriods, initialPeriodId, selectedPeriodId]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
@@ -104,18 +118,14 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
     const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
     
-    // Normalize to encompassed the full range of the period
     const periodStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
     const periodEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
 
-    // Filter by user only, not by start date (we care about progress records within the period)
     const userActivities = activities.filter(a => a.userId === appraisee.id);
-
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        // Create a comparison date for the middle of the progress month to avoid boundary issues
         const progressDate = new Date(progress.year, progress.month - 1, 15);
         
         if (progressDate >= periodStart && progressDate <= periodEnd) {
@@ -133,7 +143,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             };
           }
           
-          // Use the highest percentage reported for this activity in this specific month
           monthlyData[monthYearKey][activity.id].totalPercentage = Math.max(
             monthlyData[monthYearKey][activity.id].totalPercentage, 
             progress.percentage
@@ -170,13 +179,11 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     }).sort((a,b) => b.value.localeCompare(a.value));
   }, [monthlyActivities, selectedPeriod]);
 
-
   const handleDownloadPdf = async () => {
     if (!appraisee || !selectedPeriod) return;
     setIsGeneratingPdf(true);
 
     const pdf = new jsPDF('p', 'mm', 'a4');
-    
     const monthsToRender = (monthFilter === 'all'
       ? Object.keys(monthlyActivities).sort((a, b) => a.localeCompare(b))
       : [monthFilter]
@@ -231,15 +238,11 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
         });
 
         yPos = pdf.lastAutoTable.finalY + 2;
-
-        // Footer
         const pageCount = (pdf as any).internal.getNumberOfPages();
         pdf.setFontSize(8);
         pdf.text(`Página ${data.pageNumber} de ${pageCount}`, pdf.internal.pageSize.getWidth() - 15, pdf.internal.pageSize.getHeight() - 10, { align: 'right' });
-
         return yPos;
     };
-
 
     pdf.autoTable({
         body: allRows,
@@ -265,7 +268,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     setIsGeneratingPdf(false);
   };
 
-
   const handleOpenModal = (activity: Activity) => {
     setSelectedActivity(activity);
     setIsModalOpen(true);
@@ -287,7 +289,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   
   const backLink = loggedInUser.role === 'appraiser' ? '/appraiser/dashboard' : '/appraisee/reports';
   const periodYear = selectedPeriod ? getEvaluationYearFromPeriodName(selectedPeriod.name) : '';
-
 
   return (
     <>
@@ -410,4 +411,3 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     </>
   );
 }
-

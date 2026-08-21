@@ -1,3 +1,4 @@
+
 # Instrucoes para agentes
 
 Objetivo principal: resolver tarefas com o menor uso possivel de tokens, memoria e comandos pesados.
