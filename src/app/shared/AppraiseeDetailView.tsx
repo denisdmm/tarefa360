@@ -1,5 +1,4 @@
 
-
 "use client";
 
 import * as React from 'react';
@@ -32,7 +31,7 @@ import { useDataContext } from '@/context/DataContext';
 import type { Activity, User, EvaluationPeriod } from "@/lib/types";
 import { ArrowLeft, Filter, Printer } from "lucide-react";
 import Link from 'next/link';
-import { format, isWithinInterval } from 'date-fns';
+import { format } from 'date-fns';
 import { ptBR } from 'date-fns/locale';
 import jsPDF from 'jspdf';
 import 'jspdf-autotable';
@@ -62,7 +61,7 @@ type MonthlyActivity = {
 };
 
 export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: string, initialPeriodId?: string }) {
-  const { users, activities, evaluationPeriods, loggedInUser, associations } = useDataContext();
+  const { users, activities, evaluationPeriods, loggedInUser } = useDataContext();
   
   const [appraisee, setAppraisee] = React.useState<User | null>(null);
   const [selectedPeriodId, setSelectedPeriodId] = React.useState<string>(initialPeriodId || '');
@@ -72,23 +71,8 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  const displayPeriods = React.useMemo(() => {
-    if (loggedInUser?.role === 'appraiser' && loggedInUser.id !== userId) {
-      // Find years where the logged-in appraiser was associated with the viewed appraisee
-      const relevantYears = associations
-        .filter(a => a.appraiserId === loggedInUser.id && a.appraiseeId === userId)
-        .map(a => a.evaluationYear);
-      
-      const uniqueYears = [...new Set(relevantYears)];
-
-      return evaluationPeriods.filter(p => {
-        const periodYear = getEvaluationYearFromPeriodName(p.name);
-        return periodYear ? uniqueYears.includes(periodYear) : false;
-      });
-    }
-    // For appraisees viewing their own reports or admins, show all periods
-    return evaluationPeriods;
-  }, [evaluationPeriods, loggedInUser, userId, associations]);
+  // Load all evaluation periods
+  const displayPeriods = evaluationPeriods;
 
   const selectedPeriod = React.useMemo(() => {
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
@@ -117,27 +101,27 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
 
-    const periodInterval = {
-        start: (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any),
-        end: (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any),
-    };
+    const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
+    const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
+    
+    // Normalize to encompassed the full range of the period
+    const periodStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
+    const periodEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
 
-    const userActivities = activities.filter(a => {
-        if (a.userId !== appraisee.id || !a.startDate) return false;
-        const activityStartDate = (a.startDate as any).seconds 
-            ? (a.startDate as any).toDate() 
-            : new Date(a.startDate as any);
-        return isWithinInterval(activityStartDate, periodInterval);
-    });
+    // Filter by user only, not by start date (we care about progress records within the period)
+    const userActivities = activities.filter(a => a.userId === appraisee.id);
 
     const monthlyData: Record<string, Record<string, MonthlyActivity>> = {};
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        const progressDate = new Date(progress.year, progress.month - 1);
-        if (isWithinInterval(progressDate, periodInterval)) {
+        // Create a comparison date for the middle of the progress month to avoid boundary issues
+        const progressDate = new Date(progress.year, progress.month - 1, 15);
+        
+        if (progressDate >= periodStart && progressDate <= periodEnd) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
           if (!monthlyData[monthYearKey]) monthlyData[monthYearKey] = {};
+          
           if (!monthlyData[monthYearKey][activity.id]) {
             monthlyData[monthYearKey][activity.id] = {
                 id: activity.id,
@@ -148,8 +132,16 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                 originalActivity: activity
             };
           }
-          monthlyData[monthYearKey][activity.id].totalPercentage = progress.percentage;
-          if (progress.comment) monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
+          
+          // Use the highest percentage reported for this activity in this specific month
+          monthlyData[monthYearKey][activity.id].totalPercentage = Math.max(
+            monthlyData[monthYearKey][activity.id].totalPercentage, 
+            progress.percentage
+          );
+          
+          if (progress.comment) {
+            monthlyData[monthYearKey][activity.id].comments.push(progress.comment);
+          }
         }
       });
     });
@@ -330,13 +322,13 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
               </div>
             </div>
 
-             <h1 className="text-3xl font-bold font-headline">Relatório de Atividades {periodYear && `de ${periodYear}`}</h1>
+             <h1 className="text-3xl font-bold font-headline">Relatório de Atividade {periodYear && `de ${periodYear}`}</h1>
 
              <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
               <div className="flex items-center gap-2 w-full sm:w-auto">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedPeriodId} onValueChange={handlePeriodChange}>
-                  <SelectTrigger className="w-full sm:w-[200px]">
+                  <SelectTrigger className="w-full sm:w-[250px]">
                     <SelectValue placeholder="Filtrar por período" />
                   </SelectTrigger>
                   <SelectContent>
@@ -365,7 +357,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
              return (
                 <Card key={monthKey}>
                     <CardHeader>
-                    <CardTitle>{format(new Date(year, month -1), "MMMM 'de' yyyy", {locale: ptBR})}</CardTitle>
+                    <CardTitle>{format(new Date(year, month - 1), "MMMM 'de' yyyy", {locale: ptBR})}</CardTitle>
                     <CardDescription>
                         Atividades com progresso registrado neste mês.
                     </CardDescription>
@@ -418,3 +410,4 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     </>
   );
 }
+
