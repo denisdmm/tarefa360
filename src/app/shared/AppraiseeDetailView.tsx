@@ -71,7 +71,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
   const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
   const [isModalOpen, setIsModalOpen] = React.useState(false);
 
-  // Filtragem contextual: avaliadores veem apenas períodos associados a este avaliado
   const displayPeriods = React.useMemo(() => {
     if (!loggedInUser || !evaluationPeriods.length) return [];
     
@@ -92,34 +91,24 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, displayPeriods]);
 
-  // Sincronização do estado inicial e via navegação
-  React.useEffect(() => {
-    if (initialPeriodId) {
-        setSelectedPeriodId(initialPeriodId);
-    }
-  }, [initialPeriodId]);
-
-  // Se nada foi selecionado e temos períodos disponíveis, define o padrão
   React.useEffect(() => {
     if (displayPeriods.length > 0 && !selectedPeriodId) {
         const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
-        setSelectedPeriodId(activePeriod?.id || displayPeriods[0].id);
+        setSelectedPeriodId(initialPeriodId || activePeriod?.id || displayPeriods[0].id);
     }
-  }, [displayPeriods, selectedPeriodId]);
+  }, [displayPeriods, selectedPeriodId, initialPeriodId]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
     setAppraisee(foundUser);
   }, [userId, users]);
 
-  // Lógica de processamento de atividades mensais
   const monthlyActivities = React.useMemo(() => {
     if (!selectedPeriod || !appraisee) return {};
 
     const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
     const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
     
-    // Nov 1st to Oct 31st
     const periodStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
     const periodEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
 
@@ -128,7 +117,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        // Usa dia 15 como referência neutra para o mês
         const progressDate = new Date(progress.year, progress.month - 1, 15);
         
         if (progressDate >= periodStart && progressDate <= periodEnd) {
@@ -146,7 +134,6 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
             };
           }
           
-          // Pega a maior porcentagem do mês
           monthlyData[monthYearKey][activity.id].totalPercentage = Math.max(
             monthlyData[monthYearKey][activity.id].totalPercentage, 
             progress.percentage
