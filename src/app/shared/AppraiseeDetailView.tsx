@@ -92,17 +92,20 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
   }, [selectedPeriodId, displayPeriods]);
 
-  // Inicialização única do estado
+  // Sincronização do estado inicial e via navegação
+  React.useEffect(() => {
+    if (initialPeriodId) {
+        setSelectedPeriodId(initialPeriodId);
+    }
+  }, [initialPeriodId]);
+
+  // Se nada foi selecionado e temos períodos disponíveis, define o padrão
   React.useEffect(() => {
     if (displayPeriods.length > 0 && !selectedPeriodId) {
-        if (initialPeriodId && displayPeriods.some(p => p.id === initialPeriodId)) {
-            setSelectedPeriodId(initialPeriodId);
-        } else {
-            const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
-            setSelectedPeriodId(activePeriod?.id || displayPeriods[0].id);
-        }
+        const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
+        setSelectedPeriodId(activePeriod?.id || displayPeriods[0].id);
     }
-  }, [displayPeriods, initialPeriodId, selectedPeriodId]);
+  }, [displayPeriods, selectedPeriodId]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
@@ -116,6 +119,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     const start = (selectedPeriod.startDate as any).seconds ? (selectedPeriod.startDate as any).toDate() : new Date(selectedPeriod.startDate as any);
     const end = (selectedPeriod.endDate as any).seconds ? (selectedPeriod.endDate as any).toDate() : new Date(selectedPeriod.endDate as any);
     
+    // Nov 1st to Oct 31st
     const periodStart = new Date(start.getFullYear(), start.getMonth(), start.getDate(), 0, 0, 0, 0);
     const periodEnd = new Date(end.getFullYear(), end.getMonth(), end.getDate(), 23, 59, 59, 999);
 
@@ -124,7 +128,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        // Usa 15 como dia neutro para comparação de mês/ano
+        // Usa dia 15 como referência neutra para o mês
         const progressDate = new Date(progress.year, progress.month - 1, 15);
         
         if (progressDate >= periodStart && progressDate <= periodEnd) {
@@ -286,18 +290,18 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
               <div className="flex items-center gap-2">
                 <Filter className="h-4 w-4 text-muted-foreground" />
                 <Select value={selectedPeriodId} onValueChange={(val) => { setSelectedPeriodId(val); setMonthFilter('all'); }}>
-                  <SelectTrigger className="w-[250px]"><SelectValue placeholder="Período" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[250px]"><SelectValue placeholder="Período" /></SelectTrigger>
                   <SelectContent>{displayPeriods.map(p => <SelectItem key={p.id} value={p.id}>{p.name}</SelectItem>)}</SelectContent>
                 </Select>
                  <Select value={monthFilter} onValueChange={setMonthFilter}>
-                  <SelectTrigger className="w-[200px]"><SelectValue placeholder="Mês" /></SelectTrigger>
+                  <SelectTrigger className="w-full sm:w-[200px]"><SelectValue placeholder="Mês" /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="all">Todos os Meses</SelectItem>
                     {allMonthsOptions.map(m => <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>)}
                   </SelectContent>
                 </Select>
               </div>
-              <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf}>
+              <Button onClick={handleDownloadPdf} disabled={isGeneratingPdf} className="w-full sm:w-auto">
                 <Printer className="mr-2 h-4 w-4" />{isGeneratingPdf ? 'Gerando...' : 'Gerar PDF'}
               </Button>
             </div>
@@ -323,7 +327,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                          {monthlyActivities[monthKey]?.map(activity => (
                             <TableRow key={activity.id}>
                             <TableCell className="font-medium">
-                                <button className="hover:underline" onClick={() => { setSelectedActivity(activity.originalActivity); setIsModalOpen(true); }}>
+                                <button className="hover:underline text-left" onClick={() => { setSelectedActivity(activity.originalActivity); setIsModalOpen(true); }}>
                                     {activity.title}
                                 </button>
                             </TableCell>
@@ -332,7 +336,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                             </TableCell>
                             <TableCell>
                                 <div className="flex items-center gap-2">
-                                    <Progress value={activity.totalPercentage} className="w-[80%]" />
+                                    <Progress value={activity.totalPercentage} className="w-full sm:w-[80%]" />
                                     <span className="text-xs">{activity.totalPercentage}%</span>
                                 </div>
                             </TableCell>
@@ -344,7 +348,7 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
                 </Card>
              )
           }) : (
-            <div className="text-center py-12 text-muted-foreground">Nenhuma atividade encontrada no período.</div>
+            <div className="text-center py-12 text-muted-foreground">Nenhuma atividade encontrada no período selecionado.</div>
           )}
         </main>
       </div>
