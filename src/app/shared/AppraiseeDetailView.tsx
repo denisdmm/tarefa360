@@ -87,16 +87,16 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
     return evaluationPeriods;
   }, [loggedInUser, evaluationPeriods, associations, userId]);
 
-  const selectedPeriod = React.useMemo(() => {
-    return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
-  }, [selectedPeriodId, displayPeriods]);
-
   React.useEffect(() => {
     if (displayPeriods.length > 0 && !selectedPeriodId) {
         const activePeriod = displayPeriods.find(p => p.status === 'Ativo');
         setSelectedPeriodId(initialPeriodId || activePeriod?.id || displayPeriods[0].id);
     }
   }, [displayPeriods, selectedPeriodId, initialPeriodId]);
+
+  const selectedPeriod = React.useMemo(() => {
+    return displayPeriods.find(p => p.id === selectedPeriodId) ?? null;
+  }, [selectedPeriodId, displayPeriods]);
 
   React.useEffect(() => {
     const foundUser = users.find(u => u.id === userId) || null;
@@ -117,8 +117,10 @@ export function AppraiseeDetailView({ userId, initialPeriodId }: { userId: strin
 
     userActivities.forEach(activity => {
       activity.progressHistory.forEach(progress => {
-        // Garantindo que progress.year e progress.month gerem uma data comparável
-        const progressDate = new Date(progress.year, progress.month - 1, 15);
+        // Garantindo que progress.year e progress.month sejam tratados como números
+        const year = Number(progress.year);
+        const month = Number(progress.month);
+        const progressDate = new Date(year, month - 1, 15);
         
         if (isWithinInterval(progressDate, { start: periodStart, end: periodEnd })) {
           const monthYearKey = format(progressDate, 'yyyy-MM');
